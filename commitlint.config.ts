@@ -3,37 +3,17 @@ import type { UserConfig } from '@commitlint/types'
 const config: UserConfig = {
   extends: ['@commitlint/config-conventional'],
   rules: {
+    'type-enum': [
+      2,
+      'always',
+      ['feat', 'fix', 'docs', 'refactor', 'test', 'build', 'ci', 'chore', 'perf', 'revert'],
+    ],
     'scope-enum': [
       2,
       'always',
-      [
-        // 패키지
-        'lyrd',
-        'docs',
-        // 컴포넌트
-        'dialog',
-        'popover',
-        'tooltip',
-        'toast',
-        'drawer',
-        'field',
-        'input',
-        'textarea',
-        'select',
-        'combobox',
-        'checkbox',
-        'radio',
-        'switch',
-        'tabs',
-        'accordion',
-        'collapsible',
-        // 코어
-        'core',
-        'overlay-engine',
-        'field-engine',
-        'css',
-      ],
+      ['repo', 'core', 'cli', 'storybook', 'docs', 'release', 'ci', 'overlay', 'dialog'],
     ],
+    'header-max-length': [2, 'always', 100],
   },
 }
 
