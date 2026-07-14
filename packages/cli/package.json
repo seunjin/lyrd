@@ -32,11 +32,12 @@
     "@types/node": "^24.7.2",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@lyrd/core": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tsup": "^8.3.0",
-    "typescript": "^5.7.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^4.1.7"
   }
 }

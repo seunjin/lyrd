@@ -5,9 +5,8 @@
     "declarationMap": false,
     "noEmit": true,
     "types": ["node"],
-    "baseUrl": "../..",
     "paths": {
-      "@lyrd/core": ["packages/core/src/index.ts"]
+      "@lyrd/core": ["../../packages/core/src/index.ts"]
     }
   },
   "include": [".storybook", "src"]

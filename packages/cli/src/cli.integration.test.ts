@@ -39,6 +39,7 @@ async function createViteFixture(): Promise<string> {
     )}\n`,
   )
   await writeFile(path.join(fixtureDirectory, 'src/main.tsx'), 'export {}\n')
+  await writeFile(path.join(fixtureDirectory, 'src/styles.d.ts'), "declare module '*.css'\n")
   await writeFile(
     path.join(fixtureDirectory, 'tsconfig.json'),
     `${JSON.stringify(
@@ -52,12 +53,11 @@ async function createViteFixture(): Promise<string> {
           strict: true,
           skipLibCheck: true,
           noEmit: true,
-          baseUrl: repositoryRoot,
           paths: {
-            '@lyrd/core': ['packages/core/src/index.ts'],
+            '@lyrd/core': [path.join(repositoryRoot, 'packages/core/src/index.ts')],
           },
         },
-        include: ['src/lyrd/overlay/**/*.ts', 'src/lyrd/overlay/**/*.tsx'],
+        include: ['src/**/*.d.ts', 'src/lyrd/overlay/**/*.ts', 'src/lyrd/overlay/**/*.tsx'],
       },
       null,
       2,
@@ -95,6 +95,7 @@ async function createNextFixture(): Promise<string> {
     )}\n`,
   )
   await writeFile(path.join(fixtureDirectory, 'src', 'app', 'layout.tsx'), 'export {}\n')
+  await writeFile(path.join(fixtureDirectory, 'src/styles.d.ts'), "declare module '*.css'\n")
   await writeFile(
     path.join(fixtureDirectory, 'tsconfig.json'),
     `${JSON.stringify(
@@ -108,12 +109,16 @@ async function createNextFixture(): Promise<string> {
           strict: true,
           skipLibCheck: true,
           noEmit: true,
-          baseUrl: repositoryRoot,
           paths: {
-            '@lyrd/core': ['packages/core/src/index.ts'],
+            '@lyrd/core': [path.join(repositoryRoot, 'packages/core/src/index.ts')],
           },
         },
-        include: ['src/lyrd/overlay/**/*.ts', 'src/lyrd/overlay/**/*.tsx', 'src/app/**/*.tsx'],
+        include: [
+          'src/**/*.d.ts',
+          'src/lyrd/overlay/**/*.ts',
+          'src/lyrd/overlay/**/*.tsx',
+          'src/app/**/*.tsx',
+        ],
       },
       null,
       2,

@@ -25,7 +25,8 @@
     "@changesets/cli": "^2.30.0",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "lefthook": "^2.1.4",
-    "typescript": "^5.7.0"
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

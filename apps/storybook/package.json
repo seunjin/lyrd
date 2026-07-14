@@ -19,8 +19,9 @@
     "@types/node": "^20",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "storybook": "^10.5.0",
-    "typescript": "^5.7.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vite": "^6.3.3"
   }
 }
