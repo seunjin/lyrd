@@ -1,0 +1,42 @@
+{
+  "name": "@lyrd/cli",
+  "version": "0.2.0",
+  "description": "CLI for scaffolding Base UI overlay renderers for Lyrd",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "lyrd": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:package": "pnpm run build && node scripts/package-smoke.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@types/node": "^24.7.2",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@lyrd/core": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.7"
+  }
+}

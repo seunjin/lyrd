@@ -1,0 +1,42 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.lyrd-story {
+  display: grid;
+  gap: 16px;
+  width: min(680px, calc(100vw - 48px));
+  align-items: start;
+}
+
+.lyrd-story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.lyrd-story-result {
+  margin: 0;
+  color: #64748b;
+}
+
+.lyrd-story-result code {
+  color: #0f172a;
+}

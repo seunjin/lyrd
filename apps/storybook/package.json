@@ -1,0 +1,26 @@
+{
+  "name": "@lyrd/storybook",
+  "private": true,
+  "version": "0.0.3",
+  "type": "module",
+  "scripts": {
+    "dev": "storybook dev -p 6006 --no-open",
+    "build": "storybook build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@lyrd/core": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "^10.5.0",
+    "@types/node": "^20",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "storybook": "^10.5.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.3.3"
+  }
+}
