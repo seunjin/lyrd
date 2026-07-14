@@ -15,6 +15,14 @@ on:
         options:
           - trusted-publishing
           - bootstrap-token
+      operation:
+        description: '일반 배포 또는 최초 프리릴리스 공개 상태와 태그만 보정합니다.'
+        required: true
+        default: publish
+        type: choice
+        options:
+          - publish
+          - finalize-prerelease
 
 permissions:
   contents: read
@@ -59,6 +67,13 @@ jobs:
         run: test -n "$NODE_AUTH_TOKEN"
 
       - name: npm에 공개 배포
+        if: ${{ inputs.operation == 'publish' }}
         run: pnpm exec changeset publish
+        env:
+          NODE_AUTH_TOKEN: ${{ inputs.authentication == 'bootstrap-token' && secrets.NPM_TOKEN || '' }}
+
+      - name: 프리릴리스 공개 상태와 태그 확정
+        if: ${{ inputs.operation == 'finalize-prerelease' || inputs.operation == 'publish' }}
+        run: node scripts/finalize-prerelease.mjs
         env:
           NODE_AUTH_TOKEN: ${{ inputs.authentication == 'bootstrap-token' && secrets.NPM_TOKEN || '' }}

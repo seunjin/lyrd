@@ -29,6 +29,8 @@ Lyrd는 UI 표현을 배포하지 않고 런타임과 로컬 렌더러 생성기
 6. npm 패키지 페이지에서 버전과 provenance를 확인한다.
 7. 두 패키지에 Trusted Publisher를 등록하고 다음 배포부터 인증 방식 `trusted-publishing`을 사용한다.
 
+Changesets는 안정 버전 이력이 없는 최초 프리릴리스를 일시적으로 `latest`에 연결한다. 배포 워크플로는 게시 직후 패키지를 public으로 확정하고 `next` 태그를 추가한 다음, 현재 프리릴리스에 붙은 `latest`만 제거한다. 게시 자체는 성공했지만 이 후처리만 다시 실행해야 할 때는 작업으로 `finalize-prerelease`를 선택한다.
+
 후속 후보 변경에는 새 Changeset을 추가하고 `pnpm version-packages`를 다시 실행해 `next.1`, `next.2`로 올린다.
 
 ## 안정 버전 전환
