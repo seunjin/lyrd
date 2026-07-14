@@ -89,6 +89,7 @@ async function main() {
 
     const help = await runCommand(pnpmCommand, ['exec', 'lyrd', '--help'], fixtureDirectory)
     assert.match(help.stdout, /lyrd add overlay/)
+    assert.match(help.stdout, /lyrd add dialog <name>/)
 
     const add = await runCommand(
       pnpmCommand,
@@ -102,6 +103,18 @@ async function main() {
     await Promise.all(
       ['alert.tsx', 'confirm.tsx', 'overlay-provider.tsx', 'overlay.css', 'index.ts'].map(
         (fileName) => access(path.join(overlayDirectory, fileName)),
+      ),
+    )
+
+    const dialog = await runCommand(
+      pnpmCommand,
+      ['exec', 'lyrd', 'add', 'dialog', 'project-settings'],
+      fixtureDirectory,
+    )
+    assert.match(dialog.stdout, /Added dialog project-settings/)
+    await Promise.all(
+      ['project-settings-dialog.tsx', 'dialog.css', 'index.ts'].map((fileName) =>
+        access(path.join(overlayDirectory, 'dialogs', fileName)),
       ),
     )
 

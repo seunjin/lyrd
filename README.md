@@ -37,6 +37,14 @@ Vite 프로젝트에서는 CLI가 실제 `src/main.tsx` 또는 `src/main.jsx`에
 
 생성 파일을 앱의 디자인 시스템과 기존 확인창에 연결하는 방법은 [로컬 오버레이 렌더러 커스터마이징 cookbook](docs/cookbook/local-overlay-renderer.md)을 참고한다.
 
+개별 범용 Dialog 시작 파일은 Overlay 설치 후 다음 명령으로 추가한다.
+
+~~~bash
+pnpm dlx @lyrd/cli add dialog project-settings
+~~~
+
+생성된 컴포넌트는 `useOverlayDialog()` 수명주기를 연결하며, 앱이 모달·Drawer·풀페이지 등 원하는 형태로 수정한다.
+
 ## 사용
 
 ~~~tsx

@@ -12,7 +12,11 @@ import {
   pathExists,
   toPosixPath,
 } from './project'
-import { getNextAppRouterProviderTemplate, getOverlayScaffoldFiles } from './templates'
+import {
+  getDialogScaffoldFiles,
+  getNextAppRouterProviderTemplate,
+  getOverlayScaffoldFiles,
+} from './templates'
 import type { LyrdConfig } from './types'
 
 interface ParsedArgs {
@@ -44,9 +48,11 @@ function printHelp(): void {
 Usage:
   lyrd init [--cwd <path>]
   lyrd add overlay [--cwd <path>] [--verbose]
+  lyrd add dialog <name> [--cwd <path>] [--verbose]
 
 Examples:
   pnpm dlx @lyrd/cli add overlay
+  pnpm dlx @lyrd/cli add dialog project-settings
   pnpm dlx @lyrd/cli init
 `)
 }
@@ -228,16 +234,7 @@ async function runInit(cwd: string): Promise<number> {
   return 0
 }
 
-async function runAdd(
-  features: string[],
-  cwd: string,
-  skipInstall: boolean,
-  verbose: boolean,
-): Promise<number> {
-  if (features.length !== 1 || features[0] !== 'overlay') {
-    throw new Error('The vNext CLI only supports: lyrd add overlay')
-  }
-
+async function runAddOverlay(cwd: string, skipInstall: boolean, verbose: boolean): Promise<number> {
   const projectRoot = await findProjectRoot(cwd)
   const { config, configPath, created } = await ensureConfig(projectRoot)
   const overlayPath = getOverlayPath(config)
@@ -359,6 +356,112 @@ async function runAdd(
   }
 
   return 0
+}
+
+function getDialogNames(dialogName: string): {
+  componentName: string
+  fileName: string
+  resultName: string
+} {
+  if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(dialogName)) {
+    throw new Error('Dialog 이름은 project-settings 같은 kebab-case 형식이어야 합니다.')
+  }
+
+  const baseName = dialogName
+    .split('-')
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join('')
+
+  return {
+    componentName: `${baseName}Dialog`,
+    fileName: `${dialogName}-dialog`,
+    resultName: `${baseName}DialogResult`,
+  }
+}
+
+async function runAddDialog(dialogName: string, cwd: string, verbose: boolean): Promise<number> {
+  const names = getDialogNames(dialogName)
+  const projectRoot = await findProjectRoot(cwd)
+  const { config } = await ensureConfig(projectRoot)
+  const overlayPath = getOverlayPath(config)
+  const overlayProviderPath = fromProjectPath(projectRoot, `${overlayPath}/overlay-provider.tsx`)
+
+  if (!(await pathExists(overlayProviderPath))) {
+    throw new Error('먼저 lyrd add overlay를 실행해 OverlayProvider를 설치해 주세요.')
+  }
+
+  const dialogPath = toPosixPath(path.join(overlayPath, 'dialogs'))
+  const dialogDir = fromProjectPath(projectRoot, dialogPath)
+  const createdPaths: string[] = []
+  const skippedPaths: string[] = []
+  const updatedPaths = new Set<string>()
+
+  await ensureDirectory(dialogDir)
+
+  for (const file of getDialogScaffoldFiles(dialogName)) {
+    const targetPath = path.join(dialogDir, file.name)
+    const result = await writeScaffoldFile(targetPath, file.content)
+    const formattedPath = formatRelativePath(projectRoot, targetPath)
+    if (result === 'created') {
+      createdPaths.push(formattedPath)
+    } else {
+      skippedPaths.push(formattedPath)
+    }
+  }
+
+  const dialogIndexStatus = await ensureIndexExport(projectRoot, dialogPath, names.fileName)
+  if (dialogIndexStatus !== 'skipped') {
+    updatedPaths.add(`${dialogPath}/index.ts`)
+  }
+
+  const overlayIndexStatus = await ensureIndexExport(projectRoot, overlayPath, 'dialogs')
+  if (overlayIndexStatus !== 'skipped') {
+    updatedPaths.add(`${overlayPath}/index.ts`)
+  }
+
+  console.log(`\nAdded dialog ${dialogName}`)
+  console.log(`Local dialog path: ${dialogPath}/${names.fileName}.tsx`)
+  printList('Created', createdPaths)
+  printList('Updated', [...updatedPaths])
+
+  if (createdPaths.length === 0 && updatedPaths.size === 0) {
+    console.log('\nNo new files were created.')
+  }
+
+  printList('Kept existing', skippedPaths)
+  printList('Next step', [
+    `Open ${names.componentName} with overlay.dialog<${names.resultName}>(<${names.componentName} />)`,
+  ])
+  printList('Docs', [`${REPOSITORY_URL}/blob/main/docs/rfcs/0002-registered-overlay-contract.md`])
+
+  if (verbose) {
+    console.log(`\nRuntime snippet (${names.fileName}.tsx):\n`)
+    console.log(`const result = await overlay.dialog<${names.resultName}>(
+  <${names.componentName} />,
+)`)
+  } else {
+    console.log('\nTip:')
+    console.log('- Run the same command with --verbose to print the full runtime snippet')
+  }
+
+  return 0
+}
+
+async function runAdd(
+  features: string[],
+  cwd: string,
+  skipInstall: boolean,
+  verbose: boolean,
+): Promise<number> {
+  if (features.length === 1 && features[0] === 'overlay') {
+    return runAddOverlay(cwd, skipInstall, verbose)
+  }
+
+  if (features.length === 2 && features[0] === 'dialog' && features[1]) {
+    return runAddDialog(features[1], cwd, verbose)
+  }
+
+  throw new Error('지원하는 명령: lyrd add overlay, lyrd add dialog <name>')
 }
 
 export async function run(argv: string[]): Promise<number> {

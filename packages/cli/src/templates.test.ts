@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { getNextAppRouterProviderTemplate, getOverlayScaffoldFiles } from './templates'
+import {
+  getDialogScaffoldFiles,
+  getNextAppRouterProviderTemplate,
+  getOverlayScaffoldFiles,
+} from './templates'
 
 const storybookOverlayDirectory = new URL('../../../apps/storybook/src/lyrd/', import.meta.url)
 const storybookPreview = new URL('../../../apps/storybook/.storybook/preview.tsx', import.meta.url)
@@ -39,5 +43,18 @@ describe('overlay 생성 템플릿', () => {
       "import { AppOverlayProvider } from '../lyrd/overlay/overlay-provider'",
     )
     expect(providerTemplate).toContain('<AppOverlayProvider>{children}</AppOverlayProvider>')
+  })
+
+  it('이름에 맞는 앱 소유 Dialog 컴포넌트와 공유 스타일을 생성한다', () => {
+    const dialogFiles = new Map(
+      getDialogScaffoldFiles('project-settings').map((file) => [file.name, file.content]),
+    )
+    const component = dialogFiles.get('project-settings-dialog.tsx')
+
+    expect(dialogFiles.has('dialog.css')).toBe(true)
+    expect(component).toContain('export function ProjectSettingsDialog')
+    expect(component).toContain('useOverlayDialog<ProjectSettingsDialogResult>()')
+    expect(component).toContain('onOpenChangeComplete')
+    expect(component).toContain('dialog.resolve({ completed: true })')
   })
 })

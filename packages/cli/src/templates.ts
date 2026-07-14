@@ -304,3 +304,194 @@ export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
 }
 `
 }
+
+function dialogComponentTemplate(dialogName: string): string {
+  const componentName = dialogName
+    .split('-')
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join('')
+  const title = dialogName.replaceAll('-', ' ')
+
+  return `'use client'
+
+import { Dialog } from '@base-ui/react/dialog'
+import { useOverlayDialog } from '@lyrd/core'
+import type { ReactNode } from 'react'
+
+import './dialog.css'
+
+export type ${componentName}DialogResult = {
+  completed: true
+}
+
+export type ${componentName}DialogProps = {
+  children?: ReactNode
+  description?: ReactNode
+  title?: ReactNode
+}
+
+export function ${componentName}Dialog({
+  children,
+  description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
+  title = '${title}',
+}: ${componentName}DialogProps) {
+  const dialog = useOverlayDialog<${componentName}DialogResult>()
+
+  return (
+    <Dialog.Root
+      open={dialog.open}
+      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="lyrd-dialog-backdrop" />
+        <Dialog.Viewport className="lyrd-dialog-viewport">
+          <Dialog.Popup className="lyrd-dialog-popup">
+            <header className="lyrd-dialog-header">
+              <div>
+                <Dialog.Title className="lyrd-dialog-title">{title}</Dialog.Title>
+                <Dialog.Description className="lyrd-dialog-description">
+                  {description}
+                </Dialog.Description>
+              </div>
+            </header>
+
+            {children ? <div className="lyrd-dialog-content">{children}</div> : null}
+
+            <footer className="lyrd-dialog-actions">
+              <button className="lyrd-dialog-button-secondary" onClick={dialog.dismiss} type="button">
+                취소
+              </button>
+              <button
+                className="lyrd-dialog-button-primary"
+                onClick={() => dialog.resolve({ completed: true })}
+                type="button"
+              >
+                완료
+              </button>
+            </footer>
+          </Dialog.Popup>
+        </Dialog.Viewport>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+`
+}
+
+function dialogCssTemplate(): string {
+  return `.lyrd-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: rgb(15 23 42 / 52%);
+  transition: opacity 180ms ease;
+}
+
+.lyrd-dialog-backdrop[data-starting-style],
+.lyrd-dialog-backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.lyrd-dialog-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 2101;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.lyrd-dialog-popup {
+  display: grid;
+  width: min(520px, 100%);
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgb(15 23 42 / 28%);
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.lyrd-dialog-popup[data-starting-style],
+.lyrd-dialog-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+}
+
+.lyrd-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.lyrd-dialog-title,
+.lyrd-dialog-description {
+  margin: 0;
+}
+
+.lyrd-dialog-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.lyrd-dialog-description {
+  margin-top: 6px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.lyrd-dialog-content {
+  min-width: 0;
+}
+
+.lyrd-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lyrd-dialog-button-primary,
+.lyrd-dialog-button-secondary {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lyrd-dialog-button-primary {
+  color: #fff;
+  background: #0f172a;
+}
+
+.lyrd-dialog-button-secondary {
+  border-color: #cbd5e1;
+  color: #334155;
+  background: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrd-dialog-backdrop,
+  .lyrd-dialog-popup {
+    transition-duration: 1ms;
+  }
+}
+`
+}
+
+export function getDialogScaffoldFiles(
+  dialogName: string,
+): Array<{ name: string; content: string }> {
+  return [
+    { name: `${dialogName}-dialog.tsx`, content: dialogComponentTemplate(dialogName) },
+    { name: 'dialog.css', content: dialogCssTemplate() },
+  ]
+}

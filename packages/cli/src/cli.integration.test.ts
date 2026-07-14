@@ -148,7 +148,7 @@ afterEach(async () => {
 
 describe('overlay CLI 통합', () => {
   it('실제 프로젝트에 생성하고 컴파일하며 사용자 수정을 보존한다', async () => {
-    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const fixtureDirectory = await createViteFixture()
 
     await expect(
@@ -181,6 +181,37 @@ describe('overlay CLI 통합', () => {
     expect(await readFile(alertPath, 'utf8')).toBe(customizedAlert)
     const indexContent = await readFile(path.join(overlayDirectory, 'index.ts'), 'utf8')
     expect(indexContent.match(/export \* from/g)).toHaveLength(3)
+
+    await run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory, '--verbose'])
+
+    const dialogDirectory = path.join(overlayDirectory, 'dialogs')
+    const dialogPath = path.join(dialogDirectory, 'project-settings-dialog.tsx')
+    await expect(readFile(dialogPath, 'utf8')).resolves.toContain('ProjectSettingsDialog')
+    await expect(readFile(path.join(dialogDirectory, 'dialog.css'), 'utf8')).resolves.toContain(
+      '.lyrd-dialog-popup',
+    )
+    expect(compileFixture(fixtureDirectory)).toBe('')
+    expect(log.mock.calls.flat().join('\n')).toContain(
+      'overlay.dialog<ProjectSettingsDialogResult>',
+    )
+
+    const customizedDialog = `${await readFile(dialogPath, 'utf8')}\n// 사용자 커스텀\n`
+    await writeFile(dialogPath, customizedDialog)
+    await run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory])
+
+    expect(await readFile(dialogPath, 'utf8')).toBe(customizedDialog)
+  })
+
+  it('Dialog 이름은 kebab-case만 허용하고 Overlay 설치를 요구한다', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fixtureDirectory = await createViteFixture()
+
+    await expect(
+      run(['add', 'dialog', 'Project_Settings', '--cwd', fixtureDirectory]),
+    ).rejects.toThrow('kebab-case')
+    await expect(
+      run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory]),
+    ).rejects.toThrow('먼저 lyrd add overlay')
   })
 
   it('Next App Router에는 별도 클라이언트 연결 파일을 생성하고 layout 수정만 안내한다', async () => {
