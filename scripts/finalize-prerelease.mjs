@@ -20,11 +20,6 @@ for (const packageFile of packageFiles) {
   npm(['access', 'set', 'status=public', name])
   npm(['dist-tag', 'add', `${name}@${version}`, 'next'])
 
-  const latest = npm(['view', name, 'dist-tags.latest'], { capture: true }).trim()
-  if (latest === version) {
-    npm(['dist-tag', 'rm', name, 'latest'])
-  }
-
   const tags = npm(['view', name, 'dist-tags', '--json'], { capture: true }).trim()
   console.log(`${name}: ${tags}`)
 }
