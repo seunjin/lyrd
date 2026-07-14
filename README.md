@@ -1,5 +1,7 @@
 # Lyrd
 
+[문서와 인터랙티브 데모](https://seunjin.github.io/lyrd/) · [GitHub](https://github.com/seunjin/lyrd)
+
 Base UI 기반 오버레이를 제품의 의도 단위로 중앙 관리하는 React 라이브러리다.
 
 Lyrd은 Dialog, AlertDialog, Drawer 같은 접근성 프리미티브를 다시 구현하지 않는다. 애플리케이션이 소유한 Base UI 렌더러와 `overlay.alert()`, `overlay.confirm()` 호출 사이의 상태·결과·정책을 관리한다.

@@ -52,5 +52,8 @@ jobs:
       - name: Storybook 빌드
         run: pnpm build:storybook
 
+      - name: 문서 사이트 빌드
+        run: pnpm build:docs
+
       - name: CLI 배포물 검증
         run: pnpm test:package
