@@ -1,14 +1,28 @@
 {
   "name": "@lyrd/core",
-  "version": "0.0.0",
+  "version": "0.1.0-next.0",
   "description": "Central overlay intent runtime for Lyrd",
+  "homepage": "https://seunjin.github.io/lyrd/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seunjin/lyrd.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/seunjin/lyrd/issues"
+  },
   "type": "module",
   "license": "MIT",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
@@ -21,7 +35,8 @@
     "typecheck": "tsc --noEmit"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "react": "^19.0.0",

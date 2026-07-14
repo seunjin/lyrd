@@ -6,6 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const cliRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const coreRoot = path.resolve(cliRoot, '../core')
 const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 
 function runCommand(command, args, cwd) {
@@ -51,27 +52,52 @@ async function pathExists(targetPath) {
 }
 
 async function main() {
+  const reactPackage = JSON.parse(
+    await readFile(path.join(coreRoot, 'node_modules/react/package.json'), 'utf8'),
+  )
+  const reactDomPackage = JSON.parse(
+    await readFile(path.join(coreRoot, 'node_modules/react-dom/package.json'), 'utf8'),
+  )
   const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'lyrd-cli-package-'))
-  const packDirectory = path.join(temporaryRoot, 'pack')
+  const cliPackDirectory = path.join(temporaryRoot, 'pack/cli')
+  const corePackDirectory = path.join(temporaryRoot, 'pack/core')
   const fixtureDirectory = path.join(temporaryRoot, 'fixture')
 
   try {
-    await mkdir(packDirectory, { recursive: true })
+    await mkdir(cliPackDirectory, { recursive: true })
+    await mkdir(corePackDirectory, { recursive: true })
     await mkdir(path.join(fixtureDirectory, 'src'), { recursive: true })
     await writeFile(
       path.join(fixtureDirectory, 'package.json'),
       `${JSON.stringify({ name: 'lyrd-cli-package-fixture', private: true }, null, 2)}\n`,
     )
 
-    await runCommand(pnpmCommand, ['pack', '--pack-destination', packDirectory], cliRoot)
+    await runCommand(pnpmCommand, ['pack', '--pack-destination', cliPackDirectory], cliRoot)
+    await runCommand(pnpmCommand, ['pack', '--pack-destination', corePackDirectory], coreRoot)
 
-    const tarballs = (await readdir(packDirectory)).filter((fileName) => fileName.endsWith('.tgz'))
-    assert.equal(tarballs.length, 1, '배포 tarball이 정확히 하나 생성되어야 합니다.')
+    const cliTarballs = (await readdir(cliPackDirectory)).filter((fileName) =>
+      fileName.endsWith('.tgz'),
+    )
+    const coreTarballs = (await readdir(corePackDirectory)).filter((fileName) =>
+      fileName.endsWith('.tgz'),
+    )
+    assert.equal(cliTarballs.length, 1, 'CLI 배포 tarball이 정확히 하나 생성되어야 합니다.')
+    assert.equal(coreTarballs.length, 1, 'core 배포 tarball이 정확히 하나 생성되어야 합니다.')
 
-    const tarballPath = path.join(packDirectory, tarballs[0])
+    const cliTarballPath = path.join(cliPackDirectory, cliTarballs[0])
+    const coreTarballPath = path.join(corePackDirectory, coreTarballs[0])
     await runCommand(
       pnpmCommand,
-      ['add', '--offline', '--ignore-scripts', '--save-exact', tarballPath],
+      [
+        'add',
+        '--offline',
+        '--ignore-scripts',
+        '--save-exact',
+        cliTarballPath,
+        coreTarballPath,
+        `react@${reactPackage.version}`,
+        `react-dom@${reactDomPackage.version}`,
+      ],
       fixtureDirectory,
     )
 
@@ -81,11 +107,40 @@ async function main() {
     )
     assert.deepEqual(installedPackage.bin, { lyrd: './dist/bin.js' })
     assert.equal(await pathExists(path.join(installedCliRoot, 'dist/bin.js')), true)
+    assert.equal(await pathExists(path.join(installedCliRoot, 'LICENSE')), true)
     assert.equal(
       await pathExists(path.join(installedCliRoot, 'src')),
       false,
       '배포물에는 소스 디렉터리가 포함되지 않아야 합니다.',
     )
+
+    const installedCoreRoot = path.join(fixtureDirectory, 'node_modules/@lyrd/core')
+    assert.equal(await pathExists(path.join(installedCoreRoot, 'README.md')), true)
+    assert.equal(await pathExists(path.join(installedCoreRoot, 'LICENSE')), true)
+    assert.equal(await pathExists(path.join(installedCoreRoot, 'dist/index.d.ts')), true)
+    assert.equal(await pathExists(path.join(installedCoreRoot, 'dist/index.d.cts')), true)
+    assert.equal(await pathExists(path.join(installedCoreRoot, 'src')), false)
+
+    const esmImport = await runCommand(
+      'node',
+      [
+        '--input-type=module',
+        '--eval',
+        "import { createOverlayController } from '@lyrd/core'; if (typeof createOverlayController !== 'function') process.exit(1)",
+      ],
+      fixtureDirectory,
+    )
+    assert.equal(esmImport.stderr, '')
+
+    const cjsImport = await runCommand(
+      'node',
+      [
+        '--eval',
+        "const { createOverlayController } = require('@lyrd/core'); if (typeof createOverlayController !== 'function') process.exit(1)",
+      ],
+      fixtureDirectory,
+    )
+    assert.equal(cjsImport.stderr, '')
 
     const help = await runCommand(pnpmCommand, ['exec', 'lyrd', '--help'], fixtureDirectory)
     assert.match(help.stdout, /lyrd add overlay/)
@@ -97,7 +152,8 @@ async function main() {
       fixtureDirectory,
     )
     assert.match(add.stdout, /Added overlay/)
-    assert.match(add.stdout, /Skipping install for @lyrd\/core, @base-ui\/react/)
+    assert.match(add.stdout, /Using existing @lyrd\/core/)
+    assert.match(add.stdout, /Skipping install for @base-ui\/react/)
 
     const overlayDirectory = path.join(fixtureDirectory, 'src/lyrd/overlay')
     await Promise.all(

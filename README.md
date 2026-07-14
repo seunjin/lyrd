@@ -104,7 +104,7 @@ PR과 `main` 브랜치 변경에는 GitHub Actions 품질 게이트가 실행된
 
 ## 배포
 
-`@lyrd/core`와 `@lyrd/cli`는 Changesets로 독립 버전을 관리한다. 첫 공개 기준선은 각각 `0.1.0`, `0.2.0`이다. npm 배포는 의도적으로 수동 GitHub Actions 워크플로와 환경 승인을 거치며, npm Trusted Publishing을 사용해 provenance를 남긴다. 실제 배포 전 준비와 절차는 [npm 배포 가이드](PUBLISHING.md)를 참고한다.
+`@lyrd/core`와 `@lyrd/cli`는 Changesets로 독립 버전을 관리한다. 두 패키지의 첫 공개 기준선은 `0.1.0`이다. npm 배포는 의도적으로 수동 GitHub Actions 워크플로와 환경 승인을 거치며, npm Trusted Publishing을 사용해 provenance를 남긴다. 실제 배포 전 준비와 절차는 [npm 배포 가이드](PUBLISHING.md)를 참고한다.
 
 설계 결정은 [오버레이 의도 관리 시스템 RFC](docs/rfcs/0001-overlay-intent-system.md)에 기록한다.
 

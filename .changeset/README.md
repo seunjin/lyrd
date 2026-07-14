@@ -9,7 +9,7 @@ pnpm changeset
 첫 공개 릴리스 기준선은 다음과 같다.
 
 - `@lyrd/core`: `0.1.0`
-- `@lyrd/cli`: `0.2.0`
+- `@lyrd/cli`: `0.1.0`
 
 두 패키지는 독립 버전으로 관리한다. CLI 템플릿이 요구하는 코어 API가 바뀌면 두 패키지의 Changeset을 함께 추가한다.
 
