@@ -20,11 +20,11 @@ export type ConfirmRequest = {
   onConfirm?: () => void | Promise<void>
 }
 
-export type ConfirmStatus = 'idle' | 'open' | 'pending' | 'error' | 'closing'
+export type ConfirmStatus = 'idle' | 'mounting' | 'open' | 'pending' | 'error' | 'closing'
 
-export type AlertStatus = 'idle' | 'open' | 'closing'
+export type AlertStatus = 'idle' | 'mounting' | 'open' | 'closing'
 
-export type DialogStatus = 'idle' | 'open' | 'closing'
+export type DialogStatus = 'idle' | 'mounting' | 'open' | 'closing'
 
 export type DialogOptions = {
   dismiss?: 'allow' | 'block'
@@ -71,7 +71,7 @@ export type OverlayRenderers = {
 
 export type OverlayDialogApi<Result> = {
   open: boolean
-  status: Extract<DialogStatus, 'open' | 'closing'>
+  status: Exclude<DialogStatus, 'idle'>
   resolve: (result: Result) => void
   dismiss: () => void
   requestClose: () => void

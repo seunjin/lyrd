@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useSyncExternalStore } from 'react'
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react'
 import { createOverlayController, type OverlayController } from './controller'
 import type { OverlayApi, OverlayDialogApi, OverlayRenderers } from './types'
 
@@ -21,6 +21,10 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
   )
   const AlertSurface = renderers.alert
   const ConfirmSurface = renderers.confirm
+
+  useEffect(() => {
+    if (snapshot.status === 'mounting') activeController.openCurrent()
+  }, [activeController, snapshot.status])
 
   return (
     <OverlayContext.Provider value={activeController.overlay}>

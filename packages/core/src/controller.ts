@@ -61,7 +61,7 @@ type DialogControllerSnapshot = DialogSnapshot & {
   kind: 'dialog'
   element: ReactElement
   options: DialogOptions
-  status: 'open' | 'closing'
+  status: Exclude<DialogSnapshot['status'], 'idle'>
 }
 
 export type OverlayControllerSnapshot =
@@ -74,6 +74,7 @@ export type OverlayController = {
   overlay: OverlayApi
   subscribe: (listener: () => void) => () => void
   getSnapshot: () => OverlayControllerSnapshot
+  openCurrent: () => void
   acknowledgeCurrent: () => void
   confirmCurrent: () => void
   resolveDialogCurrent: (result: unknown) => void
@@ -125,7 +126,11 @@ export function createOverlayController(): OverlayController {
     )
   }
 
-  function publishEntry(entry: OverlayEntry, open: boolean, status: 'open' | 'closing') {
+  function publishEntry(
+    entry: OverlayEntry,
+    open: boolean,
+    status: 'mounting' | 'open' | 'closing',
+  ) {
     if (entry.kind === 'alert') {
       publish({ kind: 'alert', open, request: entry.request, status, error: null })
       return
@@ -150,6 +155,11 @@ export function createOverlayController(): OverlayController {
       publish(IDLE_SNAPSHOT)
       return
     }
+    publishEntry(current, false, 'mounting')
+  }
+
+  function openCurrent() {
+    if (!current || snapshot.status !== 'mounting') return
     publishEntry(current, true, 'open')
   }
 
@@ -294,7 +304,7 @@ export function createOverlayController(): OverlayController {
 
   function cancelCurrent() {
     if (current?.kind !== 'confirm' || current.settled) return
-    if (snapshot.status === 'pending' || snapshot.status === 'closing') return
+    if (snapshot.status !== 'open' && snapshot.status !== 'error') return
     settleConfirm(current, false)
   }
 
@@ -342,6 +352,13 @@ export function createOverlayController(): OverlayController {
     queue = []
     for (const entry of queued) dismissQueuedEntry(entry)
 
+    if (snapshot.status === 'mounting' && current) {
+      if (current.kind === 'alert') settleAlert(current)
+      else if (current.kind === 'confirm') settleConfirm(current, false)
+      else settleDialog(current, undefined)
+      return
+    }
+
     if (current?.kind === 'alert') acknowledgeCurrent()
     else if (current?.kind === 'confirm') cancelCurrent()
     else dismissDialogCurrent()
@@ -354,6 +371,7 @@ export function createOverlayController(): OverlayController {
       return () => listeners.delete(listener)
     },
     getSnapshot: () => snapshot,
+    openCurrent,
     acknowledgeCurrent,
     confirmCurrent,
     resolveDialogCurrent,

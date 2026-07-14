@@ -15,6 +15,12 @@ describe('overlay confirm controller', () => {
     const controller = createOverlayController()
     const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인' })
 
+    expect(controller.getSnapshot()).toMatchObject({ open: false, status: 'mounting' })
+    controller.confirmCurrent()
+    expect(controller.getSnapshot()).toMatchObject({ open: false, status: 'mounting' })
+
+    controller.openCurrent()
+    expect(controller.getSnapshot()).toMatchObject({ open: true, status: 'open' })
     controller.confirmCurrent()
 
     await expect(result).resolves.toBe(true)
@@ -26,6 +32,7 @@ describe('overlay confirm controller', () => {
     const controller = createOverlayController()
     const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인' })
 
+    controller.openCurrent()
     controller.cancelCurrent()
 
     await expect(result).resolves.toBe(false)
@@ -37,11 +44,14 @@ describe('overlay confirm controller', () => {
     const second = controller.overlay.confirm({ title: '두 번째', confirmLabel: '확인' })
 
     expect(controller.getSnapshot().request?.title).toBe('첫 번째')
+    controller.openCurrent()
     controller.confirmCurrent()
     await expect(first).resolves.toBe(true)
 
     controller.completeClose()
     expect(controller.getSnapshot().request?.title).toBe('두 번째')
+    expect(controller.getSnapshot()).toMatchObject({ open: false, status: 'mounting' })
+    controller.openCurrent()
     controller.cancelCurrent()
     await expect(second).resolves.toBe(false)
   })
@@ -62,6 +72,7 @@ describe('overlay confirm controller', () => {
     expect(duplicate).toBe(first)
     expect(controller.getSnapshot().request?.title).toBe('첫 번째')
 
+    controller.openCurrent()
     controller.confirmCurrent()
     await expect(duplicate).resolves.toBe(true)
   })
@@ -77,6 +88,7 @@ describe('overlay confirm controller', () => {
     )
     const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인', onConfirm })
 
+    controller.openCurrent()
     controller.confirmCurrent()
     await flushPromises()
     expect(controller.getSnapshot().status).toBe('pending')
@@ -93,6 +105,7 @@ describe('overlay confirm controller', () => {
     const onConfirm = vi.fn().mockRejectedValueOnce(error).mockResolvedValueOnce(undefined)
     const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인', onConfirm })
 
+    controller.openCurrent()
     controller.confirmCurrent()
     await flushPromises()
     expect(controller.getSnapshot()).toMatchObject({ status: 'error', error, open: true })
@@ -108,6 +121,7 @@ describe('overlay confirm controller', () => {
     const onConfirm = () => new Promise<void>(() => {})
     const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인', onConfirm })
 
+    controller.openCurrent()
     controller.confirmCurrent()
     await flushPromises()
     controller.requestClose()
@@ -126,6 +140,7 @@ describe('overlay confirm controller', () => {
       dismiss: 'block',
     })
 
+    controller.openCurrent()
     controller.requestClose()
 
     expect(controller.getSnapshot().status).toBe('open')
@@ -139,10 +154,11 @@ describe('overlay alert controller', () => {
 
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'alert',
-      open: true,
-      status: 'open',
+      open: false,
+      status: 'mounting',
     })
 
+    controller.openCurrent()
     controller.acknowledgeCurrent()
 
     await expect(result).resolves.toBeUndefined()
@@ -155,15 +171,19 @@ describe('overlay alert controller', () => {
     const confirmResult = controller.overlay.confirm({ title: '다음 확인', confirmLabel: '계속' })
 
     expect(controller.getSnapshot()).toMatchObject({ kind: 'alert' })
+    controller.openCurrent()
     controller.acknowledgeCurrent()
     await expect(alertResult).resolves.toBeUndefined()
 
     controller.completeClose()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'confirm',
+      open: false,
+      status: 'mounting',
       request: { title: '다음 확인' },
     })
 
+    controller.openCurrent()
     controller.cancelCurrent()
     await expect(confirmResult).resolves.toBe(false)
   })
@@ -176,13 +196,29 @@ describe('overlay alert controller', () => {
     expect(duplicate).toBe(first)
     expect(controller.getSnapshot().request?.title).toBe('첫 번째')
 
+    controller.openCurrent()
     controller.requestClose()
     await expect(duplicate).resolves.toBeUndefined()
+  })
+
+  it('마운트 중 dismissAll 요청도 현재 항목과 대기열을 정리한다', async () => {
+    const controller = createOverlayController()
+    const current = controller.overlay.alert({ title: '현재 안내' })
+    const queued = controller.overlay.confirm({ title: '다음 확인', confirmLabel: '확인' })
+
+    controller.overlay.dismissAll()
+
+    await expect(current).resolves.toBeUndefined()
+    await expect(queued).resolves.toBe(false)
+    expect(controller.getSnapshot()).toMatchObject({ open: false, status: 'closing' })
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({ kind: null, status: 'idle' })
   })
 })
 
 describe('overlay dialog controller', () => {
-  it('열린 element는 Provider context에서 dialog 상태를 받는다', () => {
+  it('마운트된 element는 Provider context에서 dialog 상태를 받는다', () => {
     const controller = createOverlayController()
 
     function DialogContent() {
@@ -202,9 +238,16 @@ describe('overlay dialog controller', () => {
         confirm: () => null,
       },
     }
-    const markup = renderToStaticMarkup(createElement(TestOverlayProvider, providerProps, null))
+    const mountingMarkup = renderToStaticMarkup(
+      createElement(TestOverlayProvider, providerProps, null),
+    )
 
-    expect(markup).toContain('<output>true:open</output>')
+    expect(mountingMarkup).toContain('<output>false:mounting</output>')
+
+    controller.openCurrent()
+    const openMarkup = renderToStaticMarkup(createElement(TestOverlayProvider, providerProps, null))
+
+    expect(openMarkup).toContain('<output>true:open</output>')
   })
 
   it('결과를 반환하고 닫힘 완료 뒤 다음 요청을 연다', async () => {
@@ -212,7 +255,12 @@ describe('overlay dialog controller', () => {
     const result = controller.overlay.dialog<{ saved: true }>(createElement('div'))
     const next = controller.overlay.confirm({ title: '다음 확인', confirmLabel: '확인' })
 
-    expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true, status: 'open' })
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'dialog',
+      open: false,
+      status: 'mounting',
+    })
+    controller.openCurrent()
     controller.resolveDialogCurrent({ saved: true })
 
     await expect(result).resolves.toEqual({ saved: true })
@@ -223,7 +271,12 @@ describe('overlay dialog controller', () => {
     })
 
     controller.completeClose()
-    expect(controller.getSnapshot()).toMatchObject({ kind: 'confirm', open: true })
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'confirm',
+      open: false,
+      status: 'mounting',
+    })
+    controller.openCurrent()
     controller.cancelCurrent()
     await expect(next).resolves.toBe(false)
   })
@@ -238,6 +291,7 @@ describe('overlay dialog controller', () => {
     const duplicate = controller.overlay.dialog<{ saved: true }>(createElement(ProjectSettings))
 
     expect(duplicate).toBe(first)
+    controller.openCurrent()
     controller.resolveDialogCurrent({ saved: true })
     await expect(duplicate).resolves.toEqual({ saved: true })
   })
@@ -252,11 +306,17 @@ describe('overlay dialog controller', () => {
     const second = controller.overlay.dialog(createElement(ProjectSettings, { key: 'project-b' }))
 
     expect(second).not.toBe(first)
+    controller.openCurrent()
     controller.dismissDialogCurrent()
     await expect(first).resolves.toBeUndefined()
 
     controller.completeClose()
-    expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true })
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'dialog',
+      open: false,
+      status: 'mounting',
+    })
+    controller.openCurrent()
     controller.dismissDialogCurrent()
     await expect(second).resolves.toBeUndefined()
   })
@@ -265,6 +325,7 @@ describe('overlay dialog controller', () => {
     const controller = createOverlayController()
     const result = controller.overlay.dialog(createElement('div'), { dismiss: 'block' })
 
+    controller.openCurrent()
     controller.requestClose()
     expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true, status: 'open' })
 
