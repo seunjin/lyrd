@@ -18,6 +18,40 @@ Lyrd는 UI 표현을 배포하지 않고 런타임과 로컬 렌더러 생성기
 
 배포는 장기 npm 토큰 없이 GitHub Actions OIDC로 인증되며 provenance가 자동 생성된다. Trusted Publisher의 허용 작업은 `npm publish`로 제한한다.
 
+## GitHub Actions에서 배포 실행
+
+`confirm`은 터미널 명령이 아니라 GitHub Actions의 수동 실행 화면에 표시되는 확인 입력란이다.
+
+배포하기 전에 다음 상태를 확인한다.
+
+- 배포할 버전과 CHANGELOG가 `main`에 커밋되어 있다.
+- `main`의 최신 품질 게이트가 통과했다.
+- `pnpm release:status`에 예상하지 않은 미적용 Changeset이 없다.
+- npm에 같은 버전이 이미 게시되어 있지 않다.
+
+GitHub 웹 화면에서는 다음 순서로 실행한다.
+
+1. [Lyrd Actions](https://github.com/seunjin/lyrd/actions)에서 왼쪽의 **npm 배포** 워크플로를 선택한다.
+2. **Run workflow**를 누르고 브랜치가 `main`인지 확인한다.
+3. 확인 입력란에 정확히 `publish`를 입력한다.
+4. 초록색 **Run workflow** 버튼을 눌러 실행한다.
+5. 작업이 `npm-publish` 환경에서 대기하면 **Review deployments**를 선택한다.
+6. `npm-publish` 환경을 체크하고 **Approve and deploy**를 누른다.
+7. 품질 검증과 **npm에 공개 배포** 단계가 모두 성공했는지 확인한다.
+8. npm 패키지 페이지에서 버전, dist-tag와 provenance를 확인한다.
+
+`publish`는 오입력을 막는 안전장치이며 버전이나 npm 태그가 아니다. 실제 버전과 `next` 또는 `latest` 태그는 커밋된 package.json과 Changesets 프리릴리스 상태로 결정된다. 환경 승인 전에는 npm publish가 실행되지 않는다.
+
+터미널에서 GitHub CLI로 같은 워크플로를 시작할 수도 있다.
+
+```bash
+gh workflow run npm-publish.yml \
+  --ref main \
+  -f confirm=publish
+```
+
+터미널에서 시작하더라도 `npm-publish` 환경 승인은 GitHub Actions 화면에서 수행한다. 로컬의 `pnpm release`는 npm에 직접 publish를 시도하므로 일반 배포에는 사용하지 않는다.
+
 ## 첫 프리릴리스 절차
 
 1. 공개 변경이 있는 PR에서 `pnpm changeset`을 실행해 Changeset을 추가한다.
