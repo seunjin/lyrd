@@ -32,6 +32,10 @@ src/lyrd/overlay/
 
 생성된 파일은 애플리케이션 코드다. Lyrd은 파일을 자동으로 덮어쓰지 않으며 JSX, 스타일, 버튼, 오류 표현을 자유롭게 수정할 수 있다.
 
+Vite 프로젝트에서는 CLI가 실제 `src/main.tsx` 또는 `src/main.jsx`에 넣을 Provider 연결 코드를 안내한다. Next App Router에서는 `app/lyrd-overlay-provider.tsx`(또는 `src/app/...`) 클라이언트 연결 파일을 생성하고, `layout.tsx`에 추가할 코드만 안내한다. 어떤 경우에도 기존 앱 진입 파일은 자동으로 수정하지 않는다.
+
+생성 파일을 앱의 디자인 시스템과 기존 확인창에 연결하는 방법은 [로컬 오버레이 렌더러 커스터마이징 cookbook](docs/cookbook/local-overlay-renderer.md)을 참고한다.
+
 ## 사용
 
 ~~~tsx
@@ -82,6 +86,10 @@ pnpm test:package
 ~~~
 
 PR과 `main` 브랜치 변경에는 GitHub Actions 품질 게이트가 실행된다. 린트, 타입 검사, 테스트, 패키지와 Storybook 빌드, 실제 CLI 배포물 설치 검증이 모두 통과해야 한다.
+
+## 배포
+
+`@lyrd/core`와 `@lyrd/cli`는 Changesets로 독립 버전을 관리한다. 첫 공개 기준선은 각각 `0.1.0`, `0.2.0`이다. npm 배포는 의도적으로 수동 GitHub Actions 워크플로와 환경 승인을 거치며, npm Trusted Publishing을 사용해 provenance를 남긴다. 실제 배포 전 준비와 절차는 [npm 배포 가이드](PUBLISHING.md)를 참고한다.
 
 설계 결정은 [오버레이 의도 관리 시스템 RFC](docs/rfcs/0001-overlay-intent-system.md)에 기록한다.
 

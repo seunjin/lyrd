@@ -12,7 +12,7 @@ import {
   pathExists,
   toPosixPath,
 } from './project'
-import { getOverlayScaffoldFiles } from './templates'
+import { getNextAppRouterProviderTemplate, getOverlayScaffoldFiles } from './templates'
 import type { LyrdConfig } from './types'
 
 interface ParsedArgs {
@@ -26,6 +26,8 @@ interface ParsedArgs {
 interface RuntimeTarget {
   appRootFile: string | null
   importPath: string
+  providerFile: string | null
+  providerImportPath: string | null
 }
 
 interface RuntimeSnippet {
@@ -103,18 +105,6 @@ function formatRelativePath(projectRoot: string, filePath: string): string {
   return relative ? toPosixPath(relative) : '.'
 }
 
-function getAppRootFile(framework: string, overlayPath: string): string | null {
-  if (framework === 'vite-react') {
-    return 'src/main.tsx'
-  }
-
-  if (framework === 'next-app-router') {
-    return overlayPath.startsWith('src/') ? 'src/app/layout.tsx' : 'app/layout.tsx'
-  }
-
-  return null
-}
-
 function getOverlayPath(config: LyrdConfig): string {
   if (!config.paths?.overlay || config.adapters?.overlay !== 'base-ui') {
     throw new Error(
@@ -130,19 +120,42 @@ function toRelativeImport(fromFile: string, toFile: string): string {
   return relative.startsWith('.') ? relative : `./${relative}`
 }
 
-function getRuntimeTarget(framework: string, overlayPath: string): RuntimeTarget {
-  const appRootFile = getAppRootFile(framework, overlayPath)
+async function getRuntimeTarget(
+  projectRoot: string,
+  framework: string,
+  overlayPath: string,
+): Promise<RuntimeTarget> {
+  if (framework === 'vite-react') {
+    const appRootFile = (await pathExists(path.join(projectRoot, 'src/main.jsx')))
+      ? 'src/main.jsx'
+      : 'src/main.tsx'
 
-  if (!appRootFile) {
     return {
-      appRootFile: null,
-      importPath: `${overlayPath}/overlay-provider`,
+      appRootFile,
+      importPath: toRelativeImport(appRootFile, `${overlayPath}/overlay-provider`),
+      providerFile: null,
+      providerImportPath: null,
+    }
+  }
+
+  if (framework === 'next-app-router') {
+    const appDirectory = overlayPath.startsWith('src/') ? 'src/app' : 'app'
+    const appRootFile = `${appDirectory}/layout.tsx`
+    const providerFile = `${appDirectory}/lyrd-overlay-provider.tsx`
+
+    return {
+      appRootFile,
+      importPath: toRelativeImport(appRootFile, providerFile.replace(/\.tsx$/, '')),
+      providerFile,
+      providerImportPath: toRelativeImport(providerFile, `${overlayPath}/overlay-provider`),
     }
   }
 
   return {
-    appRootFile,
-    importPath: toRelativeImport(appRootFile, `${overlayPath}/overlay-provider`),
+    appRootFile: null,
+    importPath: `${overlayPath}/overlay-provider`,
+    providerFile: null,
+    providerImportPath: null,
   }
 }
 
@@ -160,10 +173,10 @@ createRoot(document.getElementById('root')!).render(
   }
 
   if (framework === 'next-app-router') {
-    return `import { AppOverlayProvider } from '${providerImportPath}'
+    return `import { LyrdOverlayProvider } from '${providerImportPath}'
 
 <body>
-  <AppOverlayProvider>{children}</AppOverlayProvider>
+  <LyrdOverlayProvider>{children}</LyrdOverlayProvider>
 </body>`
   }
 
@@ -281,9 +294,24 @@ async function runAdd(
     }
   }
 
-  const runtimeTarget = getRuntimeTarget(config.framework, overlayPath)
+  const runtimeTarget = await getRuntimeTarget(projectRoot, config.framework, overlayPath)
+
+  if (runtimeTarget.providerFile && runtimeTarget.providerImportPath) {
+    const providerPath = fromProjectPath(projectRoot, runtimeTarget.providerFile)
+    const result = await writeScaffoldFile(
+      providerPath,
+      getNextAppRouterProviderTemplate(runtimeTarget.providerImportPath),
+    )
+    const formattedPath = formatRelativePath(projectRoot, providerPath)
+    if (result === 'created') {
+      createdPaths.push(formattedPath)
+    } else {
+      skippedPaths.push(formattedPath)
+    }
+  }
+
   nextSteps.push(
-    `Mount AppOverlayProvider from '${runtimeTarget.importPath}' once in ${runtimeTarget.appRootFile ?? 'your app root'}`,
+    `Mount ${runtimeTarget.providerFile ? 'LyrdOverlayProvider' : 'AppOverlayProvider'} from '${runtimeTarget.importPath}' once in ${runtimeTarget.appRootFile ?? 'your app root'}`,
   )
 
   if (verbose) {

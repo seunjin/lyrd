@@ -291,3 +291,16 @@ export function getOverlayScaffoldFiles(): Array<{ name: string; content: string
     { name: 'overlay.css', content: overlayCssTemplate() },
   ]
 }
+
+export function getNextAppRouterProviderTemplate(providerImportPath: string): string {
+  return `'use client'
+
+import type { ReactNode } from 'react'
+
+import { AppOverlayProvider } from '${providerImportPath}'
+
+export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
+  return <AppOverlayProvider>{children}</AppOverlayProvider>
+}
+`
+}

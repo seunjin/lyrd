@@ -1,0 +1,48 @@
+name: npm 배포
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'npm 배포를 실행하려면 publish를 입력하세요.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.confirm == 'publish' }}
+    name: npm에 배포
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm-publish
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: pnpm 설정
+        uses: pnpm/action-setup@b0f76dfb45f55f8421693e4803ac7bb65143bd34 # v6
+
+      - name: Node.js 설정
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+          registry-url: https://registry.npmjs.org
+
+      - name: 의존성 설치
+        run: pnpm install --frozen-lockfile
+
+      - name: 품질 검증
+        run: pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:package
+
+      - name: 미배포 버전 확인
+        run: pnpm changeset status --output=changeset-status.json
+
+      - name: npm에 공개 배포
+        run: pnpm exec changeset publish

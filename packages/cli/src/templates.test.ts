@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { getOverlayScaffoldFiles } from './templates'
+import { getNextAppRouterProviderTemplate, getOverlayScaffoldFiles } from './templates'
 
 const storybookOverlayDirectory = new URL('../../../apps/storybook/src/lyrd/', import.meta.url)
 const storybookPreview = new URL('../../../apps/storybook/.storybook/preview.tsx', import.meta.url)
@@ -29,5 +29,15 @@ describe('overlay 생성 템플릿', () => {
 
     expect(providerTemplate).toContain(registration)
     expect(previewContent).toContain(registration)
+  })
+
+  it('Next App Router 연결 파일은 로컬 오버레이 Provider만 감싼다', () => {
+    const providerTemplate = getNextAppRouterProviderTemplate('../lyrd/overlay/overlay-provider')
+
+    expect(providerTemplate).toContain("'use client'")
+    expect(providerTemplate).toContain(
+      "import { AppOverlayProvider } from '../lyrd/overlay/overlay-provider'",
+    )
+    expect(providerTemplate).toContain('<AppOverlayProvider>{children}</AppOverlayProvider>')
   })
 })

@@ -16,3 +16,5 @@ CONTRIBUTING.md
 /docs/*
 !/docs/rfcs/
 !/docs/rfcs/**
+!/docs/cookbook/
+!/docs/cookbook/**

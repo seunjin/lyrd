@@ -67,6 +67,62 @@ async function createViteFixture(): Promise<string> {
   return fixtureDirectory
 }
 
+async function createNextFixture(): Promise<string> {
+  const fixtureDirectory = await mkdtemp(path.join(tmpdir(), 'lyrd-cli-next-'))
+  fixtureDirectories.push(fixtureDirectory)
+
+  await mkdir(path.join(fixtureDirectory, 'src', 'app'), { recursive: true })
+  await symlink(
+    path.join(repositoryRoot, 'packages/cli/node_modules'),
+    path.join(fixtureDirectory, 'node_modules'),
+    process.platform === 'win32' ? 'junction' : 'dir',
+  )
+  await writeFile(
+    path.join(fixtureDirectory, 'package.json'),
+    `${JSON.stringify(
+      {
+        private: true,
+        dependencies: {
+          '@base-ui/react': '*',
+          '@lyrd/core': '*',
+          next: '*',
+          react: '*',
+          'react-dom': '*',
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  )
+  await writeFile(path.join(fixtureDirectory, 'src', 'app', 'layout.tsx'), 'export {}\n')
+  await writeFile(
+    path.join(fixtureDirectory, 'tsconfig.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          target: 'ES2022',
+          lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+          jsx: 'react-jsx',
+          strict: true,
+          skipLibCheck: true,
+          noEmit: true,
+          baseUrl: repositoryRoot,
+          paths: {
+            '@lyrd/core': ['packages/core/src/index.ts'],
+          },
+        },
+        include: ['src/lyrd/overlay/**/*.ts', 'src/lyrd/overlay/**/*.tsx', 'src/app/**/*.tsx'],
+      },
+      null,
+      2,
+    )}\n`,
+  )
+
+  return fixtureDirectory
+}
+
 function compileFixture(fixtureDirectory: string): string {
   const configPath = path.join(fixtureDirectory, 'tsconfig.json')
   const configFile = ts.readConfigFile(configPath, ts.sys.readFile)
@@ -125,5 +181,30 @@ describe('overlay CLI 통합', () => {
     expect(await readFile(alertPath, 'utf8')).toBe(customizedAlert)
     const indexContent = await readFile(path.join(overlayDirectory, 'index.ts'), 'utf8')
     expect(indexContent.match(/export \* from/g)).toHaveLength(3)
+  })
+
+  it('Next App Router에는 별도 클라이언트 연결 파일을 생성하고 layout 수정만 안내한다', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fixtureDirectory = await createNextFixture()
+
+    await expect(
+      run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install', '--verbose']),
+    ).resolves.toBe(0)
+
+    const providerPath = path.join(fixtureDirectory, 'src/app/lyrd-overlay-provider.tsx')
+    const layoutPath = path.join(fixtureDirectory, 'src/app/layout.tsx')
+    await expect(readFile(providerPath, 'utf8')).resolves.toContain('LyrdOverlayProvider')
+    await expect(readFile(layoutPath, 'utf8')).resolves.toBe('export {}\n')
+    expect(compileFixture(fixtureDirectory)).toBe('')
+
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain('src/app/layout.tsx')
+    expect(output).toContain("import { LyrdOverlayProvider } from './lyrd-overlay-provider'")
+
+    const customizedProvider = `${await readFile(providerPath, 'utf8')}\n// 사용자 커스텀\n`
+    await writeFile(providerPath, customizedProvider)
+    await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install'])
+
+    expect(await readFile(providerPath, 'utf8')).toBe(customizedProvider)
   })
 })

@@ -13,7 +13,9 @@ pnpm dlx @lyrd/cli add overlay
 - `@lyrd/core`와 `@base-ui/react`를 애플리케이션 의존성으로 설치한다.
 - `src/lyrd/overlay`에 `alert.tsx`, `confirm.tsx`, `overlay-provider.tsx`, `overlay.css`를 생성한다.
 - 기존 파일은 덮어쓰지 않는다.
-- 앱 루트에 `AppOverlayProvider`를 연결하는 다음 단계를 출력한다.
+- Vite에서는 실제 `src/main.tsx` 또는 `src/main.jsx` 파일에 `AppOverlayProvider`를 연결하는 코드를 안내한다.
+- Next App Router에서는 `app/lyrd-overlay-provider.tsx`(또는 `src/app/...`) 클라이언트 연결 파일을 만들고, `layout.tsx`에 추가할 코드를 안내한다.
+- 기존 진입점과 Provider 파일은 덮어쓰거나 자동 수정하지 않는다.
 
 전체 연결 예제가 필요하면 `--verbose`를 사용한다.
 
