@@ -7,22 +7,6 @@ on:
         description: 'npm 배포를 실행하려면 publish를 입력하세요.'
         required: true
         type: string
-      authentication:
-        description: '첫 배포만 bootstrap-token을 사용하고 이후에는 trusted-publishing을 사용하세요.'
-        required: true
-        default: trusted-publishing
-        type: choice
-        options:
-          - trusted-publishing
-          - bootstrap-token
-      operation:
-        description: '일반 배포 또는 최초 프리릴리스 공개 상태와 태그만 보정합니다.'
-        required: true
-        default: publish
-        type: choice
-        options:
-          - publish
-          - finalize-prerelease
 
 permissions:
   contents: read
@@ -60,20 +44,5 @@ jobs:
       - name: 미배포 버전 확인
         run: pnpm changeset status --output=changeset-status.json
 
-      - name: 첫 배포 토큰 확인
-        if: ${{ inputs.authentication == 'bootstrap-token' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: test -n "$NODE_AUTH_TOKEN"
-
       - name: npm에 공개 배포
-        if: ${{ inputs.operation == 'publish' }}
         run: pnpm exec changeset publish
-        env:
-          NODE_AUTH_TOKEN: ${{ inputs.authentication == 'bootstrap-token' && secrets.NPM_TOKEN || '' }}
-
-      - name: 프리릴리스 공개 상태와 태그 확정
-        if: ${{ inputs.operation == 'finalize-prerelease' || inputs.operation == 'publish' }}
-        run: node scripts/finalize-prerelease.mjs
-        env:
-          NODE_AUTH_TOKEN: ${{ inputs.authentication == 'bootstrap-token' && secrets.NPM_TOKEN || '' }}
