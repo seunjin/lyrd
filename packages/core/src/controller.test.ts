@@ -1,5 +1,8 @@
+import { type ComponentType, createElement, type ReactNode } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { createOverlayController } from './controller'
+import { OverlayProvider, type OverlayProviderProps, useOverlayDialog } from './provider'
 
 async function flushPromises() {
   for (let index = 0; index < 5; index++) {
@@ -175,5 +178,97 @@ describe('overlay alert controller', () => {
 
     controller.requestClose()
     await expect(duplicate).resolves.toBeUndefined()
+  })
+})
+
+describe('overlay dialog controller', () => {
+  it('열린 element는 Provider context에서 dialog 상태를 받는다', () => {
+    const controller = createOverlayController()
+
+    function DialogContent() {
+      const dialog = useOverlayDialog<string>()
+      return createElement('output', null, `${dialog.open}:${dialog.status}`)
+    }
+
+    controller.overlay.dialog<string>(createElement(DialogContent))
+
+    const TestOverlayProvider = OverlayProvider as ComponentType<
+      Omit<OverlayProviderProps, 'children'> & { children?: ReactNode }
+    >
+    const providerProps = {
+      controller,
+      renderers: {
+        alert: () => null,
+        confirm: () => null,
+      },
+    }
+    const markup = renderToStaticMarkup(createElement(TestOverlayProvider, providerProps, null))
+
+    expect(markup).toContain('<output>true:open</output>')
+  })
+
+  it('결과를 반환하고 닫힘 완료 뒤 다음 요청을 연다', async () => {
+    const controller = createOverlayController()
+    const result = controller.overlay.dialog<{ saved: true }>(createElement('div'))
+    const next = controller.overlay.confirm({ title: '다음 확인', confirmLabel: '확인' })
+
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true, status: 'open' })
+    controller.resolveDialogCurrent({ saved: true })
+
+    await expect(result).resolves.toEqual({ saved: true })
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'dialog',
+      open: false,
+      status: 'closing',
+    })
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'confirm', open: true })
+    controller.cancelCurrent()
+    await expect(next).resolves.toBe(false)
+  })
+
+  it('같은 컴포넌트 타입과 key의 dialog는 기존 Promise를 공유한다', async () => {
+    const controller = createOverlayController()
+    function ProjectSettings() {
+      return createElement('div')
+    }
+
+    const first = controller.overlay.dialog<{ saved: true }>(createElement(ProjectSettings))
+    const duplicate = controller.overlay.dialog<{ saved: true }>(createElement(ProjectSettings))
+
+    expect(duplicate).toBe(first)
+    controller.resolveDialogCurrent({ saved: true })
+    await expect(duplicate).resolves.toEqual({ saved: true })
+  })
+
+  it('같은 컴포넌트라도 key가 다르면 별도 요청으로 대기한다', async () => {
+    const controller = createOverlayController()
+    function ProjectSettings() {
+      return createElement('div')
+    }
+
+    const first = controller.overlay.dialog(createElement(ProjectSettings, { key: 'project-a' }))
+    const second = controller.overlay.dialog(createElement(ProjectSettings, { key: 'project-b' }))
+
+    expect(second).not.toBe(first)
+    controller.dismissDialogCurrent()
+    await expect(first).resolves.toBeUndefined()
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true })
+    controller.dismissDialogCurrent()
+    await expect(second).resolves.toBeUndefined()
+  })
+
+  it('dismiss block이면 닫힘 요청을 무시하고 dismiss는 취소 결과를 반환한다', async () => {
+    const controller = createOverlayController()
+    const result = controller.overlay.dialog(createElement('div'), { dismiss: 'block' })
+
+    controller.requestClose()
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true, status: 'open' })
+
+    controller.dismissDialogCurrent()
+    await expect(result).resolves.toBeUndefined()
   })
 })

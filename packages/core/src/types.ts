@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from 'react'
+import type { ComponentType, ReactElement, ReactNode } from 'react'
 
 export type AlertRequest = {
   title: ReactNode
@@ -24,6 +24,12 @@ export type ConfirmStatus = 'idle' | 'open' | 'pending' | 'error' | 'closing'
 
 export type AlertStatus = 'idle' | 'open' | 'closing'
 
+export type DialogStatus = 'idle' | 'open' | 'closing'
+
+export type DialogOptions = {
+  dismiss?: 'allow' | 'block'
+}
+
 export type AlertSnapshot = {
   open: boolean
   request: AlertRequest | null
@@ -35,6 +41,14 @@ export type ConfirmSnapshot = {
   request: ConfirmRequest | null
   status: ConfirmStatus
   error: unknown | null
+}
+
+export type DialogSnapshot = {
+  open: boolean
+  request: null
+  element: ReactElement | null
+  options: DialogOptions | null
+  status: DialogStatus
 }
 
 export type ConfirmSurfaceProps = ConfirmSnapshot & {
@@ -55,8 +69,18 @@ export type OverlayRenderers = {
   confirm: ComponentType<ConfirmSurfaceProps>
 }
 
+export type OverlayDialogApi<Result> = {
+  open: boolean
+  status: Extract<DialogStatus, 'open' | 'closing'>
+  resolve: (result: Result) => void
+  dismiss: () => void
+  requestClose: () => void
+  completeClose: () => void
+}
+
 export type OverlayApi = {
   alert: (request: AlertRequest) => Promise<void>
   confirm: (request: ConfirmRequest) => Promise<boolean>
+  dialog: <Result>(element: ReactElement, options?: DialogOptions) => Promise<Result | undefined>
   dismissAll: (reason?: 'route-change' | 'programmatic') => void
 }

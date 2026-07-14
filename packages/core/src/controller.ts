@@ -1,8 +1,11 @@
+import type { ReactElement } from 'react'
 import type {
   AlertRequest,
   AlertSnapshot,
   ConfirmRequest,
   ConfirmSnapshot,
+  DialogOptions,
+  DialogSnapshot,
   OverlayApi,
 } from './types'
 
@@ -25,7 +28,15 @@ type ConfirmEntry = EntryBase & {
   resolve: (result: boolean) => void
 }
 
-type OverlayEntry = AlertEntry | ConfirmEntry
+type DialogEntry = EntryBase & {
+  kind: 'dialog'
+  element: ReactElement
+  options: DialogOptions
+  promise: Promise<unknown>
+  resolve: (result: unknown | undefined) => void
+}
+
+type OverlayEntry = AlertEntry | ConfirmEntry | DialogEntry
 
 type IdleControllerSnapshot = {
   kind: null
@@ -46,10 +57,18 @@ type ConfirmControllerSnapshot = ConfirmSnapshot & {
   request: ConfirmRequest
 }
 
+type DialogControllerSnapshot = DialogSnapshot & {
+  kind: 'dialog'
+  element: ReactElement
+  options: DialogOptions
+  status: 'open' | 'closing'
+}
+
 export type OverlayControllerSnapshot =
   | IdleControllerSnapshot
   | AlertControllerSnapshot
   | ConfirmControllerSnapshot
+  | DialogControllerSnapshot
 
 export type OverlayController = {
   overlay: OverlayApi
@@ -57,6 +76,8 @@ export type OverlayController = {
   getSnapshot: () => OverlayControllerSnapshot
   acknowledgeCurrent: () => void
   confirmCurrent: () => void
+  resolveDialogCurrent: (result: unknown) => void
+  dismissDialogCurrent: () => void
   cancelCurrent: () => void
   requestClose: () => void
   completeClose: () => void
@@ -82,20 +103,42 @@ export function createOverlayController(): OverlayController {
     for (const listener of listeners) listener()
   }
 
-  function findByDedupeKey<Kind extends OverlayEntry['kind']>(
-    kind: Kind,
+  function getDedupeKey(entry: OverlayEntry): string | undefined {
+    return entry.kind === 'dialog' ? undefined : entry.request.dedupeKey
+  }
+
+  function findByDedupeKey(
+    kind: OverlayEntry['kind'],
     dedupeKey: string,
-  ): Extract<OverlayEntry, { kind: Kind }> | undefined {
+  ): OverlayEntry | undefined {
+    const entries = current ? [current, ...queue] : queue
+    return entries.find((entry) => entry.kind === kind && getDedupeKey(entry) === dedupeKey)
+  }
+
+  function findMatchingDialog(element: ReactElement): DialogEntry | undefined {
     const entries = current ? [current, ...queue] : queue
     return entries.find(
-      (entry): entry is Extract<OverlayEntry, { kind: Kind }> =>
-        entry.kind === kind && entry.request.dedupeKey === dedupeKey,
+      (entry): entry is DialogEntry =>
+        entry.kind === 'dialog' &&
+        entry.element.type === element.type &&
+        entry.element.key === element.key,
     )
   }
 
   function publishEntry(entry: OverlayEntry, open: boolean, status: 'open' | 'closing') {
     if (entry.kind === 'alert') {
       publish({ kind: 'alert', open, request: entry.request, status, error: null })
+      return
+    }
+    if (entry.kind === 'dialog') {
+      publish({
+        kind: 'dialog',
+        open,
+        request: null,
+        element: entry.element,
+        options: entry.options,
+        status,
+      })
       return
     }
     publish({ kind: 'confirm', open, request: entry.request, status, error: null })
@@ -124,10 +167,17 @@ export function createOverlayController(): OverlayController {
     publishEntry(entry, false, 'closing')
   }
 
+  function settleDialog(entry: DialogEntry, result: unknown | undefined) {
+    if (entry.settled || current?.id !== entry.id) return
+    entry.settled = true
+    entry.resolve(result)
+    publishEntry(entry, false, 'closing')
+  }
+
   function alert(request: AlertRequest): Promise<void> {
     if (request.dedupeKey) {
       const duplicate = findByDedupeKey('alert', request.dedupeKey)
-      if (duplicate) return duplicate.promise
+      if (duplicate) return duplicate.promise as Promise<void>
     }
 
     let resolve!: () => void
@@ -151,7 +201,7 @@ export function createOverlayController(): OverlayController {
   function confirm(request: ConfirmRequest): Promise<boolean> {
     if (request.dedupeKey) {
       const duplicate = findByDedupeKey('confirm', request.dedupeKey)
-      if (duplicate) return duplicate.promise
+      if (duplicate) return duplicate.promise as Promise<boolean>
     }
 
     let resolve!: (result: boolean) => void
@@ -164,6 +214,32 @@ export function createOverlayController(): OverlayController {
       request,
       promise,
       resolve,
+      settled: false,
+    }
+
+    queue.push(entry)
+    if (!current) showNext()
+    return promise
+  }
+
+  function dialog<Result>(
+    element: ReactElement,
+    options: DialogOptions = {},
+  ): Promise<Result | undefined> {
+    const duplicate = findMatchingDialog(element)
+    if (duplicate) return duplicate.promise as Promise<Result | undefined>
+
+    let resolve!: (result: Result | undefined) => void
+    const promise = new Promise<Result | undefined>((nextResolve) => {
+      resolve = nextResolve
+    })
+    const entry: DialogEntry = {
+      kind: 'dialog',
+      id: nextId++,
+      element,
+      options,
+      promise,
+      resolve: resolve as (result: unknown | undefined) => void,
       settled: false,
     }
 
@@ -222,10 +298,25 @@ export function createOverlayController(): OverlayController {
     settleConfirm(current, false)
   }
 
+  function resolveDialogCurrent(result: unknown) {
+    if (current?.kind !== 'dialog' || snapshot.status !== 'open') return
+    settleDialog(current, result)
+  }
+
+  function dismissDialogCurrent() {
+    if (current?.kind !== 'dialog' || snapshot.status !== 'open') return
+    settleDialog(current, undefined)
+  }
+
   function requestClose() {
     if (!current) return
     if (current.kind === 'alert') {
       acknowledgeCurrent()
+      return
+    }
+    if (current.kind === 'dialog') {
+      if (current.options.dismiss === 'block') return
+      dismissDialogCurrent()
       return
     }
     if (current.request.dismiss === 'block') return
@@ -242,7 +333,8 @@ export function createOverlayController(): OverlayController {
     if (entry.settled) return
     entry.settled = true
     if (entry.kind === 'alert') entry.resolve()
-    else entry.resolve(false)
+    else if (entry.kind === 'confirm') entry.resolve(false)
+    else entry.resolve(undefined)
   }
 
   function dismissAll() {
@@ -251,11 +343,12 @@ export function createOverlayController(): OverlayController {
     for (const entry of queued) dismissQueuedEntry(entry)
 
     if (current?.kind === 'alert') acknowledgeCurrent()
-    else cancelCurrent()
+    else if (current?.kind === 'confirm') cancelCurrent()
+    else dismissDialogCurrent()
   }
 
   return {
-    overlay: { alert, confirm, dismissAll },
+    overlay: { alert, confirm, dialog, dismissAll },
     subscribe(listener) {
       listeners.add(listener)
       return () => listeners.delete(listener)
@@ -263,6 +356,8 @@ export function createOverlayController(): OverlayController {
     getSnapshot: () => snapshot,
     acknowledgeCurrent,
     confirmCurrent,
+    resolveDialogCurrent,
+    dismissDialogCurrent,
     cancelCurrent,
     requestClose,
     completeClose,
