@@ -223,13 +223,45 @@ describe('overlay CLI 통합', () => {
       '.lyrd-toast[data-limited]',
     )
     expect(compileFixture(fixtureDirectory)).toBe('')
-    expect(log.mock.calls.flat().join('\n')).toContain('AppToastProvider')
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain('Runtime snippet (src/main.tsx)')
+    expect(output).toContain("import { AppToastProvider } from './lyrd/overlay/toast'")
+    expect(output).toContain("import { AppOverlayProvider } from './lyrd/overlay/overlay-provider'")
 
     const customizedToast = `${await readFile(toastPath, 'utf8')}\n// 사용자 커스텀\n`
     await writeFile(toastPath, customizedToast)
     await run(['add', 'toast', '--cwd', fixtureDirectory])
 
     expect(await readFile(toastPath, 'utf8')).toBe(customizedToast)
+  })
+
+  it('Vite의 커스텀 overlay 경로도 app root 기준 상대 import로 안내한다', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fixtureDirectory = await createViteFixture()
+
+    await writeFile(
+      path.join(fixtureDirectory, 'lyrd.json'),
+      `${JSON.stringify(
+        {
+          framework: 'vite-react',
+          packageManager: 'pnpm',
+          paths: { overlay: 'src/features/overlays' },
+          adapters: { overlay: 'base-ui' },
+        },
+        null,
+        2,
+      )}\n`,
+    )
+
+    await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install'])
+    await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
+
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain('Runtime snippet (src/main.tsx)')
+    expect(output).toContain("import { AppToastProvider } from './features/overlays/toast'")
+    expect(output).toContain(
+      "import { AppOverlayProvider } from './features/overlays/overlay-provider'",
+    )
   })
 
   it('Dialog 이름은 kebab-case만 허용하고 Overlay 설치를 요구한다', async () => {
@@ -264,6 +296,23 @@ describe('overlay CLI 통합', () => {
     const output = log.mock.calls.flat().join('\n')
     expect(output).toContain('src/app/layout.tsx')
     expect(output).toContain("import { LyrdOverlayProvider } from './lyrd-overlay-provider'")
+
+    const providerBeforeToast = await readFile(providerPath, 'utf8')
+    await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
+
+    expect(await readFile(providerPath, 'utf8')).toBe(providerBeforeToast)
+    expect(await readFile(layoutPath, 'utf8')).toBe('export {}\n')
+    expect(compileFixture(fixtureDirectory)).toBe('')
+
+    const toastOutput = log.mock.calls.flat().join('\n')
+    expect(toastOutput).toContain('Runtime snippet (src/app/lyrd-overlay-provider.tsx)')
+    expect(toastOutput).toContain("import { AppToastProvider } from '../lyrd/overlay/toast'")
+    expect(toastOutput).toContain(
+      "import { AppOverlayProvider } from '../lyrd/overlay/overlay-provider'",
+    )
+    expect(toastOutput).toContain(
+      "keep LyrdOverlayProvider mounted from './lyrd-overlay-provider' in 'src/app/layout.tsx'",
+    )
 
     const customizedProvider = `${await readFile(providerPath, 'utf8')}\n// 사용자 커스텀\n`
     await writeFile(providerPath, customizedProvider)

@@ -41,6 +41,12 @@ interface RuntimeSnippet {
   snippet: string
 }
 
+interface ToastRuntimeTarget {
+  targetFile: string
+  toastImportPath: string
+  overlayProviderImportPath: string
+}
+
 const REPOSITORY_URL = 'https://github.com/seunjin/lyrd'
 
 function printHelp(): void {
@@ -165,6 +171,27 @@ async function getRuntimeTarget(
     importPath: `${overlayPath}/overlay-provider`,
     providerFile: null,
     providerImportPath: null,
+  }
+}
+
+function getToastRuntimeTarget(
+  runtimeTarget: RuntimeTarget,
+  overlayPath: string,
+): ToastRuntimeTarget {
+  const targetFile = runtimeTarget.providerFile ?? runtimeTarget.appRootFile
+
+  if (!targetFile) {
+    return {
+      targetFile: 'your app root',
+      toastImportPath: `${overlayPath}/toast`,
+      overlayProviderImportPath: `${overlayPath}/overlay-provider`,
+    }
+  }
+
+  return {
+    targetFile,
+    toastImportPath: toRelativeImport(targetFile, `${overlayPath}/toast`),
+    overlayProviderImportPath: toRelativeImport(targetFile, `${overlayPath}/overlay-provider`),
   }
 }
 
@@ -461,6 +488,8 @@ async function runAddToast(cwd: string, verbose: boolean): Promise<number> {
   }
 
   const overlayDir = fromProjectPath(projectRoot, overlayPath)
+  const runtimeTarget = await getRuntimeTarget(projectRoot, config.framework, overlayPath)
+  const toastRuntimeTarget = getToastRuntimeTarget(runtimeTarget, overlayPath)
   const createdPaths: string[] = []
   const skippedPaths: string[] = []
   const updatedPaths = new Set<string>()
@@ -494,7 +523,9 @@ async function runAddToast(cwd: string, verbose: boolean): Promise<number> {
 
   printList('Kept existing', skippedPaths)
   printList('Next step', [
-    'Wrap AppOverlayProvider with AppToastProvider once in your app root.',
+    runtimeTarget.providerFile
+      ? `Wrap AppOverlayProvider with AppToastProvider in '${toastRuntimeTarget.targetFile}' and keep LyrdOverlayProvider mounted from '${runtimeTarget.importPath}' in '${runtimeTarget.appRootFile}'.`
+      : `Wrap AppOverlayProvider with AppToastProvider once in '${toastRuntimeTarget.targetFile}'.`,
     'Use notify() for fire-and-forget messages or notifyWithUndo() for actionable Toasts.',
   ])
   printList('Docs', [
@@ -502,9 +533,9 @@ async function runAddToast(cwd: string, verbose: boolean): Promise<number> {
   ])
 
   if (verbose) {
-    console.log('\nRuntime snippet (app root):\n')
-    console.log(`import { AppToastProvider } from '${overlayPath}/toast'
-import { AppOverlayProvider } from '${overlayPath}/overlay-provider'
+    console.log(`\nRuntime snippet (${toastRuntimeTarget.targetFile}):\n`)
+    console.log(`import { AppToastProvider } from '${toastRuntimeTarget.toastImportPath}'
+import { AppOverlayProvider } from '${toastRuntimeTarget.overlayProviderImportPath}'
 
 <AppToastProvider>
   <AppOverlayProvider>{children}</AppOverlayProvider>

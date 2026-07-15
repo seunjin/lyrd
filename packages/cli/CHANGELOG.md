@@ -1,5 +1,11 @@
 # @lyrd/cli
 
+## 0.1.0-next.3
+
+### Patch Changes
+
+- Print Toast runtime imports relative to the actual Vite app root or Next.js client provider file, including custom overlay paths.
+
 ## 0.1.0-next.2
 
 ### Patch Changes
