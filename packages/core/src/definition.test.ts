@@ -40,6 +40,43 @@ describe('overlay definition types', () => {
 })
 
 describe('overlay definition controller', () => {
+  it('alert, definition, confirm을 같은 session queue에서 순서대로 처리한다', async () => {
+    const controller = createOverlayController()
+    const alertResult = controller.overlay.alert({ title: '먼저 안내' })
+    const definitionResult = controller.overlay.open(projectSettings, {
+      projectId: 'project-a',
+    })
+    const confirmResult = controller.overlay.confirm({
+      title: '마지막 확인',
+      confirmLabel: '확인',
+    })
+
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'alert', status: 'mounting' })
+    controller.openCurrent()
+    controller.acknowledgeCurrent()
+    await expect(alertResult).resolves.toBeUndefined()
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'definition',
+      input: { projectId: 'project-a' },
+      status: 'mounting',
+    })
+    controller.openCurrent()
+    controller.resolveDefinitionCurrent({ saved: true })
+    controller.resolveDefinitionCurrent({ saved: false })
+    await expect(definitionResult).resolves.toEqual({
+      status: 'resolved',
+      value: { saved: true },
+    })
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'confirm', status: 'mounting' })
+    controller.openCurrent()
+    controller.cancelCurrent()
+    await expect(confirmResult).resolves.toBe(false)
+  })
+
   it('Provider가 definition input과 session 상태를 렌더링한다', () => {
     const controller = createOverlayController()
     controller.overlay.open(projectSettings, { projectId: 'project-a' })

@@ -1,6 +1,6 @@
 # RFC 0003: 오버레이 정의와 정책 계층 분리
 
-- 상태: 승인·1차 구현
+- 상태: 승인·2차 구현
 - 작성일: 2026-07-15
 - 담당: Lyrd 유지보수 팀
 - 선행 RFC:
@@ -612,8 +612,19 @@ await appOverlay.confirm(...)
 - `open()`과 legacy `dialog()`의 자동 dedupe 제거
 - CLI Dialog 템플릿과 문서·Storybook 예제 전환
 
-alert와 confirm의 공통 session entry 내부 통합, 명시적인 upsert, 다중 group은 후속
-단계로 남긴다. 공개 사용 사례를 먼저 검증하고 각각 별도 변경으로 진행한다.
+## 2차 구현 현황
+
+2026-07-15에 공개 API 변경 없이 controller 내부의 공통 세션 흐름을 정리했다.
+
+- alert, confirm, legacy dialog, typed definition이 같은 `SessionEntry<Kind, Result>` 기반을
+  사용한다.
+- Promise와 resolve 쌍은 공통 deferred factory에서 생성한다.
+- 모든 entry가 같은 enqueue 함수와 settle/closing 전환을 사용한다.
+- alert → definition → confirm 혼합 queue와 중복 settlement 무시를 회귀 테스트로
+  고정했다.
+
+명시적인 upsert와 다중 group은 후속 단계로 남긴다. 공개 사용 사례를 먼저 검증하고
+각각 별도 변경으로 진행한다.
 
 ## 확정한 결정
 

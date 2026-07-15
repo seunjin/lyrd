@@ -15,40 +15,34 @@ import type {
 
 type AnyOverlayDefinition = OverlayDefinition<unknown, unknown>
 
-type EntryBase = {
+type Deferred<Result> = {
+  promise: Promise<Result>
+  resolve: (result: Result) => void
+}
+
+type SessionEntry<Kind extends string, Result> = Deferred<Result> & {
+  kind: Kind
   id: number
   settled: boolean
 }
 
-type AlertEntry = EntryBase & {
-  kind: 'alert'
+type AlertEntry = SessionEntry<'alert', void> & {
   request: AlertRequest
-  promise: Promise<void>
-  resolve: () => void
 }
 
-type ConfirmEntry = EntryBase & {
-  kind: 'confirm'
+type ConfirmEntry = SessionEntry<'confirm', boolean> & {
   request: ConfirmRequest
-  promise: Promise<boolean>
-  resolve: (result: boolean) => void
 }
 
-type DialogEntry = EntryBase & {
-  kind: 'dialog'
+type DialogEntry = SessionEntry<'dialog', unknown | undefined> & {
   element: ReactElement
   options: DialogOptions
-  promise: Promise<unknown>
-  resolve: (result: unknown | undefined) => void
 }
 
-type DefinitionEntry = EntryBase & {
-  kind: 'definition'
+type DefinitionEntry = SessionEntry<'definition', OverlayOutcome<unknown>> & {
   definition: AnyOverlayDefinition
   input: unknown
   options: OverlayOpenOptions
-  promise: Promise<OverlayOutcome<unknown>>
-  resolve: (outcome: OverlayOutcome<unknown>) => void
 }
 
 type OverlayEntry = AlertEntry | ConfirmEntry | DialogEntry | DefinitionEntry
@@ -120,6 +114,14 @@ const IDLE_SNAPSHOT: IdleControllerSnapshot = {
   error: null,
 }
 
+function createDeferred<Result>(): Deferred<Result> {
+  let resolve!: (result: Result) => void
+  const promise = new Promise<Result>((nextResolve) => {
+    resolve = nextResolve
+  })
+  return { promise, resolve }
+}
+
 export function createOverlayController(): OverlayController {
   let nextId = 1
   let current: OverlayEntry | null = null
@@ -130,6 +132,18 @@ export function createOverlayController(): OverlayController {
   function publish(next: OverlayControllerSnapshot) {
     snapshot = next
     for (const listener of listeners) listener()
+  }
+
+  function createSessionEntry<Kind extends OverlayEntry['kind'], Result>(
+    kind: Kind,
+    deferred: Deferred<Result>,
+  ): SessionEntry<Kind, Result> {
+    return {
+      kind,
+      id: nextId++,
+      settled: false,
+      ...deferred,
+    }
   }
 
   function getDedupeKey(entry: OverlayEntry): string | undefined {
@@ -188,37 +202,37 @@ export function createOverlayController(): OverlayController {
     publishEntry(current, false, 'mounting')
   }
 
+  function enqueueEntry(entry: OverlayEntry) {
+    queue.push(entry)
+    if (!current) showNext()
+  }
+
   function openCurrent() {
     if (!current || snapshot.status !== 'mounting') return
     publishEntry(current, true, 'open')
   }
 
-  function settleAlert(entry: AlertEntry) {
+  function settleEntry(entry: OverlayEntry, resolve: () => void) {
     if (entry.settled || current?.id !== entry.id) return
     entry.settled = true
-    entry.resolve()
+    resolve()
     publishEntry(entry, false, 'closing')
+  }
+
+  function settleAlert(entry: AlertEntry) {
+    settleEntry(entry, () => entry.resolve())
   }
 
   function settleConfirm(entry: ConfirmEntry, result: boolean) {
-    if (entry.settled || current?.id !== entry.id) return
-    entry.settled = true
-    entry.resolve(result)
-    publishEntry(entry, false, 'closing')
+    settleEntry(entry, () => entry.resolve(result))
   }
 
   function settleDialog(entry: DialogEntry, result: unknown | undefined) {
-    if (entry.settled || current?.id !== entry.id) return
-    entry.settled = true
-    entry.resolve(result)
-    publishEntry(entry, false, 'closing')
+    settleEntry(entry, () => entry.resolve(result))
   }
 
   function settleDefinition(entry: DefinitionEntry, outcome: OverlayOutcome<unknown>) {
-    if (entry.settled || current?.id !== entry.id) return
-    entry.settled = true
-    entry.resolve(outcome)
-    publishEntry(entry, false, 'closing')
+    settleEntry(entry, () => entry.resolve(outcome))
   }
 
   function alert(request: AlertRequest): Promise<void> {
@@ -227,22 +241,13 @@ export function createOverlayController(): OverlayController {
       if (duplicate) return duplicate.promise as Promise<void>
     }
 
-    let resolve!: () => void
-    const promise = new Promise<void>((nextResolve) => {
-      resolve = nextResolve
-    })
     const entry: AlertEntry = {
-      kind: 'alert',
-      id: nextId++,
+      ...createSessionEntry('alert', createDeferred<void>()),
       request,
-      promise,
-      resolve,
-      settled: false,
     }
 
-    queue.push(entry)
-    if (!current) showNext()
-    return promise
+    enqueueEntry(entry)
+    return entry.promise
   }
 
   function confirm(request: ConfirmRequest): Promise<boolean> {
@@ -251,45 +256,27 @@ export function createOverlayController(): OverlayController {
       if (duplicate) return duplicate.promise as Promise<boolean>
     }
 
-    let resolve!: (result: boolean) => void
-    const promise = new Promise<boolean>((nextResolve) => {
-      resolve = nextResolve
-    })
     const entry: ConfirmEntry = {
-      kind: 'confirm',
-      id: nextId++,
+      ...createSessionEntry('confirm', createDeferred<boolean>()),
       request,
-      promise,
-      resolve,
-      settled: false,
     }
 
-    queue.push(entry)
-    if (!current) showNext()
-    return promise
+    enqueueEntry(entry)
+    return entry.promise
   }
 
   function dialog<Result>(
     element: ReactElement,
     options: DialogOptions = {},
   ): Promise<Result | undefined> {
-    let resolve!: (result: Result | undefined) => void
-    const promise = new Promise<Result | undefined>((nextResolve) => {
-      resolve = nextResolve
-    })
     const entry: DialogEntry = {
-      kind: 'dialog',
-      id: nextId++,
+      ...createSessionEntry('dialog', createDeferred<unknown | undefined>()),
       element,
       options,
-      promise,
-      resolve: resolve as (result: unknown | undefined) => void,
-      settled: false,
     }
 
-    queue.push(entry)
-    if (!current) showNext()
-    return promise
+    enqueueEntry(entry)
+    return entry.promise as Promise<Result | undefined>
   }
 
   function open<Input, Result>(
@@ -297,24 +284,15 @@ export function createOverlayController(): OverlayController {
     input: Input,
     options: OverlayOpenOptions = {},
   ): Promise<OverlayOutcome<Result>> {
-    let resolve!: (outcome: OverlayOutcome<Result>) => void
-    const promise = new Promise<OverlayOutcome<Result>>((nextResolve) => {
-      resolve = nextResolve
-    })
     const entry: DefinitionEntry = {
-      kind: 'definition',
-      id: nextId++,
+      ...createSessionEntry('definition', createDeferred<OverlayOutcome<unknown>>()),
       definition: definition as unknown as AnyOverlayDefinition,
       input,
       options,
-      promise: promise as Promise<OverlayOutcome<unknown>>,
-      resolve: resolve as (outcome: OverlayOutcome<unknown>) => void,
-      settled: false,
     }
 
-    queue.push(entry)
-    if (!current) showNext()
-    return promise
+    enqueueEntry(entry)
+    return entry.promise as Promise<OverlayOutcome<Result>>
   }
 
   function acknowledgeCurrent() {
