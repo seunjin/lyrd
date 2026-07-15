@@ -9,6 +9,7 @@
   },
   "changesets": [
     "brave-owls-define",
+    "bright-toasts-contract",
     "calm-ravens-build",
     "early-pandas-travel",
     "fair-pandas-upsert",

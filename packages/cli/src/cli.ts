@@ -476,7 +476,7 @@ async function runAddToast(cwd: string, verbose: boolean): Promise<number> {
     }
   }
 
-  for (const exportName of ['toast', 'toast-group']) {
+  for (const exportName of ['toast-definition', 'toast', 'toast-group', 'notify']) {
     const indexStatus = await ensureIndexExport(projectRoot, overlayPath, exportName)
     if (indexStatus !== 'skipped') {
       updatedPaths.add(`${overlayPath}/index.ts`)
@@ -495,7 +495,7 @@ async function runAddToast(cwd: string, verbose: boolean): Promise<number> {
   printList('Kept existing', skippedPaths)
   printList('Next step', [
     'Wrap AppOverlayProvider with AppToastProvider once in your app root.',
-    'Open appToast with overlay.open(appToast, input, { group: toastGroup }).',
+    'Use notify() for fire-and-forget messages or notifyWithUndo() for actionable Toasts.',
   ])
   printList('Docs', [
     `${REPOSITORY_URL}/blob/main/docs/rfcs/0003-overlay-definition-and-policy-layers.md`,
@@ -509,19 +509,22 @@ import { AppOverlayProvider } from '${overlayPath}/overlay-provider'
 <AppToastProvider>
   <AppOverlayProvider>{children}</AppOverlayProvider>
 </AppToastProvider>`)
-    console.log('\nOpen snippet:\n')
-    console.log(`const outcome = await overlay.open(
-  appToast,
-  {
-    toastId: crypto.randomUUID(),
-    title: '변경 사항을 저장했습니다.',
-    description: '필요하면 실행 취소할 수 있습니다.',
-  },
-  { group: toastGroup },
-)`)
+    console.log('\nNotify snippets:\n')
+    console.log(`notify(overlay, {
+  title: '변경 사항을 저장했습니다.',
+})
+
+const action = await notifyWithUndo(overlay, {
+  title: '항목을 삭제했습니다.',
+  description: '필요하면 실행 취소할 수 있습니다.',
+})
+
+if (action === 'undo') {
+  await undoDelete()
+}`)
   } else {
     console.log('\nTip:')
-    console.log('- Run the same command with --verbose to print the provider and open snippets')
+    console.log('- Run the same command with --verbose to print the provider and notify snippets')
   }
 
   return 0

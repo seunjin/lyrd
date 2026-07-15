@@ -11,7 +11,7 @@ Before editing anything, read these documents completely:
 - https://seunjin.github.io/lyrd/llms.txt
 - https://seunjin.github.io/lyrd/llms-full.txt
 
-Use the npm `next` channel. Do not invent APIs that are not documented. In particular, there is no built-in `overlay.toast()` API; Toast is an app-owned CLI-generated adapter.
+Use the exact CLI version documented for this evaluation when one is provided, and run `--help` before installation to verify that `add toast` exists. Do not invent APIs that are not documented. In particular, there is no built-in `overlay.toast()` API; Toast is an app-owned CLI-generated adapter.
 
 Goals:
 
@@ -25,7 +25,7 @@ Goals:
    - asynchronous Confirm pending, failure, and retry
    - one typed custom overlay created with `defineOverlay()` and opened with `overlay.open()`
    - both resolved and dismissed `OverlayOutcome` branches
-6. Run `pnpm dlx @lyrd/cli@next add toast --verbose`. Compose `AppToastProvider` around `AppOverlayProvider` once and demonstrate at least two simultaneous Toasts using the generated `appToast` and `toastGroup`.
+6. Run `pnpm dlx @lyrd/cli@next add toast --verbose`. Compose `AppToastProvider` around `AppOverlayProvider` once. Demonstrate a simple `notify()`, actionable `notifyWithUndo()`, at least two simultaneous Toasts, and six Toasts to verify the generated `data-limited` styling.
 7. If this application has a progress-like operation, evaluate `overlay.upsert()` using a stable operation identity. If no honest use case exists, document why it was not added instead of creating artificial production code.
 8. Verify the default modal queue does not overlap, parallel Toasts do not block modal overlays, and route cleanup can call `dismissAll('route-change')` when appropriate.
 9. Re-run the CLI commands and verify customized generated files are not overwritten.

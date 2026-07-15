@@ -34,7 +34,10 @@ src/
   lyrd/
     alert.tsx
     confirm.tsx
+    toast-definition.ts
+    toast-group.ts
     toast.tsx
+    notify.ts
     toast.css
     dialog.css
     dialogs/
