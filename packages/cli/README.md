@@ -58,8 +58,10 @@ pnpm dlx @lyrd/cli add toast
 
 ```text
 src/lyrd/overlay/
+  toast-definition.ts
   toast.tsx
   toast-group.ts
+  notify.ts
   toast.css
 ```
 
@@ -71,12 +73,14 @@ src/lyrd/overlay/
 </AppToastProvider>
 ```
 
-호출부는 별도 병렬 그룹을 명시한다.
+일반 호출부는 생성된 앱 소유 helper를 사용한다. helper가 ID 생성과 병렬 그룹 선택을 감춘다.
 
 ```ts
-const outcome = await overlay.open(
-  appToast,
-  { toastId: crypto.randomUUID(), title: '저장했습니다.' },
-  { group: toastGroup },
-)
+notify(overlay, { title: '저장했습니다.' })
+
+const action = await notifyWithUndo(overlay, {
+  title: '항목을 삭제했습니다.',
+})
 ```
+
+저수준 호출이 필요한 경우에는 `overlay.open(appToast, input, { group: toastGroup })`을 그대로 사용할 수 있다. Undo는 resolved action이며 timeout·swipe·일반 닫힘은 dismissed outcome으로 처리한다.

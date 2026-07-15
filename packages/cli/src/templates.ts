@@ -312,31 +312,26 @@ export const toastGroup = defineOverlayGroup({ strategy: 'parallel' })
 `
 }
 
-function toastTemplate(): string {
-  return `'use client'
-
-import { Toast } from '@base-ui/react/toast'
-import { defineOverlay } from '@lyrd/core'
+function toastDefinitionTemplate(): string {
+  return `import { Toast } from '@base-ui/react/toast'
 import type { OverlayDefinitionComponentProps } from '@lyrd/core'
-import type { ReactNode } from 'react'
+import { defineOverlay } from '@lyrd/core'
 import { useEffect, useRef } from 'react'
 
-import './toast.css'
-
 export type AppToastInput = {
+  actionLabel?: string
   description?: string
   timeout?: number
   title: string
   toastId: string
 }
 
-export type AppToastResult =
-  | { action: 'undo' }
-  | { action: 'dismissed' }
+export type AppToastResult = { action: 'undo' }
 
-type AppToastData = {
+export type AppToastData = {
   dismiss: () => void
-  undo: () => void
+  undo?: () => void
+  undoLabel?: string
 }
 
 type AppToastProps = OverlayDefinitionComponentProps<AppToastInput, AppToastResult>
@@ -368,11 +363,16 @@ function AppToast({ input, session }: AppToastProps) {
       title: currentInput.title,
       description: currentInput.description,
       timeout: currentInput.timeout,
-      data: {
-        undo: () => sessionRef.current.resolve({ action: 'undo' }),
-        dismiss: () => sessionRef.current.resolve({ action: 'dismissed' }),
-      },
-      onClose: () => sessionRef.current.resolve({ action: 'dismissed' }),
+      data: currentInput.actionLabel
+        ? {
+            undo: () => sessionRef.current.resolve({ action: 'undo' }),
+            undoLabel: currentInput.actionLabel,
+            dismiss: () => sessionRef.current.dismiss('cancel'),
+          }
+        : {
+            dismiss: () => sessionRef.current.dismiss('cancel'),
+          },
+      onClose: () => sessionRef.current.dismiss('programmatic'),
       onRemove: () => sessionRef.current.completeClose(),
     })
   }, [add, close, input.toastId, session.open])
@@ -381,6 +381,17 @@ function AppToast({ input, session }: AppToastProps) {
 }
 
 export const appToast = defineOverlay(AppToast)
+`
+}
+
+function toastTemplate(): string {
+  return `'use client'
+
+import { Toast } from '@base-ui/react/toast'
+import type { ReactNode } from 'react'
+
+import type { AppToastData } from './toast-definition'
+import './toast.css'
 
 function ToastRegion() {
   const { toasts } = Toast.useToastManager<AppToastData>()
@@ -395,9 +406,11 @@ function ToastRegion() {
               <Toast.Description className="lyrd-toast-description" />
             </Toast.Content>
             <div className="lyrd-toast-actions">
-              <Toast.Action className="lyrd-toast-undo" onClick={toast.data?.undo}>
-                실행 취소
-              </Toast.Action>
+              {toast.data?.undo ? (
+                <Toast.Action className="lyrd-toast-undo" onClick={toast.data.undo}>
+                  {toast.data.undoLabel}
+                </Toast.Action>
+              ) : null}
               <Toast.Close className="lyrd-toast-close" onClickCapture={toast.data?.dismiss}>
                 닫기
               </Toast.Close>
@@ -416,6 +429,49 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
       <ToastRegion />
     </Toast.Provider>
   )
+}
+`
+}
+
+function toastNotifyTemplate(): string {
+  return `import type { OverlayApi } from '@lyrd/core'
+
+import type { AppToastInput } from './toast-definition'
+import { appToast } from './toast-definition'
+import { toastGroup } from './toast-group'
+
+type ToastMessage = Omit<AppToastInput, 'actionLabel' | 'toastId'>
+
+export function showToast(overlay: OverlayApi, input: ToastMessage) {
+  return overlay.open(
+    appToast,
+    {
+      ...input,
+      toastId: crypto.randomUUID(),
+    },
+    { group: toastGroup },
+  )
+}
+
+export function notify(overlay: OverlayApi, input: ToastMessage): void {
+  void showToast(overlay, input)
+}
+
+export async function notifyWithUndo(
+  overlay: OverlayApi,
+  input: ToastMessage,
+): Promise<'dismissed' | 'undo'> {
+  const outcome = await overlay.open(
+    appToast,
+    {
+      ...input,
+      actionLabel: '실행 취소',
+      toastId: crypto.randomUUID(),
+    },
+    { group: toastGroup },
+  )
+
+  return outcome.status === 'resolved' ? outcome.value.action : 'dismissed'
 }
 `
 }
@@ -445,15 +501,45 @@ function toastCssTemplate(): string {
   color: #0f172a;
   background: #fff;
   box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+  transform: translateX(var(--toast-swipe-movement-x, 0))
+    translateY(var(--toast-swipe-movement-y, 0));
   transition:
     opacity 160ms ease,
     transform 160ms ease;
 }
 
 .lyrd-toast[data-starting-style],
-.lyrd-toast[data-ending-style] {
+.lyrd-toast[data-ending-style]:not([data-swipe-direction]) {
   opacity: 0;
   transform: translateY(8px);
+}
+
+.lyrd-toast[data-swiping] {
+  transition: none;
+}
+
+.lyrd-toast[data-ending-style][data-swipe-direction="right"] {
+  opacity: 0;
+  transform: translateX(calc(var(--toast-swipe-movement-x) + 120%));
+}
+
+.lyrd-toast[data-ending-style][data-swipe-direction="left"] {
+  opacity: 0;
+  transform: translateX(calc(var(--toast-swipe-movement-x) - 120%));
+}
+
+.lyrd-toast[data-ending-style][data-swipe-direction="down"] {
+  opacity: 0;
+  transform: translateY(calc(var(--toast-swipe-movement-y) + 120%));
+}
+
+.lyrd-toast[data-ending-style][data-swipe-direction="up"] {
+  opacity: 0;
+  transform: translateY(calc(var(--toast-swipe-movement-y) - 120%));
+}
+
+.lyrd-toast[data-limited] {
+  display: none;
 }
 
 .lyrd-toast-content {
@@ -516,8 +602,10 @@ function toastCssTemplate(): string {
 
 export function getToastScaffoldFiles(): Array<{ name: string; content: string }> {
   return [
+    { name: 'toast-definition.ts', content: toastDefinitionTemplate() },
     { name: 'toast.tsx', content: toastTemplate() },
     { name: 'toast-group.ts', content: toastGroupTemplate() },
+    { name: 'notify.ts', content: toastNotifyTemplate() },
     { name: 'toast.css', content: toastCssTemplate() },
   ]
 }

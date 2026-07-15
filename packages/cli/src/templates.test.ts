@@ -63,16 +63,28 @@ describe('overlay 생성 템플릿', () => {
     expect(component).toContain('session.resolve({ completed: true })')
   })
 
-  it('병렬 그룹을 사용하는 앱 소유 Toast adapter를 생성한다', () => {
+  it('병렬 그룹과 앱 소유 helper를 사용하는 Toast adapter를 생성한다', async () => {
     const toastFiles = new Map(getToastScaffoldFiles().map((file) => [file.name, file.content]))
+    const definition = toastFiles.get('toast-definition.ts')
     const component = toastFiles.get('toast.tsx')
+    const notify = toastFiles.get('notify.ts')
 
     expect(toastFiles.get('toast-group.ts')).toContain("strategy: 'parallel'")
-    expect(toastFiles.get('toast.css')).toContain('.lyrd-toast-viewport')
+    expect(toastFiles.get('toast.css')).toContain('.lyrd-toast[data-limited]')
     expect(component).toContain('Toast.Provider limit={5} timeout={5000}')
-    expect(component).toContain('export const appToast = defineOverlay(AppToast)')
-    expect(component).toContain("sessionRef.current.resolve({ action: 'undo' })")
-    expect(component).toContain("sessionRef.current.resolve({ action: 'dismissed' })")
-    expect(component).toContain('sessionRef.current.completeClose()')
+    expect(component).toContain('toast.data?.undo ?')
+    expect(component).not.toContain('export const appToast')
+    expect(definition).toContain('export const appToast = defineOverlay(AppToast)')
+    expect(definition).toContain("sessionRef.current.resolve({ action: 'undo' })")
+    expect(definition).toContain("sessionRef.current.dismiss('programmatic')")
+    expect(definition).not.toContain("action: 'dismissed'")
+    expect(notify).toContain('export function notify(')
+    expect(notify).toContain('export async function notifyWithUndo(')
+    expect(notify).toContain('toastId: crypto.randomUUID()')
+
+    for (const [name, content] of toastFiles) {
+      const storybookFile = fileURLToPath(new URL(name, storybookOverlayDirectory))
+      await expect(readFile(storybookFile, 'utf8')).resolves.toBe(content)
+    }
   })
 })

@@ -7,6 +7,14 @@ on:
         description: 'npm 배포를 실행하려면 publish를 입력하세요.'
         required: true
         type: string
+      tag:
+        description: 'npm dist-tag를 선택하세요.'
+        required: true
+        default: next
+        type: choice
+        options:
+          - next
+          - latest
 
 permissions:
   contents: read
@@ -45,4 +53,15 @@ jobs:
         run: pnpm changeset status --output=changeset-status.json
 
       - name: npm에 공개 배포
-        run: pnpm exec changeset publish
+        run: pnpm exec changeset publish --tag "${{ inputs.tag }}"
+
+      - name: npm dist-tag 검증
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          CORE_EXPECTED=$(node -p "require('./packages/core/package.json').version")
+          CLI_EXPECTED=$(node -p "require('./packages/cli/package.json').version")
+          CORE_ACTUAL=$(npm view "@lyrd/core@${RELEASE_TAG}" version)
+          CLI_ACTUAL=$(npm view "@lyrd/cli@${RELEASE_TAG}" version)
+          test "$CORE_ACTUAL" = "$CORE_EXPECTED"
+          test "$CLI_ACTUAL" = "$CLI_EXPECTED"

@@ -1,8 +1,8 @@
 import { useOverlay } from '@lyrd/core'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
-import { appToast, toastGroup } from '../lyrd/toast'
+import { notify, notifyWithUndo, showToast as openToast } from '../lyrd/notify'
 
 const meta = {
   title: 'VNext/Overlay Toast',
@@ -13,29 +13,33 @@ type Story = StoryObj<typeof meta>
 
 function OverlayToastStory() {
   const overlay = useOverlay()
-  const nextToastId = useRef(1)
   const [result, setResult] = useState('-')
 
   async function showToast(index: number) {
-    const toastId = `storybook-toast-${nextToastId.current++}`
-    const outcome = await overlay.open(
-      appToast,
-      {
-        toastId,
-        title: `문서 ${index}을 저장했습니다.`,
-        description: '각 알림은 독립적으로 닫히며 modal queue를 막지 않습니다.',
-      },
-      { group: toastGroup },
-    )
+    const outcome = await openToast(overlay, {
+      title: `문서 ${index}을 저장했습니다.`,
+      description: '각 알림은 독립적으로 닫히며 modal queue를 막지 않습니다.',
+    })
     setResult(
-      outcome.status === 'resolved'
-        ? `${toastId} · ${outcome.value.action}`
-        : `${toastId} · ${outcome.reason}`,
+      outcome.status === 'resolved' ? `raw · ${outcome.value.action}` : `raw · ${outcome.reason}`,
     )
   }
 
   function showBurst() {
-    for (let index = 1; index <= 3; index += 1) void showToast(index)
+    for (let index = 1; index <= 6; index += 1) {
+      notify(overlay, {
+        title: `병렬 Toast ${index}`,
+        description: 'limit을 넘는 Toast는 data-limited로 숨겨집니다.',
+      })
+    }
+  }
+
+  async function showUndoToast() {
+    const action = await notifyWithUndo(overlay, {
+      title: '문서를 삭제했습니다.',
+      description: '실행 취소를 선택하면 resolved action을 반환합니다.',
+    })
+    setResult(`actionable · ${action}`)
   }
 
   async function showAlongsideConfirm() {
@@ -55,8 +59,22 @@ function OverlayToastStory() {
         마지막 결과: <code>{result}</code>
       </p>
       <div className="lyrd-story-actions">
+        <button
+          onClick={() =>
+            notify(overlay, {
+              title: '저장했습니다.',
+              description: '단순 알림에는 Undo 버튼이 없습니다.',
+            })
+          }
+          type="button"
+        >
+          단순 notify()
+        </button>
+        <button onClick={() => void showUndoToast()} type="button">
+          Undo Toast
+        </button>
         <button onClick={showBurst} type="button">
-          Toast 3개 동시에 열기
+          Toast 6개 limit 검증
         </button>
         <button onClick={() => void showAlongsideConfirm()} type="button">
           Toast와 confirm 함께 열기

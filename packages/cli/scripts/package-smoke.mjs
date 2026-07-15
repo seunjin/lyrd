@@ -178,8 +178,8 @@ async function main() {
     const toast = await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
     assert.match(toast.stdout, /Added toast/)
     await Promise.all(
-      ['toast.tsx', 'toast-group.ts', 'toast.css'].map((fileName) =>
-        access(path.join(overlayDirectory, fileName)),
+      ['toast-definition.ts', 'toast.tsx', 'toast-group.ts', 'notify.ts', 'toast.css'].map(
+        (fileName) => access(path.join(overlayDirectory, fileName)),
       ),
     )
 

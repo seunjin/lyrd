@@ -209,12 +209,18 @@ describe('overlay CLI 통합', () => {
     await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
 
     const toastPath = path.join(overlayDirectory, 'toast.tsx')
-    await expect(readFile(toastPath, 'utf8')).resolves.toContain('export const appToast')
+    await expect(readFile(toastPath, 'utf8')).resolves.toContain('export function AppToastProvider')
+    await expect(
+      readFile(path.join(overlayDirectory, 'toast-definition.ts'), 'utf8'),
+    ).resolves.toContain('export const appToast')
+    await expect(readFile(path.join(overlayDirectory, 'notify.ts'), 'utf8')).resolves.toContain(
+      'export function notify',
+    )
     await expect(
       readFile(path.join(overlayDirectory, 'toast-group.ts'), 'utf8'),
     ).resolves.toContain("strategy: 'parallel'")
     await expect(readFile(path.join(overlayDirectory, 'toast.css'), 'utf8')).resolves.toContain(
-      '.lyrd-toast-viewport',
+      '.lyrd-toast[data-limited]',
     )
     expect(compileFixture(fixtureDirectory)).toBe('')
     expect(log.mock.calls.flat().join('\n')).toContain('AppToastProvider')
