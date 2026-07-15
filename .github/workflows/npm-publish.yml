@@ -52,8 +52,29 @@ jobs:
       - name: 미배포 버전 확인
         run: pnpm changeset status --output=changeset-status.json
 
+      - name: 릴리스 채널 확인
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          PRE_MODE=$(node -p "require('./.changeset/pre.json').mode")
+          PRE_TAG=$(node -p "require('./.changeset/pre.json').tag")
+
+          if [ "$RELEASE_TAG" = "next" ]; then
+            test "$PRE_MODE" = "pre"
+            test "$PRE_TAG" = "next"
+          else
+            test "$PRE_MODE" = "exit"
+          fi
+
       - name: npm에 공개 배포
-        run: pnpm exec changeset publish --tag "${{ inputs.tag }}"
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$RELEASE_TAG" = "next" ]; then
+            pnpm exec changeset publish
+          else
+            pnpm exec changeset publish --tag latest
+          fi
 
       - name: npm dist-tag 검증
         env:

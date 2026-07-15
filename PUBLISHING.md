@@ -34,14 +34,16 @@ GitHub 웹 화면에서는 다음 순서로 실행한다.
 1. [Lyrd Actions](https://github.com/seunjin/lyrd/actions)에서 왼쪽의 **npm 배포** 워크플로를 선택한다.
 2. **Run workflow**를 누르고 브랜치가 `main`인지 확인한다.
 3. 확인 입력란에 정확히 `publish`를 입력한다.
-4. 프리릴리스는 dist-tag로 `next`, 안정 릴리스는 `latest`를 선택한다.
+4. 프리릴리스는 릴리스 채널로 `next`, 안정 릴리스는 `latest`를 선택한다. 워크플로는 선택한 채널이 Changesets 상태와 일치하는지 먼저 검사한다.
 5. 초록색 **Run workflow** 버튼을 눌러 실행한다.
 6. 작업이 `npm-publish` 환경에서 대기하면 **Review deployments**를 선택한다.
 7. `npm-publish` 환경을 체크하고 **Approve and deploy**를 누른다.
-8. 품질 검증, **npm에 공개 배포**, **npm dist-tag 검증** 단계가 모두 성공했는지 확인한다.
+8. 품질 검증, **릴리스 채널 확인**, **npm에 공개 배포**, **npm dist-tag 검증** 단계가 모두 성공했는지 확인한다.
 9. npm 패키지 페이지에서 버전, dist-tag와 provenance를 확인한다.
 
 `publish`는 오입력을 막는 안전장치이며 버전이나 npm 태그가 아니다. 실제 버전과 `next` 또는 `latest` 태그는 커밋된 package.json과 Changesets 프리릴리스 상태로 결정된다. 환경 승인 전에는 npm publish가 실행되지 않는다.
+
+Changesets 프리릴리스 모드에서는 `changeset publish --tag next`를 직접 사용할 수 없다. 워크플로는 `next`를 선택하면 프리릴리스 상태와 태그를 검증한 뒤 인자 없는 `changeset publish`를 실행하고, Changesets가 `next` dist-tag를 적용하도록 맡긴다. `latest`는 `.changeset/pre.json`이 `exit` 상태일 때만 허용한다.
 
 터미널에서 GitHub CLI로 같은 워크플로를 시작할 수도 있다.
 
