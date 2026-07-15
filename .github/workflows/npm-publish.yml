@@ -68,13 +68,8 @@ jobs:
 
       - name: npm에 공개 배포
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: |
-          if [ "$RELEASE_TAG" = "next" ]; then
-            pnpm exec changeset publish
-          else
-            pnpm exec changeset publish --tag latest
-          fi
+          NPM_CONFIG_TAG: ${{ inputs.tag }}
+        run: pnpm exec changeset publish
 
       - name: npm dist-tag 검증
         env:

@@ -43,7 +43,7 @@ GitHub 웹 화면에서는 다음 순서로 실행한다.
 
 `publish`는 오입력을 막는 안전장치이며 버전이나 npm 태그가 아니다. 실제 버전과 `next` 또는 `latest` 태그는 커밋된 package.json과 Changesets 프리릴리스 상태로 결정된다. 환경 승인 전에는 npm publish가 실행되지 않는다.
 
-Changesets 프리릴리스 모드에서는 `changeset publish --tag next`를 직접 사용할 수 없다. 워크플로는 `next`를 선택하면 프리릴리스 상태와 태그를 검증한 뒤 인자 없는 `changeset publish`를 실행하고, Changesets가 `next` dist-tag를 적용하도록 맡긴다. `latest`는 `.changeset/pre.json`이 `exit` 상태일 때만 허용한다.
+Changesets 프리릴리스 모드에서는 `changeset publish --tag next`를 직접 사용할 수 없다. 워크플로는 선택한 채널을 `NPM_CONFIG_TAG`로 npm에 전달하고 인자 없는 `changeset publish`를 실행한다. 따라서 Changesets의 프리릴리스 제약을 지키면서 실제 `npm publish`에는 `next`가 적용된다. `latest`는 `.changeset/pre.json`이 `exit` 상태일 때만 허용한다.
 
 터미널에서 GitHub CLI로 같은 워크플로를 시작할 수도 있다.
 
