@@ -74,8 +74,9 @@ type DialogControllerSnapshot = DialogSnapshot & {
   status: Exclude<DialogSnapshot['status'], 'idle'>
 }
 
-type DefinitionControllerSnapshot = {
+export type OverlayDefinitionSnapshot = {
   kind: 'definition'
+  sessionId: number
   open: boolean
   request: null
   definition: AnyOverlayDefinition
@@ -89,19 +90,31 @@ export type OverlayControllerSnapshot =
   | AlertControllerSnapshot
   | ConfirmControllerSnapshot
   | DialogControllerSnapshot
-  | DefinitionControllerSnapshot
+  | OverlayDefinitionSnapshot
+
+type ParallelDefinitionSession = {
+  entry: DefinitionEntry
+  open: boolean
+  status: OverlayDefinitionSnapshot['status']
+}
 
 export type OverlayController = {
   overlay: OverlayApi
   subscribe: (listener: () => void) => () => void
   getSnapshot: () => OverlayControllerSnapshot
+  getParallelSnapshots: () => readonly OverlayDefinitionSnapshot[]
   openCurrent: () => void
+  openDefinition: (sessionId: number) => void
   acknowledgeCurrent: () => void
   confirmCurrent: () => void
   resolveDialogCurrent: (result: unknown) => void
   dismissDialogCurrent: () => void
   resolveDefinitionCurrent: (result: unknown) => void
   dismissDefinitionCurrent: (reason: OverlayDismissReason) => void
+  resolveDefinition: (sessionId: number, result: unknown) => void
+  dismissDefinition: (sessionId: number, reason: OverlayDismissReason) => void
+  requestDefinitionClose: (sessionId: number, reason?: OverlayDismissReason) => void
+  completeDefinitionClose: (sessionId: number) => void
   cancelCurrent: () => void
   requestClose: (reason?: OverlayDismissReason) => void
   completeClose: () => void
@@ -127,12 +140,42 @@ export function createOverlayController(): OverlayController {
   let nextId = 1
   let current: OverlayEntry | null = null
   let queue: OverlayEntry[] = []
+  let parallelSessions: ParallelDefinitionSession[] = []
   let snapshot: OverlayControllerSnapshot = IDLE_SNAPSHOT
+  let parallelSnapshots: readonly OverlayDefinitionSnapshot[] = []
   const listeners = new Set<() => void>()
+
+  function notify() {
+    for (const listener of listeners) listener()
+  }
 
   function publish(next: OverlayControllerSnapshot) {
     snapshot = next
-    for (const listener of listeners) listener()
+    notify()
+  }
+
+  function createDefinitionSnapshot(
+    entry: DefinitionEntry,
+    open: boolean,
+    status: OverlayDefinitionSnapshot['status'],
+  ): OverlayDefinitionSnapshot {
+    return {
+      kind: 'definition',
+      sessionId: entry.id,
+      open,
+      request: null,
+      definition: entry.definition,
+      input: entry.input,
+      options: entry.options,
+      status,
+    }
+  }
+
+  function publishParallel() {
+    parallelSnapshots = parallelSessions.map(({ entry, open, status }) =>
+      createDefinitionSnapshot(entry, open, status),
+    )
+    notify()
   }
 
   function createSessionEntry<Kind extends OverlayEntry['kind'], Result>(
@@ -163,7 +206,8 @@ export function createOverlayController(): OverlayController {
     definition: AnyOverlayDefinition,
     identity: string,
   ): DefinitionEntry | undefined {
-    const entries = current ? [current, ...queue] : queue
+    const serialEntries = current ? [current, ...queue] : queue
+    const entries = [...serialEntries, ...parallelSessions.map(({ entry }) => entry)]
     return entries.find(
       (entry): entry is DefinitionEntry =>
         entry.kind === 'definition' &&
@@ -194,15 +238,7 @@ export function createOverlayController(): OverlayController {
       return
     }
     if (entry.kind === 'definition') {
-      publish({
-        kind: 'definition',
-        open,
-        request: null,
-        definition: entry.definition,
-        input: entry.input,
-        options: entry.options,
-        status,
-      })
+      publish(createDefinitionSnapshot(entry, open, status))
       return
     }
     publish({ kind: 'confirm', open, request: entry.request, status, error: null })
@@ -222,9 +258,35 @@ export function createOverlayController(): OverlayController {
     if (!current) showNext()
   }
 
+  function enqueueDefinitionEntry(entry: DefinitionEntry) {
+    if (entry.options.group?.strategy === 'parallel') {
+      parallelSessions = [...parallelSessions, { entry, open: false, status: 'mounting' }]
+      publishParallel()
+      return
+    }
+    enqueueEntry(entry)
+  }
+
   function openCurrent() {
     if (!current || snapshot.status !== 'mounting') return
     publishEntry(current, true, 'open')
+  }
+
+  function findParallelSession(sessionId: number): ParallelDefinitionSession | undefined {
+    return parallelSessions.find(({ entry }) => entry.id === sessionId)
+  }
+
+  function openDefinition(sessionId: number) {
+    if (current?.kind === 'definition' && current.id === sessionId) {
+      openCurrent()
+      return
+    }
+
+    const session = findParallelSession(sessionId)
+    if (!session || session.status !== 'mounting') return
+    session.open = true
+    session.status = 'open'
+    publishParallel()
   }
 
   function settleEntry(entry: OverlayEntry, resolve: () => void) {
@@ -248,6 +310,18 @@ export function createOverlayController(): OverlayController {
 
   function settleDefinition(entry: DefinitionEntry, outcome: OverlayOutcome<unknown>) {
     settleEntry(entry, () => entry.resolve(outcome))
+  }
+
+  function settleParallelDefinition(
+    session: ParallelDefinitionSession,
+    outcome: OverlayOutcome<unknown>,
+  ) {
+    if (session.entry.settled) return
+    session.entry.settled = true
+    session.entry.resolve(outcome)
+    session.open = false
+    session.status = 'closing'
+    publishParallel()
   }
 
   function alert(request: AlertRequest): Promise<void> {
@@ -307,7 +381,7 @@ export function createOverlayController(): OverlayController {
       upsertIdentity: null,
     }
 
-    enqueueEntry(entry)
+    enqueueDefinitionEntry(entry)
     return entry.promise as Promise<OverlayOutcome<Result>>
   }
 
@@ -321,11 +395,20 @@ export function createOverlayController(): OverlayController {
     const existing = findDefinitionByIdentity(untypedDefinition, identity)
 
     if (existing) {
+      if (options !== undefined) {
+        const currentGroup = existing.options.group
+        if (options.group !== undefined && options.group !== currentGroup) {
+          throw new Error('활성 upsert 세션의 overlay group은 변경할 수 없습니다.')
+        }
+        const { group: _requestedGroup, ...nextOptions } = options
+        existing.options = currentGroup ? { ...nextOptions, group: currentGroup } : nextOptions
+      }
       existing.input = input
-      if (options !== undefined) existing.options = options
 
       if (current?.id === existing.id && snapshot.kind === 'definition') {
         publishEntry(existing, snapshot.open, snapshot.status)
+      } else if (findParallelSession(existing.id)) {
+        publishParallel()
       }
 
       return existing.promise as Promise<OverlayOutcome<Result>>
@@ -339,7 +422,7 @@ export function createOverlayController(): OverlayController {
       upsertIdentity: identity,
     }
 
-    enqueueEntry(entry)
+    enqueueDefinitionEntry(entry)
     return entry.promise as Promise<OverlayOutcome<Result>>
   }
 
@@ -413,6 +496,39 @@ export function createOverlayController(): OverlayController {
     settleDefinition(current, { status: 'dismissed', reason })
   }
 
+  function resolveDefinition(sessionId: number, result: unknown) {
+    if (current?.kind === 'definition' && current.id === sessionId) {
+      resolveDefinitionCurrent(result)
+      return
+    }
+    const session = findParallelSession(sessionId)
+    if (!session || session.status !== 'open') return
+    settleParallelDefinition(session, { status: 'resolved', value: result })
+  }
+
+  function dismissDefinition(sessionId: number, reason: OverlayDismissReason) {
+    if (current?.kind === 'definition' && current.id === sessionId) {
+      dismissDefinitionCurrent(reason)
+      return
+    }
+    const session = findParallelSession(sessionId)
+    if (!session || session.status !== 'open') return
+    settleParallelDefinition(session, { status: 'dismissed', reason })
+  }
+
+  function requestDefinitionClose(
+    sessionId: number,
+    reason: OverlayDismissReason = 'programmatic',
+  ) {
+    if (current?.kind === 'definition' && current.id === sessionId) {
+      requestClose(reason)
+      return
+    }
+    const session = findParallelSession(sessionId)
+    if (!session || session.entry.options.dismiss === 'block') return
+    dismissDefinition(sessionId, reason)
+  }
+
   function requestClose(reason: OverlayDismissReason = 'programmatic') {
     if (!current) return
     if (current.kind === 'alert') {
@@ -439,6 +555,18 @@ export function createOverlayController(): OverlayController {
     showNext()
   }
 
+  function completeDefinitionClose(sessionId: number) {
+    if (current?.kind === 'definition' && current.id === sessionId) {
+      completeClose()
+      return
+    }
+
+    const session = findParallelSession(sessionId)
+    if (!session || session.status !== 'closing') return
+    parallelSessions = parallelSessions.filter(({ entry }) => entry.id !== sessionId)
+    publishParallel()
+  }
+
   function dismissQueuedEntry(
     entry: OverlayEntry,
     reason: Extract<OverlayDismissReason, 'route-change' | 'programmatic'>,
@@ -457,6 +585,27 @@ export function createOverlayController(): OverlayController {
     const queued = queue
     queue = []
     for (const entry of queued) dismissQueuedEntry(entry, reason)
+
+    let dismissedParallel = false
+    const remainingParallel: ParallelDefinitionSession[] = []
+    for (const session of parallelSessions) {
+      if (session.entry.settled) {
+        remainingParallel.push(session)
+        continue
+      }
+      session.entry.settled = true
+      session.entry.resolve({ status: 'dismissed', reason })
+      if (session.status !== 'mounting') {
+        session.open = false
+        session.status = 'closing'
+        remainingParallel.push(session)
+      }
+      dismissedParallel = true
+    }
+    if (dismissedParallel) {
+      parallelSessions = remainingParallel
+      publishParallel()
+    }
 
     if (snapshot.status === 'mounting' && current) {
       if (current.kind === 'alert') settleAlert(current)
@@ -479,13 +628,19 @@ export function createOverlayController(): OverlayController {
       return () => listeners.delete(listener)
     },
     getSnapshot: () => snapshot,
+    getParallelSnapshots: () => parallelSnapshots,
     openCurrent,
+    openDefinition,
     acknowledgeCurrent,
     confirmCurrent,
     resolveDialogCurrent,
     dismissDialogCurrent,
     resolveDefinitionCurrent,
     dismissDefinitionCurrent,
+    resolveDefinition,
+    dismissDefinition,
+    requestDefinitionClose,
+    completeDefinitionClose,
     cancelCurrent,
     requestClose,
     completeClose,

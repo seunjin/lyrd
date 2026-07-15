@@ -126,7 +126,7 @@ async function main() {
       [
         '--input-type=module',
         '--eval',
-        "import { createOverlayController, defineOverlay } from '@lyrd/core'; const controller = createOverlayController(); if (typeof defineOverlay !== 'function' || typeof controller.overlay.upsert !== 'function') process.exit(1)",
+        "import { createOverlayController, defineOverlay, defineOverlayGroup } from '@lyrd/core'; const controller = createOverlayController(); if (typeof defineOverlay !== 'function' || typeof defineOverlayGroup !== 'function' || typeof controller.overlay.upsert !== 'function' || typeof controller.getParallelSnapshots !== 'function') process.exit(1)",
       ],
       fixtureDirectory,
     )
@@ -136,7 +136,7 @@ async function main() {
       'node',
       [
         '--eval',
-        "const { createOverlayController, defineOverlay } = require('@lyrd/core'); const controller = createOverlayController(); if (typeof defineOverlay !== 'function' || typeof controller.overlay.upsert !== 'function') process.exit(1)",
+        "const { createOverlayController, defineOverlay, defineOverlayGroup } = require('@lyrd/core'); const controller = createOverlayController(); if (typeof defineOverlay !== 'function' || typeof defineOverlayGroup !== 'function' || typeof controller.overlay.upsert !== 'function' || typeof controller.getParallelSnapshots !== 'function') process.exit(1)",
       ],
       fixtureDirectory,
     )

@@ -1,6 +1,6 @@
 # RFC 0003: 오버레이 정의와 정책 계층 분리
 
-- 상태: 승인·3차 구현
+- 상태: 승인·4차 구현
 - 작성일: 2026-07-15
 - 담당: Lyrd 유지보수 팀
 - 선행 RFC:
@@ -454,41 +454,50 @@ const session = useOverlayDialog<Result>()
 
 ## 결정 제안 4: 동시성과 그룹
 
-### 추천안: 첫 구현에서는 현재 queue를 유지하고 그룹 모델을 먼저 타입과 문서로 정의한다
+### 확정안: definition과 분리된 명시적 실행 group
 
-최초 변경에서 다중 그룹과 병렬 렌더링까지 동시에 구현하면 controller snapshot과
-Provider 구조를 크게 바꿔야 한다. 먼저 다음만 수행한다.
-
-1. `defineOverlay` 호출도 현재 기본 queue에 참여시킨다.
-2. `open()`은 자동 dedupe하지 않는다.
-3. 같은 호출을 재사용하는 명시적 API는 실제 사례와 함께 추가한다.
-4. Toast 또는 progress 사례를 준비한 뒤 group snapshot을 구현한다.
-
-향후 목표 API는 다음과 같다.
+Toast 사례에서 검증한 공개 API는 다음과 같다.
 
 ```tsx
-const modalGroup = defineOverlayGroup({ strategy: 'queue' })
 const toastGroup = defineOverlayGroup({ strategy: 'parallel' })
 
-const projectSettings = modalGroup.define<Props, Result>(Component)
-const toast = toastGroup.define<ToastProps, void>(Component)
+await overlay.open(toast, input, { group: toastGroup })
 ```
 
-#### 추천 이유
+definition은 렌더링 계약이고 group은 호출의 실행 정책이므로 서로 분리한다. 동일한
+definition을 기본 queue 또는 parallel group에서 상황에 맞게 사용할 수 있다. group을
+생략한 호출은 기존 전역 modal queue에 참여하며, `alert`와 `confirm`은 계속 이 안전한
+기본값만 사용한다.
 
-- 타입 안전성 문제를 먼저 해결하면서 변경 범위를 통제한다.
-- 병렬 오버레이의 실제 접근성·레이아웃 사례 없이 추상화를 확정하지 않는다.
+첫 공개 group strategy는 실제 Toast에 필요한 `parallel`만 지원한다. parallel session은
+각각 mount, open, closing, completeClose 상태와 Promise를 가지며 서로의 닫힘을 기다리지
+않는다. `dismissAll()`은 기본 queue와 parallel session을 같은 reason으로 정리한다.
+`upsert()`로 만든 활성 세션의 group은 중간에 바꿀 수 없다. 실행 위치를 바꾸려면 기존
+세션을 settle한 뒤 새 세션을 열어야 한다.
+
+#### 선택 이유
+
+- 호출마다 `{ strategy: 'parallel' }`을 반복하지 않아 앱의 실행 정책을 한곳에 정의한다.
+- definition에 group을 고정하지 않아 렌더링과 조정 정책을 독립적으로 조합한다.
 - 현재 alert/confirm의 안전한 직렬화 동작을 보존한다.
+- Base UI Toast의 live region, timeout, swipe, transition을 다시 구현하지 않고 Lyrd의
+  Promise·중앙 dismiss 정책과 adapter로 연결한다.
 
-### 대안 A: 처음부터 다중 그룹을 구현
+### 대안 A: definition에 group 고정
 
-완성된 구조를 한 번에 만들 수 있지만 snapshot, renderer, dismissAll, close transition,
-테스트를 모두 동시에 변경해야 한다. API 검증 전에 런타임 복잡도가 크게 늘어난다.
+호출은 짧아지지만 동일 definition을 다른 정책으로 사용할 수 없고 렌더링 정의가 실행
+정책을 소유하게 되어 채택하지 않는다.
 
-### 대안 B: 전역 queue를 영구 규칙으로 유지
+### 대안 B: 호출마다 strategy 전달
 
-구현은 가장 단순하지만 Toast, 진행 상태, 독립 overlay surface를 중앙 제어 안으로 가져오기
-어렵다. Lyrd의 범용 확장 목표와 맞지 않는다.
+별도 group 선언은 필요 없지만 정책 문자열이 호출부마다 흩어지고 같은 목적의 오버레이가
+서로 다른 정책으로 실행되기 쉬워 채택하지 않는다.
+
+### 대안 C: Base UI Toast manager만 직접 호출
+
+Toast만 보면 가장 단순하지만 Lyrd의 `OverlayOutcome`, route-change `dismissAll`, 다른
+오버레이와 같은 중앙 관찰 경계를 잃는다. Base UI manager는 로컬 renderer 안에서
+접근성·표현 수명주기를 담당하는 adapter로 사용한다.
 
 ## 비동기 작업 정책
 
@@ -656,8 +665,20 @@ await appOverlay.confirm(...)
 - 최초 dismiss 정책을 보존하는 options 생략 규칙
 - Base UI Dialog를 사용하는 업로드 진행률 Storybook 사례
 
-다중 group, `parallel`, `replace`는 Toast처럼 동시에 여러 오버레이를 보여야 하는 실제
-사례를 먼저 검증한 뒤 별도 변경으로 진행한다.
+## 4차 구현 현황
+
+2026-07-15에 실제 Toast 사례를 기준으로 첫 동시성 group을 구현했다.
+
+- `defineOverlayGroup({ strategy: 'parallel' })`
+- `overlay.open()`과 `overlay.upsert()`의 선택적 `group` option
+- 기본 queue snapshot과 독립된 다중 definition snapshot
+- parallel session별 resolve, dismiss, requestClose, completeClose
+- parallel session과 modal queue를 함께 정리하는 `dismissAll`
+- 활성 upsert session의 group 불변 규칙
+- Base UI Toast manager의 접근성·timeout·swipe·transition과 연결한 로컬 adapter
+- Toast 3개 동시 실행과 Toast·confirm 동시 실행 Storybook 사례
+
+별도 queue group, `replace`, group별 `dismissAll`은 실제 필요가 확인될 때 각각 설계한다.
 
 ## 확정한 결정
 
@@ -672,3 +693,5 @@ await appOverlay.confirm(...)
    당분간 유지한다.
 5. `open()`과 `dialog()`은 자동 dedupe하지 않는다. 진행률처럼 동일 작업을 갱신할 때만
    필수 identity를 받는 `upsert()`로 활성 세션을 명시적으로 재사용한다.
+6. group을 생략하면 안전한 기본 queue를 사용한다. Toast처럼 실제 동시성이 필요한 호출만
+   `defineOverlayGroup({ strategy: 'parallel' })`로 명시적으로 분리한다.

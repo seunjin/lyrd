@@ -12,6 +12,7 @@
 - `defineOverlay()`와 `overlay.open()`의 모달·풀페이지 로컬 UI
 - 같은 definition을 여러 번 호출하는 독립 세션 대기열
 - 업로드 identity별 `upsert()` Promise 재사용과 실시간 input 갱신
+- Base UI Toast와 `parallel` group의 동시 렌더링·개별 결과·modal queue 독립성
 - typed session의 결과·dismiss 이유·닫힘 완료 연결
 - 앱 로컬 Base UI 렌더러와 `@lyrd/core`의 연결
 
@@ -29,9 +30,12 @@ src/
     overlay-confirm.stories.tsx
     overlay-dialog.stories.tsx
     overlay-progress.stories.tsx
+    overlay-toast.stories.tsx
   lyrd/
     alert.tsx
     confirm.tsx
+    toast.tsx
+    toast.css
     dialog.css
     dialogs/
       project-settings-dialog.tsx

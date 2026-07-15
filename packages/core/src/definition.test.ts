@@ -3,8 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import { createOverlayController } from './controller'
 import { defineOverlay } from './definition'
+import { defineOverlayGroup } from './group'
 import { OverlayProvider, type OverlayProviderProps } from './provider'
-import type { OverlayOutcome } from './types'
+import type { OverlayOpenOptions, OverlayOutcome } from './types'
 
 type ProjectSettingsInput = {
   projectId: string
@@ -45,6 +46,209 @@ describe('overlay definition types', () => {
 
       return null
     })
+  })
+})
+
+describe('overlay parallel group', () => {
+  const toastGroup = defineOverlayGroup({ strategy: 'parallel' })
+
+  it('group 정책 객체를 불변으로 정의한다', () => {
+    expect(toastGroup).toEqual({ strategy: 'parallel' })
+    expect(Object.isFrozen(toastGroup)).toBe(true)
+  })
+
+  it('group은 defineOverlayGroup으로만 선언한다', () => {
+    // @ts-expect-error ad-hoc strategy 객체는 명시적인 group 정의가 아니다.
+    const options: OverlayOpenOptions = { group: { strategy: 'parallel' } }
+    expect(options.group?.strategy).toBe('parallel')
+  })
+
+  it('지원하지 않는 runtime strategy를 거절한다', () => {
+    expect(() => defineOverlayGroup({ strategy: 'queue' } as never)).toThrow(
+      '지원하지 않는 overlay group strategy입니다: queue',
+    )
+  })
+
+  it('같은 group의 definition을 queue 없이 동시에 활성화한다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.open(
+      projectSettings,
+      { projectId: 'toast-a' },
+      { group: toastGroup },
+    )
+    const second = controller.overlay.open(
+      projectSettings,
+      { projectId: 'toast-b' },
+      { group: toastGroup },
+    )
+    const [firstSnapshot, secondSnapshot] = controller.getParallelSnapshots()
+    if (!firstSnapshot || !secondSnapshot) throw new Error('parallel snapshot이 필요합니다.')
+
+    expect(controller.getSnapshot()).toMatchObject({ kind: null, status: 'idle' })
+    expect(controller.getParallelSnapshots()).toHaveLength(2)
+    expect(firstSnapshot).toMatchObject({ input: { projectId: 'toast-a' }, status: 'mounting' })
+    expect(secondSnapshot).toMatchObject({ input: { projectId: 'toast-b' }, status: 'mounting' })
+
+    controller.openDefinition(firstSnapshot.sessionId)
+    controller.openDefinition(secondSnapshot.sessionId)
+    expect(controller.getParallelSnapshots().map(({ status }) => status)).toEqual(['open', 'open'])
+
+    controller.resolveDefinition(firstSnapshot.sessionId, { saved: true })
+    await expect(first).resolves.toEqual({ status: 'resolved', value: { saved: true } })
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { sessionId: firstSnapshot.sessionId, status: 'closing', open: false },
+      { sessionId: secondSnapshot.sessionId, status: 'open', open: true },
+    ])
+
+    controller.completeDefinitionClose(firstSnapshot.sessionId)
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { sessionId: secondSnapshot.sessionId, status: 'open' },
+    ])
+
+    controller.dismissDefinition(secondSnapshot.sessionId, 'cancel')
+    await expect(second).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+  })
+
+  it('parallel group은 기존 modal queue와 독립적으로 열린다', () => {
+    const controller = createOverlayController()
+    controller.overlay.alert({ title: 'modal queue' })
+    controller.overlay.open(projectSettings, { projectId: 'toast-a' }, { group: toastGroup })
+
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'alert', status: 'mounting' })
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { input: { projectId: 'toast-a' }, status: 'mounting' },
+    ])
+  })
+
+  it('Provider가 여러 parallel definition session을 함께 렌더링한다', () => {
+    const controller = createOverlayController()
+    controller.overlay.open(projectSettings, { projectId: 'toast-a' }, { group: toastGroup })
+    controller.overlay.open(projectSettings, { projectId: 'toast-b' }, { group: toastGroup })
+    for (const snapshot of controller.getParallelSnapshots()) {
+      controller.openDefinition(snapshot.sessionId)
+    }
+
+    const TestOverlayProvider = OverlayProvider as ComponentType<
+      Omit<OverlayProviderProps, 'children'> & { children?: ReactNode }
+    >
+    const markup = renderToStaticMarkup(
+      createElement(TestOverlayProvider, {
+        controller,
+        renderers: { alert: () => null, confirm: () => null },
+      }),
+    )
+
+    expect(markup).toContain('<output>toast-a:true:open</output>')
+    expect(markup).toContain('<output>toast-b:true:open</output>')
+  })
+
+  it('parallel upsert는 Promise와 group을 유지하며 input만 갱신한다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.upsert(
+      projectSettings,
+      'toast-a',
+      { projectId: 'before' },
+      { group: toastGroup, dismiss: 'block' },
+    )
+    const [parallelSnapshot] = controller.getParallelSnapshots()
+    if (!parallelSnapshot) throw new Error('parallel snapshot이 필요합니다.')
+    const sessionId = parallelSnapshot.sessionId
+    controller.openDefinition(sessionId)
+
+    const updated = controller.overlay.upsert(projectSettings, 'toast-a', {
+      projectId: 'after',
+    })
+
+    expect(updated).toBe(first)
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      {
+        input: { projectId: 'after' },
+        options: { group: toastGroup, dismiss: 'block' },
+        status: 'open',
+      },
+    ])
+
+    expect(() =>
+      controller.overlay.upsert(
+        projectSettings,
+        'toast-a',
+        { projectId: 'moved' },
+        { group: defineOverlayGroup({ strategy: 'parallel' }) },
+      ),
+    ).toThrow('활성 upsert 세션의 overlay group은 변경할 수 없습니다.')
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { input: { projectId: 'after' }, options: { group: toastGroup, dismiss: 'block' } },
+    ])
+
+    controller.resolveDefinition(sessionId, { saved: true })
+    await expect(first).resolves.toEqual({ status: 'resolved', value: { saved: true } })
+  })
+
+  it('dismissAll은 serial queue와 parallel session을 같은 이유로 정리한다', async () => {
+    const controller = createOverlayController()
+    const serial = controller.overlay.open(projectSettings, { projectId: 'modal' })
+    const parallel = controller.overlay.open(
+      projectSettings,
+      { projectId: 'toast' },
+      { group: toastGroup },
+    )
+    const [parallelSnapshot] = controller.getParallelSnapshots()
+    if (!parallelSnapshot) throw new Error('parallel snapshot이 필요합니다.')
+    const parallelSessionId = parallelSnapshot.sessionId
+
+    controller.openCurrent()
+    controller.openDefinition(parallelSessionId)
+    controller.overlay.dismissAll('route-change')
+
+    await expect(serial).resolves.toEqual({ status: 'dismissed', reason: 'route-change' })
+    await expect(parallel).resolves.toEqual({ status: 'dismissed', reason: 'route-change' })
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { sessionId: parallelSessionId, status: 'closing', open: false },
+    ])
+  })
+
+  it('dismissAll은 이미 closing인 session을 유지하고 mounting session은 즉시 제거한다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.open(
+      projectSettings,
+      { projectId: 'closing' },
+      { group: toastGroup },
+    )
+    const second = controller.overlay.open(
+      projectSettings,
+      { projectId: 'mounting' },
+      { group: toastGroup },
+    )
+    const [firstSnapshot, secondSnapshot] = controller.getParallelSnapshots()
+    if (!firstSnapshot || !secondSnapshot) throw new Error('parallel snapshot이 필요합니다.')
+
+    controller.openDefinition(firstSnapshot.sessionId)
+    controller.dismissDefinition(firstSnapshot.sessionId, 'cancel')
+    controller.overlay.dismissAll('route-change')
+
+    await expect(first).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+    await expect(second).resolves.toEqual({ status: 'dismissed', reason: 'route-change' })
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { sessionId: firstSnapshot.sessionId, status: 'closing', open: false },
+    ])
+  })
+
+  it('parallel dismiss block은 requestClose만 막고 명시적인 dismiss는 허용한다', async () => {
+    const controller = createOverlayController()
+    const result = controller.overlay.open(
+      projectSettings,
+      { projectId: 'blocked' },
+      { group: toastGroup, dismiss: 'block' },
+    )
+    const [snapshot] = controller.getParallelSnapshots()
+    if (!snapshot) throw new Error('parallel snapshot이 필요합니다.')
+    controller.openDefinition(snapshot.sessionId)
+
+    controller.requestDefinitionClose(snapshot.sessionId, 'outside')
+    expect(controller.getParallelSnapshots()).toMatchObject([{ open: true, status: 'open' }])
+
+    controller.dismissDefinition(snapshot.sessionId, 'cancel')
+    await expect(result).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
   })
 })
 

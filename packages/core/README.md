@@ -28,4 +28,8 @@ pnpm add @lyrd/core
 활성 세션만 Promise와 렌더러 인스턴스를 공유하며, `open()` 호출과 다른 identity는 항상
 독립 세션이다.
 
+Toast처럼 여러 세션을 동시에 렌더링할 때는 `defineOverlayGroup({ strategy: 'parallel' })`로
+정책을 선언하고 `overlay.open(definition, input, { group })`에서 선택한다. group을 생략한
+호출은 기존 modal queue를 유지하며 `dismissAll()`은 두 경로를 함께 정리한다.
+
 사용법과 인터랙티브 데모는 [Lyrd 문서](https://seunjin.github.io/lyrd/)에서 확인할 수 있다.

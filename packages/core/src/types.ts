@@ -1,6 +1,7 @@
 import type { ComponentType, ReactElement, ReactNode } from 'react'
 
 declare const overlayDefinitionType: unique symbol
+declare const overlayGroupType: unique symbol
 
 export type AlertRequest = {
   title: ReactNode
@@ -32,7 +33,20 @@ export type DialogOptions = {
   dismiss?: 'allow' | 'block'
 }
 
-export type OverlayOpenOptions = DialogOptions
+export type OverlayGroupStrategy = 'parallel'
+
+export type OverlayGroup = {
+  readonly strategy: OverlayGroupStrategy
+  readonly [overlayGroupType]: true
+}
+
+export type OverlayGroupOptions = {
+  strategy: OverlayGroupStrategy
+}
+
+export type OverlayOpenOptions = DialogOptions & {
+  group?: OverlayGroup
+}
 
 export type OverlayDismissReason = 'cancel' | 'escape' | 'outside' | 'route-change' | 'programmatic'
 
