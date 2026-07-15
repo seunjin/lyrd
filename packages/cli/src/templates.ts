@@ -310,12 +310,14 @@ function dialogComponentTemplate(dialogName: string): string {
     .split('-')
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join('')
+  const definitionName = `${componentName.charAt(0).toLowerCase()}${componentName.slice(1)}Dialog`
   const title = dialogName.replaceAll('-', ' ')
 
   return `'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import { useOverlayDialog } from '@lyrd/core'
+import { defineOverlay } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
 import './dialog.css'
@@ -330,18 +332,26 @@ export type ${componentName}DialogProps = {
   title?: ReactNode
 }
 
-export function ${componentName}Dialog({
-  children,
-  description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
-  title = '${title}',
-}: ${componentName}DialogProps) {
-  const dialog = useOverlayDialog<${componentName}DialogResult>()
+type ${componentName}DialogComponentProps = OverlayDefinitionComponentProps<
+  ${componentName}DialogProps,
+  ${componentName}DialogResult
+>
+
+function ${componentName}Dialog({ input, session }: ${componentName}DialogComponentProps) {
+  const {
+    children,
+    description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
+    title = '${title}',
+  } = input
 
   return (
     <Dialog.Root
-      open={dialog.open}
-      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+      open={session.open}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen &&
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />
@@ -359,12 +369,16 @@ export function ${componentName}Dialog({
             {children ? <div className="lyrd-dialog-content">{children}</div> : null}
 
             <footer className="lyrd-dialog-actions">
-              <button className="lyrd-dialog-button-secondary" onClick={dialog.dismiss} type="button">
+              <button
+                className="lyrd-dialog-button-secondary"
+                onClick={() => session.dismiss('cancel')}
+                type="button"
+              >
                 취소
               </button>
               <button
                 className="lyrd-dialog-button-primary"
-                onClick={() => dialog.resolve({ completed: true })}
+                onClick={() => session.resolve({ completed: true })}
                 type="button"
               >
                 완료
@@ -376,6 +390,8 @@ export function ${componentName}Dialog({
     </Dialog.Root>
   )
 }
+
+export const ${definitionName} = defineOverlay(${componentName}Dialog)
 `
 }
 

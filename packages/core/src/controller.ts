@@ -7,7 +7,13 @@ import type {
   DialogOptions,
   DialogSnapshot,
   OverlayApi,
+  OverlayDefinition,
+  OverlayDismissReason,
+  OverlayOpenOptions,
+  OverlayOutcome,
 } from './types'
+
+type AnyOverlayDefinition = OverlayDefinition<unknown, unknown>
 
 type EntryBase = {
   id: number
@@ -36,7 +42,16 @@ type DialogEntry = EntryBase & {
   resolve: (result: unknown | undefined) => void
 }
 
-type OverlayEntry = AlertEntry | ConfirmEntry | DialogEntry
+type DefinitionEntry = EntryBase & {
+  kind: 'definition'
+  definition: AnyOverlayDefinition
+  input: unknown
+  options: OverlayOpenOptions
+  promise: Promise<OverlayOutcome<unknown>>
+  resolve: (outcome: OverlayOutcome<unknown>) => void
+}
+
+type OverlayEntry = AlertEntry | ConfirmEntry | DialogEntry | DefinitionEntry
 
 type IdleControllerSnapshot = {
   kind: null
@@ -64,11 +79,22 @@ type DialogControllerSnapshot = DialogSnapshot & {
   status: Exclude<DialogSnapshot['status'], 'idle'>
 }
 
+type DefinitionControllerSnapshot = {
+  kind: 'definition'
+  open: boolean
+  request: null
+  definition: AnyOverlayDefinition
+  input: unknown
+  options: OverlayOpenOptions
+  status: Exclude<DialogSnapshot['status'], 'idle'>
+}
+
 export type OverlayControllerSnapshot =
   | IdleControllerSnapshot
   | AlertControllerSnapshot
   | ConfirmControllerSnapshot
   | DialogControllerSnapshot
+  | DefinitionControllerSnapshot
 
 export type OverlayController = {
   overlay: OverlayApi
@@ -79,8 +105,10 @@ export type OverlayController = {
   confirmCurrent: () => void
   resolveDialogCurrent: (result: unknown) => void
   dismissDialogCurrent: () => void
+  resolveDefinitionCurrent: (result: unknown) => void
+  dismissDefinitionCurrent: (reason: OverlayDismissReason) => void
   cancelCurrent: () => void
-  requestClose: () => void
+  requestClose: (reason?: OverlayDismissReason) => void
   completeClose: () => void
 }
 
@@ -105,7 +133,7 @@ export function createOverlayController(): OverlayController {
   }
 
   function getDedupeKey(entry: OverlayEntry): string | undefined {
-    return entry.kind === 'dialog' ? undefined : entry.request.dedupeKey
+    return entry.kind === 'alert' || entry.kind === 'confirm' ? entry.request.dedupeKey : undefined
   }
 
   function findByDedupeKey(
@@ -114,16 +142,6 @@ export function createOverlayController(): OverlayController {
   ): OverlayEntry | undefined {
     const entries = current ? [current, ...queue] : queue
     return entries.find((entry) => entry.kind === kind && getDedupeKey(entry) === dedupeKey)
-  }
-
-  function findMatchingDialog(element: ReactElement): DialogEntry | undefined {
-    const entries = current ? [current, ...queue] : queue
-    return entries.find(
-      (entry): entry is DialogEntry =>
-        entry.kind === 'dialog' &&
-        entry.element.type === element.type &&
-        entry.element.key === element.key,
-    )
   }
 
   function publishEntry(
@@ -141,6 +159,18 @@ export function createOverlayController(): OverlayController {
         open,
         request: null,
         element: entry.element,
+        options: entry.options,
+        status,
+      })
+      return
+    }
+    if (entry.kind === 'definition') {
+      publish({
+        kind: 'definition',
+        open,
+        request: null,
+        definition: entry.definition,
+        input: entry.input,
         options: entry.options,
         status,
       })
@@ -181,6 +211,13 @@ export function createOverlayController(): OverlayController {
     if (entry.settled || current?.id !== entry.id) return
     entry.settled = true
     entry.resolve(result)
+    publishEntry(entry, false, 'closing')
+  }
+
+  function settleDefinition(entry: DefinitionEntry, outcome: OverlayOutcome<unknown>) {
+    if (entry.settled || current?.id !== entry.id) return
+    entry.settled = true
+    entry.resolve(outcome)
     publishEntry(entry, false, 'closing')
   }
 
@@ -236,9 +273,6 @@ export function createOverlayController(): OverlayController {
     element: ReactElement,
     options: DialogOptions = {},
   ): Promise<Result | undefined> {
-    const duplicate = findMatchingDialog(element)
-    if (duplicate) return duplicate.promise as Promise<Result | undefined>
-
     let resolve!: (result: Result | undefined) => void
     const promise = new Promise<Result | undefined>((nextResolve) => {
       resolve = nextResolve
@@ -250,6 +284,31 @@ export function createOverlayController(): OverlayController {
       options,
       promise,
       resolve: resolve as (result: unknown | undefined) => void,
+      settled: false,
+    }
+
+    queue.push(entry)
+    if (!current) showNext()
+    return promise
+  }
+
+  function open<Input, Result>(
+    definition: OverlayDefinition<Input, Result>,
+    input: Input,
+    options: OverlayOpenOptions = {},
+  ): Promise<OverlayOutcome<Result>> {
+    let resolve!: (outcome: OverlayOutcome<Result>) => void
+    const promise = new Promise<OverlayOutcome<Result>>((nextResolve) => {
+      resolve = nextResolve
+    })
+    const entry: DefinitionEntry = {
+      kind: 'definition',
+      id: nextId++,
+      definition: definition as unknown as AnyOverlayDefinition,
+      input,
+      options,
+      promise: promise as Promise<OverlayOutcome<unknown>>,
+      resolve: resolve as (outcome: OverlayOutcome<unknown>) => void,
       settled: false,
     }
 
@@ -318,7 +377,17 @@ export function createOverlayController(): OverlayController {
     settleDialog(current, undefined)
   }
 
-  function requestClose() {
+  function resolveDefinitionCurrent(result: unknown) {
+    if (current?.kind !== 'definition' || snapshot.status !== 'open') return
+    settleDefinition(current, { status: 'resolved', value: result })
+  }
+
+  function dismissDefinitionCurrent(reason: OverlayDismissReason) {
+    if (current?.kind !== 'definition' || snapshot.status !== 'open') return
+    settleDefinition(current, { status: 'dismissed', reason })
+  }
+
+  function requestClose(reason: OverlayDismissReason = 'programmatic') {
     if (!current) return
     if (current.kind === 'alert') {
       acknowledgeCurrent()
@@ -327,6 +396,11 @@ export function createOverlayController(): OverlayController {
     if (current.kind === 'dialog') {
       if (current.options.dismiss === 'block') return
       dismissDialogCurrent()
+      return
+    }
+    if (current.kind === 'definition') {
+      if (current.options.dismiss === 'block') return
+      dismissDefinitionCurrent(reason)
       return
     }
     if (current.request.dismiss === 'block') return
@@ -339,33 +413,41 @@ export function createOverlayController(): OverlayController {
     showNext()
   }
 
-  function dismissQueuedEntry(entry: OverlayEntry) {
+  function dismissQueuedEntry(
+    entry: OverlayEntry,
+    reason: Extract<OverlayDismissReason, 'route-change' | 'programmatic'>,
+  ) {
     if (entry.settled) return
     entry.settled = true
     if (entry.kind === 'alert') entry.resolve()
     else if (entry.kind === 'confirm') entry.resolve(false)
-    else entry.resolve(undefined)
+    else if (entry.kind === 'dialog') entry.resolve(undefined)
+    else entry.resolve({ status: 'dismissed', reason })
   }
 
-  function dismissAll() {
+  function dismissAll(
+    reason: Extract<OverlayDismissReason, 'route-change' | 'programmatic'> = 'programmatic',
+  ) {
     const queued = queue
     queue = []
-    for (const entry of queued) dismissQueuedEntry(entry)
+    for (const entry of queued) dismissQueuedEntry(entry, reason)
 
     if (snapshot.status === 'mounting' && current) {
       if (current.kind === 'alert') settleAlert(current)
       else if (current.kind === 'confirm') settleConfirm(current, false)
-      else settleDialog(current, undefined)
+      else if (current.kind === 'dialog') settleDialog(current, undefined)
+      else settleDefinition(current, { status: 'dismissed', reason })
       return
     }
 
     if (current?.kind === 'alert') acknowledgeCurrent()
     else if (current?.kind === 'confirm') cancelCurrent()
-    else dismissDialogCurrent()
+    else if (current?.kind === 'dialog') dismissDialogCurrent()
+    else if (current?.kind === 'definition') dismissDefinitionCurrent(reason)
   }
 
   return {
-    overlay: { alert, confirm, dialog, dismissAll },
+    overlay: { alert, confirm, dialog, open, dismissAll },
     subscribe(listener) {
       listeners.add(listener)
       return () => listeners.delete(listener)
@@ -376,6 +458,8 @@ export function createOverlayController(): OverlayController {
     confirmCurrent,
     resolveDialogCurrent,
     dismissDialogCurrent,
+    resolveDefinitionCurrent,
+    dismissDefinitionCurrent,
     cancelCurrent,
     requestClose,
     completeClose,

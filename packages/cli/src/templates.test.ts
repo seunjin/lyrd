@@ -52,9 +52,13 @@ describe('overlay 생성 템플릿', () => {
     const component = dialogFiles.get('project-settings-dialog.tsx')
 
     expect(dialogFiles.has('dialog.css')).toBe(true)
-    expect(component).toContain('export function ProjectSettingsDialog')
-    expect(component).toContain('useOverlayDialog<ProjectSettingsDialogResult>()')
+    expect(component).toContain('function ProjectSettingsDialog')
+    expect(component).toContain('OverlayDefinitionComponentProps<')
+    expect(component).toContain(
+      'export const projectSettingsDialog = defineOverlay(ProjectSettingsDialog)',
+    )
     expect(component).toContain('onOpenChangeComplete')
-    expect(component).toContain('dialog.resolve({ completed: true })')
+    expect(component).toContain("session.dismiss('cancel')")
+    expect(component).toContain('session.resolve({ completed: true })')
   })
 })

@@ -126,7 +126,7 @@ async function main() {
       [
         '--input-type=module',
         '--eval',
-        "import { createOverlayController } from '@lyrd/core'; if (typeof createOverlayController !== 'function') process.exit(1)",
+        "import { createOverlayController, defineOverlay } from '@lyrd/core'; if (typeof createOverlayController !== 'function' || typeof defineOverlay !== 'function') process.exit(1)",
       ],
       fixtureDirectory,
     )
@@ -136,7 +136,7 @@ async function main() {
       'node',
       [
         '--eval',
-        "const { createOverlayController } = require('@lyrd/core'); if (typeof createOverlayController !== 'function') process.exit(1)",
+        "const { createOverlayController, defineOverlay } = require('@lyrd/core'); if (typeof createOverlayController !== 'function' || typeof defineOverlay !== 'function') process.exit(1)",
       ],
       fixtureDirectory,
     )

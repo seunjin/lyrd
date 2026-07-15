@@ -281,34 +281,19 @@ describe('overlay dialog controller', () => {
     await expect(next).resolves.toBe(false)
   })
 
-  it('같은 컴포넌트 타입과 key의 dialog는 기존 Promise를 공유한다', async () => {
+  it('같은 컴포넌트 타입과 key의 dialog도 독립 요청으로 대기한다', async () => {
     const controller = createOverlayController()
     function ProjectSettings() {
       return createElement('div')
     }
 
     const first = controller.overlay.dialog<{ saved: true }>(createElement(ProjectSettings))
-    const duplicate = controller.overlay.dialog<{ saved: true }>(createElement(ProjectSettings))
-
-    expect(duplicate).toBe(first)
-    controller.openCurrent()
-    controller.resolveDialogCurrent({ saved: true })
-    await expect(duplicate).resolves.toEqual({ saved: true })
-  })
-
-  it('같은 컴포넌트라도 key가 다르면 별도 요청으로 대기한다', async () => {
-    const controller = createOverlayController()
-    function ProjectSettings() {
-      return createElement('div')
-    }
-
-    const first = controller.overlay.dialog(createElement(ProjectSettings, { key: 'project-a' }))
-    const second = controller.overlay.dialog(createElement(ProjectSettings, { key: 'project-b' }))
+    const second = controller.overlay.dialog<{ saved: true }>(createElement(ProjectSettings))
 
     expect(second).not.toBe(first)
     controller.openCurrent()
-    controller.dismissDialogCurrent()
-    await expect(first).resolves.toBeUndefined()
+    controller.resolveDialogCurrent({ saved: true })
+    await expect(first).resolves.toEqual({ saved: true })
 
     controller.completeClose()
     expect(controller.getSnapshot()).toMatchObject({
@@ -317,8 +302,8 @@ describe('overlay dialog controller', () => {
       status: 'mounting',
     })
     controller.openCurrent()
-    controller.dismissDialogCurrent()
-    await expect(second).resolves.toBeUndefined()
+    controller.resolveDialogCurrent({ saved: true })
+    await expect(second).resolves.toEqual({ saved: true })
   })
 
   it('dismiss block이면 닫힘 요청을 무시하고 dismiss는 취소 결과를 반환한다', async () => {

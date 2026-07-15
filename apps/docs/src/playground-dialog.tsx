@@ -1,20 +1,33 @@
 import { Dialog } from '@base-ui/react/dialog'
-import { useOverlayDialog } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
+import { defineOverlay } from '@lyrd/core'
 import { useState } from 'react'
 
 export type PlaygroundDialogResult = {
   name: string
 }
 
-export function PlaygroundDialog({ projectId }: { projectId: string }) {
-  const dialog = useOverlayDialog<PlaygroundDialogResult>()
+export type PlaygroundDialogInput = {
+  projectId: string
+}
+
+type PlaygroundDialogProps = OverlayDefinitionComponentProps<
+  PlaygroundDialogInput,
+  PlaygroundDialogResult
+>
+
+function PlaygroundDialog({ input, session }: PlaygroundDialogProps) {
+  const { projectId } = input
   const [name, setName] = useState('Lyrd 문서')
 
   return (
     <Dialog.Root
-      open={dialog.open}
-      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+      open={session.open}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen &&
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="docs-overlay-backdrop" />
@@ -34,14 +47,14 @@ export function PlaygroundDialog({ projectId }: { projectId: string }) {
             <div className="docs-overlay-actions">
               <button
                 className="docs-overlay-button docs-overlay-button-secondary"
-                onClick={dialog.dismiss}
+                onClick={() => session.dismiss('cancel')}
                 type="button"
               >
                 취소
               </button>
               <button
                 className="docs-overlay-button docs-overlay-button-primary"
-                onClick={() => dialog.resolve({ name })}
+                onClick={() => session.resolve({ name })}
                 type="button"
               >
                 저장
@@ -53,3 +66,5 @@ export function PlaygroundDialog({ projectId }: { projectId: string }) {
     </Dialog.Root>
   )
 }
+
+export const playgroundDialog = defineOverlay(PlaygroundDialog)

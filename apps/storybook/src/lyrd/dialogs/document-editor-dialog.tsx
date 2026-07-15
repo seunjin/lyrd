@@ -1,7 +1,8 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import { useOverlayDialog } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
+import { defineOverlay } from '@lyrd/core'
 import { useState } from 'react'
 
 import '../dialog.css'
@@ -11,8 +12,17 @@ export type DocumentEditorResult = {
   title: string
 }
 
-export function DocumentEditorDialog({ documentId }: { documentId: string }) {
-  const dialog = useOverlayDialog<DocumentEditorResult>()
+export type DocumentEditorInput = {
+  documentId: string
+}
+
+type DocumentEditorDialogProps = OverlayDefinitionComponentProps<
+  DocumentEditorInput,
+  DocumentEditorResult
+>
+
+function DocumentEditorDialog({ input, session }: DocumentEditorDialogProps) {
+  const { documentId } = input
   const [title, setTitle] = useState('오버레이 UX 설계 노트')
   const [body, setBody] = useState(
     'Lyrd는 UI 프리미티브가 아니라 제품의 오버레이 의도를 중앙에서 관리합니다.',
@@ -20,9 +30,12 @@ export function DocumentEditorDialog({ documentId }: { documentId: string }) {
 
   return (
     <Dialog.Root
-      open={dialog.open}
-      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+      open={session.open}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen &&
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />
@@ -38,14 +51,14 @@ export function DocumentEditorDialog({ documentId }: { documentId: string }) {
               <div className="lyrd-dialog-actions">
                 <button
                   className="lyrd-dialog-button-secondary"
-                  onClick={dialog.dismiss}
+                  onClick={() => session.dismiss('cancel')}
                   type="button"
                 >
                   나가기
                 </button>
                 <button
                   className="lyrd-dialog-button-primary"
-                  onClick={() => dialog.resolve({ status: 'saved', title })}
+                  onClick={() => session.resolve({ status: 'saved', title })}
                   type="button"
                 >
                   저장하고 닫기
@@ -69,3 +82,5 @@ export function DocumentEditorDialog({ documentId }: { documentId: string }) {
     </Dialog.Root>
   )
 }
+
+export const documentEditorDialog = defineOverlay(DocumentEditorDialog)

@@ -44,4 +44,4 @@ src/lyrd/overlay/dialogs/
   index.ts
 ```
 
-이름은 kebab-case만 허용한다. 생성 컴포넌트는 Base UI Dialog와 `useOverlayDialog()`의 닫힘·결과 계약을 연결한 시작점이며, 모달·Drawer·풀페이지 등 앱이 원하는 형태로 자유롭게 수정할 수 있다. 기존 컴포넌트와 공유 스타일은 덮어쓰지 않는다.
+이름은 kebab-case만 허용한다. 생성 파일은 Base UI Dialog와 `defineOverlay<Input, Result>()`의 typed session 계약을 연결한 시작점이며, 모달·Drawer·풀페이지 등 앱이 원하는 형태로 자유롭게 수정할 수 있다. 호출부에서는 `overlay.open(definition, input)`을 사용한다. 기존 definition과 공유 스타일은 덮어쓰지 않는다.

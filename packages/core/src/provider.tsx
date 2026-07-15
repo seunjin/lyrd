@@ -21,6 +21,7 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
   )
   const AlertSurface = renderers.alert
   const ConfirmSurface = renderers.confirm
+  const DefinitionSurface = snapshot.kind === 'definition' ? snapshot.definition.component : null
 
   useEffect(() => {
     if (snapshot.status === 'mounting') activeController.openCurrent()
@@ -64,6 +65,19 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
         >
           {snapshot.element}
         </OverlayDialogContext.Provider>
+      ) : null}
+      {snapshot.kind === 'definition' && DefinitionSurface ? (
+        <DefinitionSurface
+          input={snapshot.input}
+          session={{
+            open: snapshot.open,
+            status: snapshot.status,
+            resolve: activeController.resolveDefinitionCurrent,
+            dismiss: activeController.dismissDefinitionCurrent,
+            requestClose: activeController.requestClose,
+            completeClose: activeController.completeClose,
+          }}
+        />
       ) : null}
     </OverlayContext.Provider>
   )

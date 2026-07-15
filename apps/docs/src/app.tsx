@@ -2,7 +2,7 @@ import { useOverlay } from '@lyrd/core'
 import { useRef, useState } from 'react'
 
 import { AppOverlayProvider } from './lyrd/overlay-provider'
-import { PlaygroundDialog, type PlaygroundDialogResult } from './playground-dialog'
+import { playgroundDialog } from './playground-dialog'
 
 const confirmCode = `const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
@@ -13,8 +13,9 @@ const confirmCode = `const confirmed = await overlay.confirm({
   onConfirm: () => deleteProject(projectId),
 })`
 
-const dialogCode = `const result = await overlay.dialog<EditorResult>(
-  <DocumentEditorDialog documentId="rfc-0002" />,
+const dialogCode = `const outcome = await overlay.open(
+  documentEditor,
+  { documentId: 'rfc-0003' },
 )`
 
 function DocsPage() {
@@ -59,10 +60,12 @@ function DocsPage() {
   }
 
   async function showDialog() {
-    const saved = await overlay.dialog<PlaygroundDialogResult>(
-      <PlaygroundDialog projectId="lyrd-docs" />,
+    const outcome = await overlay.open(playgroundDialog, { projectId: 'lyrd-docs' })
+    setResult(
+      outcome.status === 'resolved'
+        ? `dialog · “${outcome.value.name}”을 저장했습니다.`
+        : `dialog · 저장하지 않았습니다. (${outcome.reason})`,
     )
-    setResult(saved ? `dialog · “${saved.name}”을 저장했습니다.` : 'dialog · 저장하지 않았습니다.')
   }
 
   return (
@@ -322,8 +325,8 @@ function DocsPage() {
             </article>
             <article>
               <div>
-                <span>DIALOG</span>
-                <small>Promise&lt;Result | undefined&gt;</small>
+                <span>CUSTOM OVERLAY</span>
+                <small>Promise&lt;OverlayOutcome&lt;Result&gt;&gt;</small>
               </div>
               <pre>
                 <code>{dialogCode}</code>

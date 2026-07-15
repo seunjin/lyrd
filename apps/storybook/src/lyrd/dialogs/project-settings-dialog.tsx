@@ -1,7 +1,8 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import { useOverlayDialog } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
+import { defineOverlay } from '@lyrd/core'
 import { useState } from 'react'
 
 import '../dialog.css'
@@ -11,15 +12,27 @@ export type ProjectSettingsResult = {
   projectName: string
 }
 
-export function ProjectSettingsDialog({ projectId }: { projectId: string }) {
-  const dialog = useOverlayDialog<ProjectSettingsResult>()
+export type ProjectSettingsInput = {
+  projectId: string
+}
+
+type ProjectSettingsDialogProps = OverlayDefinitionComponentProps<
+  ProjectSettingsInput,
+  ProjectSettingsResult
+>
+
+function ProjectSettingsDialog({ input, session }: ProjectSettingsDialogProps) {
+  const { projectId } = input
   const [projectName, setProjectName] = useState('Lyrd')
 
   return (
     <Dialog.Root
-      open={dialog.open}
-      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+      open={session.open}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen &&
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />
@@ -35,7 +48,7 @@ export function ProjectSettingsDialog({ projectId }: { projectId: string }) {
               <button
                 aria-label="닫기"
                 className="lyrd-dialog-icon-button"
-                onClick={dialog.dismiss}
+                onClick={() => session.dismiss('cancel')}
                 type="button"
               >
                 ×
@@ -50,14 +63,14 @@ export function ProjectSettingsDialog({ projectId }: { projectId: string }) {
             <footer className="lyrd-dialog-actions">
               <button
                 className="lyrd-dialog-button-secondary"
-                onClick={dialog.dismiss}
+                onClick={() => session.dismiss('cancel')}
                 type="button"
               >
                 취소
               </button>
               <button
                 className="lyrd-dialog-button-primary"
-                onClick={() => dialog.resolve({ saved: true, projectName })}
+                onClick={() => session.resolve({ saved: true, projectName })}
                 type="button"
               >
                 저장
@@ -69,3 +82,5 @@ export function ProjectSettingsDialog({ projectId }: { projectId: string }) {
     </Dialog.Root>
   )
 }
+
+export const projectSettingsDialog = defineOverlay(ProjectSettingsDialog)
