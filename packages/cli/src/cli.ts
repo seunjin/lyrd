@@ -16,6 +16,7 @@ import {
   getDialogScaffoldFiles,
   getNextAppRouterProviderTemplate,
   getOverlayScaffoldFiles,
+  getToastScaffoldFiles,
 } from './templates'
 import type { LyrdConfig } from './types'
 
@@ -49,10 +50,12 @@ Usage:
   lyrd init [--cwd <path>]
   lyrd add overlay [--cwd <path>] [--verbose]
   lyrd add dialog <name> [--cwd <path>] [--verbose]
+  lyrd add toast [--cwd <path>] [--verbose]
 
 Examples:
   pnpm dlx @lyrd/cli add overlay
   pnpm dlx @lyrd/cli add dialog project-settings
+  pnpm dlx @lyrd/cli add toast
   pnpm dlx @lyrd/cli init
 `)
 }
@@ -447,6 +450,83 @@ async function runAddDialog(dialogName: string, cwd: string, verbose: boolean): 
   return 0
 }
 
+async function runAddToast(cwd: string, verbose: boolean): Promise<number> {
+  const projectRoot = await findProjectRoot(cwd)
+  const { config } = await ensureConfig(projectRoot)
+  const overlayPath = getOverlayPath(config)
+  const overlayProviderPath = fromProjectPath(projectRoot, `${overlayPath}/overlay-provider.tsx`)
+
+  if (!(await pathExists(overlayProviderPath))) {
+    throw new Error('먼저 lyrd add overlay를 실행해 OverlayProvider를 설치해 주세요.')
+  }
+
+  const overlayDir = fromProjectPath(projectRoot, overlayPath)
+  const createdPaths: string[] = []
+  const skippedPaths: string[] = []
+  const updatedPaths = new Set<string>()
+
+  for (const file of getToastScaffoldFiles()) {
+    const targetPath = path.join(overlayDir, file.name)
+    const result = await writeScaffoldFile(targetPath, file.content)
+    const formattedPath = formatRelativePath(projectRoot, targetPath)
+    if (result === 'created') {
+      createdPaths.push(formattedPath)
+    } else {
+      skippedPaths.push(formattedPath)
+    }
+  }
+
+  for (const exportName of ['toast', 'toast-group']) {
+    const indexStatus = await ensureIndexExport(projectRoot, overlayPath, exportName)
+    if (indexStatus !== 'skipped') {
+      updatedPaths.add(`${overlayPath}/index.ts`)
+    }
+  }
+
+  console.log('\nAdded toast')
+  console.log(`Local toast path: ${overlayPath}/toast.tsx`)
+  printList('Created', createdPaths)
+  printList('Updated', [...updatedPaths])
+
+  if (createdPaths.length === 0 && updatedPaths.size === 0) {
+    console.log('\nNo new files were created.')
+  }
+
+  printList('Kept existing', skippedPaths)
+  printList('Next step', [
+    'Wrap AppOverlayProvider with AppToastProvider once in your app root.',
+    'Open appToast with overlay.open(appToast, input, { group: toastGroup }).',
+  ])
+  printList('Docs', [
+    `${REPOSITORY_URL}/blob/main/docs/rfcs/0003-overlay-definition-and-policy-layers.md`,
+  ])
+
+  if (verbose) {
+    console.log('\nRuntime snippet (app root):\n')
+    console.log(`import { AppToastProvider } from '${overlayPath}/toast'
+import { AppOverlayProvider } from '${overlayPath}/overlay-provider'
+
+<AppToastProvider>
+  <AppOverlayProvider>{children}</AppOverlayProvider>
+</AppToastProvider>`)
+    console.log('\nOpen snippet:\n')
+    console.log(`const outcome = await overlay.open(
+  appToast,
+  {
+    toastId: crypto.randomUUID(),
+    title: '변경 사항을 저장했습니다.',
+    description: '필요하면 실행 취소할 수 있습니다.',
+  },
+  { group: toastGroup },
+)`)
+  } else {
+    console.log('\nTip:')
+    console.log('- Run the same command with --verbose to print the provider and open snippets')
+  }
+
+  return 0
+}
+
 async function runAdd(
   features: string[],
   cwd: string,
@@ -461,7 +541,11 @@ async function runAdd(
     return runAddDialog(features[1], cwd, verbose)
   }
 
-  throw new Error('지원하는 명령: lyrd add overlay, lyrd add dialog <name>')
+  if (features.length === 1 && features[0] === 'toast') {
+    return runAddToast(cwd, verbose)
+  }
+
+  throw new Error('지원하는 명령: lyrd add overlay, lyrd add dialog <name>, lyrd add toast')
 }
 
 export async function run(argv: string[]): Promise<number> {

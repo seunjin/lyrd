@@ -205,6 +205,25 @@ describe('overlay CLI 통합', () => {
     await run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory])
 
     expect(await readFile(dialogPath, 'utf8')).toBe(customizedDialog)
+
+    await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
+
+    const toastPath = path.join(overlayDirectory, 'toast.tsx')
+    await expect(readFile(toastPath, 'utf8')).resolves.toContain('export const appToast')
+    await expect(
+      readFile(path.join(overlayDirectory, 'toast-group.ts'), 'utf8'),
+    ).resolves.toContain("strategy: 'parallel'")
+    await expect(readFile(path.join(overlayDirectory, 'toast.css'), 'utf8')).resolves.toContain(
+      '.lyrd-toast-viewport',
+    )
+    expect(compileFixture(fixtureDirectory)).toBe('')
+    expect(log.mock.calls.flat().join('\n')).toContain('AppToastProvider')
+
+    const customizedToast = `${await readFile(toastPath, 'utf8')}\n// 사용자 커스텀\n`
+    await writeFile(toastPath, customizedToast)
+    await run(['add', 'toast', '--cwd', fixtureDirectory])
+
+    expect(await readFile(toastPath, 'utf8')).toBe(customizedToast)
   })
 
   it('Dialog 이름은 kebab-case만 허용하고 Overlay 설치를 요구한다', async () => {
@@ -217,6 +236,9 @@ describe('overlay CLI 통합', () => {
     await expect(
       run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory]),
     ).rejects.toThrow('먼저 lyrd add overlay')
+    await expect(run(['add', 'toast', '--cwd', fixtureDirectory])).rejects.toThrow(
+      '먼저 lyrd add overlay',
+    )
   })
 
   it('Next App Router에는 별도 클라이언트 연결 파일을 생성하고 layout 수정만 안내한다', async () => {

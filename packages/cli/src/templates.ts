@@ -305,6 +305,223 @@ export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
 `
 }
 
+function toastGroupTemplate(): string {
+  return `import { defineOverlayGroup } from '@lyrd/core'
+
+export const toastGroup = defineOverlayGroup({ strategy: 'parallel' })
+`
+}
+
+function toastTemplate(): string {
+  return `'use client'
+
+import { Toast } from '@base-ui/react/toast'
+import { defineOverlay } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
+import type { ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
+
+import './toast.css'
+
+export type AppToastInput = {
+  description?: string
+  timeout?: number
+  title: string
+  toastId: string
+}
+
+export type AppToastResult =
+  | { action: 'undo' }
+  | { action: 'dismissed' }
+
+type AppToastData = {
+  dismiss: () => void
+  undo: () => void
+}
+
+type AppToastProps = OverlayDefinitionComponentProps<AppToastInput, AppToastResult>
+
+function AppToast({ input, session }: AppToastProps) {
+  const { add, close } = Toast.useToastManager<AppToastData>()
+  const inputRef = useRef(input)
+  const sessionRef = useRef(session)
+  const addedRef = useRef(false)
+
+  inputRef.current = input
+  sessionRef.current = session
+
+  useEffect(() => {
+    if (!session.open) {
+      if (addedRef.current) {
+        close(input.toastId)
+      }
+      return
+    }
+
+    if (addedRef.current) return
+
+    addedRef.current = true
+    const currentInput = inputRef.current
+
+    add({
+      id: currentInput.toastId,
+      title: currentInput.title,
+      description: currentInput.description,
+      timeout: currentInput.timeout,
+      data: {
+        undo: () => sessionRef.current.resolve({ action: 'undo' }),
+        dismiss: () => sessionRef.current.resolve({ action: 'dismissed' }),
+      },
+      onClose: () => sessionRef.current.resolve({ action: 'dismissed' }),
+      onRemove: () => sessionRef.current.completeClose(),
+    })
+  }, [add, close, input.toastId, session.open])
+
+  return null
+}
+
+export const appToast = defineOverlay(AppToast)
+
+function ToastRegion() {
+  const { toasts } = Toast.useToastManager<AppToastData>()
+
+  return (
+    <Toast.Portal>
+      <Toast.Viewport aria-label="알림" className="lyrd-toast-viewport">
+        {toasts.map((toast) => (
+          <Toast.Root className="lyrd-toast" key={toast.id} toast={toast}>
+            <Toast.Content className="lyrd-toast-content">
+              <Toast.Title className="lyrd-toast-title" />
+              <Toast.Description className="lyrd-toast-description" />
+            </Toast.Content>
+            <div className="lyrd-toast-actions">
+              <Toast.Action className="lyrd-toast-undo" onClick={toast.data?.undo}>
+                실행 취소
+              </Toast.Action>
+              <Toast.Close className="lyrd-toast-close" onClickCapture={toast.data?.dismiss}>
+                닫기
+              </Toast.Close>
+            </div>
+          </Toast.Root>
+        ))}
+      </Toast.Viewport>
+    </Toast.Portal>
+  )
+}
+
+export function AppToastProvider({ children }: { children: ReactNode }) {
+  return (
+    <Toast.Provider limit={5} timeout={5000}>
+      {children}
+      <ToastRegion />
+    </Toast.Provider>
+  )
+}
+`
+}
+
+function toastCssTemplate(): string {
+  return `.lyrd-toast-viewport {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 3000;
+  display: grid;
+  width: min(380px, calc(100vw - 40px));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lyrd-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #0f172a;
+  background: #fff;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.lyrd-toast[data-starting-style],
+.lyrd-toast[data-ending-style] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.lyrd-toast-content {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.lyrd-toast-title,
+.lyrd-toast-description {
+  margin: 0;
+}
+
+.lyrd-toast-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lyrd-toast-description {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.lyrd-toast-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.lyrd-toast-undo,
+.lyrd-toast-close {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lyrd-toast-undo {
+  color: #fff;
+  background: #0f172a;
+}
+
+.lyrd-toast-close {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrd-toast {
+    transition-duration: 1ms;
+  }
+}
+`
+}
+
+export function getToastScaffoldFiles(): Array<{ name: string; content: string }> {
+  return [
+    { name: 'toast.tsx', content: toastTemplate() },
+    { name: 'toast-group.ts', content: toastGroupTemplate() },
+    { name: 'toast.css', content: toastCssTemplate() },
+  ]
+}
+
 function dialogComponentTemplate(dialogName: string): string {
   const componentName = dialogName
     .split('-')
