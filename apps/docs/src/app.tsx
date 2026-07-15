@@ -395,6 +395,9 @@ function DocsPage() {
         <div>
           <a href="https://github.com/seunjin/lyrd">GitHub ↗</a>
           <a href="https://github.com/seunjin/lyrd/blob/main/README.md">README ↗</a>
+          <a href="./llms.txt">LLM guide ↗</a>
+          <a href="./llms-full.txt">Full agent docs ↗</a>
+          <a href="./agent-test-prompt.md">Test prompt ↗</a>
           <span>MIT License · 2026</span>
         </div>
       </footer>
