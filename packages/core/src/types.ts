@@ -119,5 +119,11 @@ export type OverlayApi = {
     input: Input,
     options?: OverlayOpenOptions,
   ) => Promise<OverlayOutcome<Result>>
+  upsert: <Input, Result>(
+    definition: OverlayDefinition<Input, Result>,
+    identity: string,
+    input: Input,
+    options?: OverlayOpenOptions,
+  ) => Promise<OverlayOutcome<Result>>
   dismissAll: (reason?: 'route-change' | 'programmatic') => void
 }

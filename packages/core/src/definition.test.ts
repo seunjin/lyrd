@@ -27,6 +27,15 @@ describe('overlay definition types', () => {
     expectTypeOf(result).toEqualTypeOf<Promise<OverlayOutcome<ProjectSettingsResult>>>()
   })
 
+  it('definition의 input과 result를 upsert 호출까지 추론한다', () => {
+    const controller = createOverlayController()
+    const result = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'project-a',
+    })
+
+    expectTypeOf(result).toEqualTypeOf<Promise<OverlayOutcome<ProjectSettingsResult>>>()
+  })
+
   it('definition의 session resolve에 선언한 result 타입을 연결한다', () => {
     defineOverlay<ProjectSettingsInput, ProjectSettingsResult>(({ session }) => {
       session.resolve({ saved: true })
@@ -159,6 +168,143 @@ describe('overlay definition controller', () => {
     controller.openCurrent()
     controller.dismissDefinitionCurrent('cancel')
     await expect(second).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+  })
+
+  it('같은 definition과 identity를 upsert하면 Promise를 유지하고 현재 input을 갱신한다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'before',
+    })
+
+    controller.openCurrent()
+    const updated = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'after',
+    })
+
+    expect(updated).toBe(first)
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'definition',
+      open: true,
+      input: { projectId: 'after' },
+      status: 'open',
+    })
+
+    controller.resolveDefinitionCurrent({ saved: true })
+    await expect(first).resolves.toEqual({ status: 'resolved', value: { saved: true } })
+  })
+
+  it('다른 identity의 upsert는 독립 Promise로 queue에 들어간다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'project-a',
+    })
+    const second = controller.overlay.upsert(projectSettings, 'project-b', {
+      projectId: 'project-b',
+    })
+
+    expect(second).not.toBe(first)
+    controller.openCurrent()
+    controller.dismissDefinitionCurrent('cancel')
+    await expect(first).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'definition',
+      input: { projectId: 'project-b' },
+      status: 'mounting',
+    })
+
+    controller.openCurrent()
+    controller.dismissDefinitionCurrent('cancel')
+    await expect(second).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+  })
+
+  it('같은 identity라도 다른 definition이면 독립 세션을 만든다', () => {
+    const controller = createOverlayController()
+    const alternateProjectSettings = defineOverlay<ProjectSettingsInput, ProjectSettingsResult>(
+      () => null,
+    )
+    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'first',
+    })
+    const second = controller.overlay.upsert(alternateProjectSettings, 'project-a', {
+      projectId: 'second',
+    })
+
+    expect(second).not.toBe(first)
+    expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'first' } })
+  })
+
+  it('대기 중인 upsert도 열리기 전에 최신 input으로 갱신한다', async () => {
+    const controller = createOverlayController()
+    const blocking = controller.overlay.alert({ title: '먼저 안내' })
+    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'before',
+    })
+    const updated = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'after',
+    })
+
+    expect(updated).toBe(first)
+    controller.openCurrent()
+    controller.acknowledgeCurrent()
+    await expect(blocking).resolves.toBeUndefined()
+    controller.completeClose()
+
+    expect(controller.getSnapshot()).toMatchObject({
+      kind: 'definition',
+      input: { projectId: 'after' },
+      status: 'mounting',
+    })
+  })
+
+  it('일반 open 세션과 upsert 세션은 같은 definition이어도 공유하지 않는다', () => {
+    const controller = createOverlayController()
+    const opened = controller.overlay.open(projectSettings, { projectId: 'opened' })
+    const upserted = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'upserted',
+    })
+
+    expect(upserted).not.toBe(opened)
+    expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'opened' } })
+  })
+
+  it('settle된 identity는 재사용하지 않고 새 세션을 만든다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'first',
+    })
+
+    controller.openCurrent()
+    controller.dismissDefinitionCurrent('cancel')
+    await expect(first).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+
+    const second = controller.overlay.upsert(projectSettings, 'project-a', {
+      projectId: 'second',
+    })
+    expect(second).not.toBe(first)
+
+    controller.completeClose()
+    expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'second' } })
+  })
+
+  it('upsert 옵션은 명시적으로 전달할 때만 갱신한다', async () => {
+    const controller = createOverlayController()
+    const result = controller.overlay.upsert(
+      projectSettings,
+      'project-a',
+      { projectId: 'before' },
+      { dismiss: 'block' },
+    )
+
+    controller.openCurrent()
+    controller.overlay.upsert(projectSettings, 'project-a', { projectId: 'after' })
+    controller.requestClose('outside')
+    expect(controller.getSnapshot()).toMatchObject({ open: true, status: 'open' })
+
+    controller.overlay.upsert(projectSettings, 'project-a', { projectId: 'after' }, {})
+    controller.requestClose('outside')
+    await expect(result).resolves.toEqual({ status: 'dismissed', reason: 'outside' })
   })
 
   it('dismiss block은 requestClose만 막고 명시적인 dismiss는 허용한다', async () => {

@@ -23,4 +23,9 @@ pnpm add @lyrd/core
 `OverlayOutcome<Result>`로 구분된다. `alert()`와 `confirm()`은 각각 `void`와 `boolean`을
 반환하는 간단한 기본 경로를 유지한다.
 
+진행률처럼 동일한 작업의 input을 계속 갱신할 때는
+`overlay.upsert(definition, identity, input)`을 사용한다. 같은 definition과 identity의
+활성 세션만 Promise와 렌더러 인스턴스를 공유하며, `open()` 호출과 다른 identity는 항상
+독립 세션이다.
+
 사용법과 인터랙티브 데모는 [Lyrd 문서](https://seunjin.github.io/lyrd/)에서 확인할 수 있다.

@@ -43,6 +43,7 @@ type DefinitionEntry = SessionEntry<'definition', OverlayOutcome<unknown>> & {
   definition: AnyOverlayDefinition
   input: unknown
   options: OverlayOpenOptions
+  upsertIdentity: string | null
 }
 
 type OverlayEntry = AlertEntry | ConfirmEntry | DialogEntry | DefinitionEntry
@@ -156,6 +157,20 @@ export function createOverlayController(): OverlayController {
   ): OverlayEntry | undefined {
     const entries = current ? [current, ...queue] : queue
     return entries.find((entry) => entry.kind === kind && getDedupeKey(entry) === dedupeKey)
+  }
+
+  function findDefinitionByIdentity(
+    definition: AnyOverlayDefinition,
+    identity: string,
+  ): DefinitionEntry | undefined {
+    const entries = current ? [current, ...queue] : queue
+    return entries.find(
+      (entry): entry is DefinitionEntry =>
+        entry.kind === 'definition' &&
+        !entry.settled &&
+        entry.definition === definition &&
+        entry.upsertIdentity === identity,
+    )
   }
 
   function publishEntry(
@@ -289,6 +304,39 @@ export function createOverlayController(): OverlayController {
       definition: definition as unknown as AnyOverlayDefinition,
       input,
       options,
+      upsertIdentity: null,
+    }
+
+    enqueueEntry(entry)
+    return entry.promise as Promise<OverlayOutcome<Result>>
+  }
+
+  function upsert<Input, Result>(
+    definition: OverlayDefinition<Input, Result>,
+    identity: string,
+    input: Input,
+    options?: OverlayOpenOptions,
+  ): Promise<OverlayOutcome<Result>> {
+    const untypedDefinition = definition as unknown as AnyOverlayDefinition
+    const existing = findDefinitionByIdentity(untypedDefinition, identity)
+
+    if (existing) {
+      existing.input = input
+      if (options !== undefined) existing.options = options
+
+      if (current?.id === existing.id && snapshot.kind === 'definition') {
+        publishEntry(existing, snapshot.open, snapshot.status)
+      }
+
+      return existing.promise as Promise<OverlayOutcome<Result>>
+    }
+
+    const entry: DefinitionEntry = {
+      ...createSessionEntry('definition', createDeferred<OverlayOutcome<unknown>>()),
+      definition: untypedDefinition,
+      input,
+      options: options ?? {},
+      upsertIdentity: identity,
     }
 
     enqueueEntry(entry)
@@ -425,7 +473,7 @@ export function createOverlayController(): OverlayController {
   }
 
   return {
-    overlay: { alert, confirm, dialog, open, dismissAll },
+    overlay: { alert, confirm, dialog, open, upsert, dismissAll },
     subscribe(listener) {
       listeners.add(listener)
       return () => listeners.delete(listener)

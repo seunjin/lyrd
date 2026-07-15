@@ -1,6 +1,6 @@
 # RFC 0003: 오버레이 정의와 정책 계층 분리
 
-- 상태: 승인·2차 구현
+- 상태: 승인·3차 구현
 - 작성일: 2026-07-15
 - 담당: Lyrd 유지보수 팀
 - 선행 RFC:
@@ -192,6 +192,25 @@ overlay.upsert(definition, identity, props)
 
 `open()`은 기본적으로 새로운 세션을 만든다. `upsert()`만 기존 세션을 재사용하고 props를
 갱신한다. 이렇게 하면 중복 처리 의도가 호출부에 드러난다.
+
+첫 `upsert` 계약은 다음과 같이 제한한다.
+
+```ts
+overlay.upsert(definition, identity, input, options?)
+```
+
+- `identity`는 필수 문자열이다.
+- 같은 definition 객체와 identity를 가진 활성 `upsert` 세션만 재사용한다.
+- 재사용하면 최초 Promise와 렌더러 인스턴스를 유지하고 input을 최신 값으로 바꾼다.
+- 후속 호출에서 options를 생략하면 기존 options를 유지하고, 명시하면 새 options로 바꾼다.
+- `open()`으로 만든 세션, 다른 identity, 이미 settle되어 closing 중인 세션은 공유하지 않는다.
+- 대기 중인 세션도 재사용하여 실제로 열릴 때 최신 input을 렌더링한다.
+
+필수 identity를 택한 이유는 업로드 ID나 작업 ID처럼 호출자가 이미 알고 있는 업무
+식별자를 재사용 의도와 함께 드러내기 위해서다. definition 단위 singleton은 간단하지만
+서로 다른 작업을 숨은 정책으로 합칠 수 있어 채택하지 않는다. `open()` options에
+`dedupeKey`를 추가하는 방식도 새 세션 생성과 기존 세션 갱신이라는 서로 다른 의미를 한
+API에 섞으므로 채택하지 않는다.
 
 첫 구현에서는 현재 호환성을 위해 하나의 `queue` 그룹만 유지할 수 있다. 다중 그룹과
 `parallel`, `replace`는 실제 Toast 또는 progress 사례가 준비된 뒤 구현한다.
@@ -594,6 +613,8 @@ await appOverlay.confirm(...)
 - definition의 Props와 Result가 호출부와 렌더러에서 함께 추론된다.
 - 렌더러가 다른 Result 타입으로 resolve하려 하면 컴파일 오류가 발생한다.
 - 같은 definition을 서로 다른 props로 호출하면 자동으로 Promise를 공유하지 않는다.
+- 같은 definition과 identity를 upsert하면 Promise를 유지하며 최신 input을 렌더링한다.
+- 일반 open, 다른 identity, settle된 세션은 upsert와 공유하지 않는다.
 - confirm의 현재 pending, error, retry, dismiss 차단 동작이 유지된다.
 - UI 프리미티브를 바꿔도 세션 커널을 수정하지 않는다.
 - 애니메이션 완료 전에는 다음 queue 항목이 열리지 않는다.
@@ -623,8 +644,20 @@ await appOverlay.confirm(...)
 - alert → definition → confirm 혼합 queue와 중복 settlement 무시를 회귀 테스트로
   고정했다.
 
-명시적인 upsert와 다중 group은 후속 단계로 남긴다. 공개 사용 사례를 먼저 검증하고
-각각 별도 변경으로 진행한다.
+## 3차 구현 현황
+
+2026-07-15에 실제 업로드 진행률 사례를 기준으로 명시적인 재사용 정책을 구현했다.
+
+- `overlay.upsert(definition, identity, input, options)` 공개 API
+- definition 객체와 identity로 한정한 활성 세션 탐색
+- 동일 Promise·컴포넌트 인스턴스를 유지하는 현재 input 갱신
+- 다른 identity와 일반 `open()` 호출의 독립성
+- queue에서 기다리는 동안의 최신 input 반영
+- 최초 dismiss 정책을 보존하는 options 생략 규칙
+- Base UI Dialog를 사용하는 업로드 진행률 Storybook 사례
+
+다중 group, `parallel`, `replace`는 Toast처럼 동시에 여러 오버레이를 보여야 하는 실제
+사례를 먼저 검증한 뒤 별도 변경으로 진행한다.
 
 ## 확정한 결정
 
@@ -637,5 +670,5 @@ await appOverlay.confirm(...)
 3. 정의 컴포넌트는 타입이 연결된 `{ input, session }` prop을 받는다.
 4. `dialog(element)`와 `useOverlayDialog()`는 단발성 JSX와 마이그레이션용 escape hatch로
    당분간 유지한다.
-5. `open()`과 `dialog()`은 자동 dedupe하지 않는다. 명시적인 upsert는 실제 사례를 통해
-   별도로 설계한다.
+5. `open()`과 `dialog()`은 자동 dedupe하지 않는다. 진행률처럼 동일 작업을 갱신할 때만
+   필수 identity를 받는 `upsert()`로 활성 세션을 명시적으로 재사용한다.
