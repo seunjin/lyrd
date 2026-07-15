@@ -305,17 +305,236 @@ export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
 `
 }
 
+function toastGroupTemplate(): string {
+  return `import { defineOverlayGroup } from '@lyrd/core'
+
+export const toastGroup = defineOverlayGroup({ strategy: 'parallel' })
+`
+}
+
+function toastTemplate(): string {
+  return `'use client'
+
+import { Toast } from '@base-ui/react/toast'
+import { defineOverlay } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
+import type { ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
+
+import './toast.css'
+
+export type AppToastInput = {
+  description?: string
+  timeout?: number
+  title: string
+  toastId: string
+}
+
+export type AppToastResult =
+  | { action: 'undo' }
+  | { action: 'dismissed' }
+
+type AppToastData = {
+  dismiss: () => void
+  undo: () => void
+}
+
+type AppToastProps = OverlayDefinitionComponentProps<AppToastInput, AppToastResult>
+
+function AppToast({ input, session }: AppToastProps) {
+  const { add, close } = Toast.useToastManager<AppToastData>()
+  const inputRef = useRef(input)
+  const sessionRef = useRef(session)
+  const addedRef = useRef(false)
+
+  inputRef.current = input
+  sessionRef.current = session
+
+  useEffect(() => {
+    if (!session.open) {
+      if (addedRef.current) {
+        close(input.toastId)
+      }
+      return
+    }
+
+    if (addedRef.current) return
+
+    addedRef.current = true
+    const currentInput = inputRef.current
+
+    add({
+      id: currentInput.toastId,
+      title: currentInput.title,
+      description: currentInput.description,
+      timeout: currentInput.timeout,
+      data: {
+        undo: () => sessionRef.current.resolve({ action: 'undo' }),
+        dismiss: () => sessionRef.current.resolve({ action: 'dismissed' }),
+      },
+      onClose: () => sessionRef.current.resolve({ action: 'dismissed' }),
+      onRemove: () => sessionRef.current.completeClose(),
+    })
+  }, [add, close, input.toastId, session.open])
+
+  return null
+}
+
+export const appToast = defineOverlay(AppToast)
+
+function ToastRegion() {
+  const { toasts } = Toast.useToastManager<AppToastData>()
+
+  return (
+    <Toast.Portal>
+      <Toast.Viewport aria-label="알림" className="lyrd-toast-viewport">
+        {toasts.map((toast) => (
+          <Toast.Root className="lyrd-toast" key={toast.id} toast={toast}>
+            <Toast.Content className="lyrd-toast-content">
+              <Toast.Title className="lyrd-toast-title" />
+              <Toast.Description className="lyrd-toast-description" />
+            </Toast.Content>
+            <div className="lyrd-toast-actions">
+              <Toast.Action className="lyrd-toast-undo" onClick={toast.data?.undo}>
+                실행 취소
+              </Toast.Action>
+              <Toast.Close className="lyrd-toast-close" onClickCapture={toast.data?.dismiss}>
+                닫기
+              </Toast.Close>
+            </div>
+          </Toast.Root>
+        ))}
+      </Toast.Viewport>
+    </Toast.Portal>
+  )
+}
+
+export function AppToastProvider({ children }: { children: ReactNode }) {
+  return (
+    <Toast.Provider limit={5} timeout={5000}>
+      {children}
+      <ToastRegion />
+    </Toast.Provider>
+  )
+}
+`
+}
+
+function toastCssTemplate(): string {
+  return `.lyrd-toast-viewport {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 3000;
+  display: grid;
+  width: min(380px, calc(100vw - 40px));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lyrd-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #0f172a;
+  background: #fff;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 18%);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.lyrd-toast[data-starting-style],
+.lyrd-toast[data-ending-style] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.lyrd-toast-content {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.lyrd-toast-title,
+.lyrd-toast-description {
+  margin: 0;
+}
+
+.lyrd-toast-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lyrd-toast-description {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.lyrd-toast-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.lyrd-toast-undo,
+.lyrd-toast-close {
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lyrd-toast-undo {
+  color: #fff;
+  background: #0f172a;
+}
+
+.lyrd-toast-close {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrd-toast {
+    transition-duration: 1ms;
+  }
+}
+`
+}
+
+export function getToastScaffoldFiles(): Array<{ name: string; content: string }> {
+  return [
+    { name: 'toast.tsx', content: toastTemplate() },
+    { name: 'toast-group.ts', content: toastGroupTemplate() },
+    { name: 'toast.css', content: toastCssTemplate() },
+  ]
+}
+
 function dialogComponentTemplate(dialogName: string): string {
   const componentName = dialogName
     .split('-')
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join('')
+  const definitionName = `${componentName.charAt(0).toLowerCase()}${componentName.slice(1)}Dialog`
   const title = dialogName.replaceAll('-', ' ')
 
   return `'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import { useOverlayDialog } from '@lyrd/core'
+import { defineOverlay } from '@lyrd/core'
+import type { OverlayDefinitionComponentProps } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
 import './dialog.css'
@@ -330,18 +549,26 @@ export type ${componentName}DialogProps = {
   title?: ReactNode
 }
 
-export function ${componentName}Dialog({
-  children,
-  description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
-  title = '${title}',
-}: ${componentName}DialogProps) {
-  const dialog = useOverlayDialog<${componentName}DialogResult>()
+type ${componentName}DialogComponentProps = OverlayDefinitionComponentProps<
+  ${componentName}DialogProps,
+  ${componentName}DialogResult
+>
+
+function ${componentName}Dialog({ input, session }: ${componentName}DialogComponentProps) {
+  const {
+    children,
+    description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
+    title = '${title}',
+  } = input
 
   return (
     <Dialog.Root
-      open={dialog.open}
-      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+      open={session.open}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen &&
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />
@@ -359,12 +586,16 @@ export function ${componentName}Dialog({
             {children ? <div className="lyrd-dialog-content">{children}</div> : null}
 
             <footer className="lyrd-dialog-actions">
-              <button className="lyrd-dialog-button-secondary" onClick={dialog.dismiss} type="button">
+              <button
+                className="lyrd-dialog-button-secondary"
+                onClick={() => session.dismiss('cancel')}
+                type="button"
+              >
                 취소
               </button>
               <button
                 className="lyrd-dialog-button-primary"
-                onClick={() => dialog.resolve({ completed: true })}
+                onClick={() => session.resolve({ completed: true })}
                 type="button"
               >
                 완료
@@ -376,6 +607,8 @@ export function ${componentName}Dialog({
     </Dialog.Root>
   )
 }
+
+export const ${definitionName} = defineOverlay(${componentName}Dialog)
 `
 }
 

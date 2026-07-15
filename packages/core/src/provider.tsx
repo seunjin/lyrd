@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react'
-import { createOverlayController, type OverlayController } from './controller'
+import {
+  createOverlayController,
+  type OverlayController,
+  type OverlayDefinitionSnapshot,
+} from './controller'
 import type { OverlayApi, OverlayDialogApi, OverlayRenderers } from './types'
 
 const OverlayContext = createContext<OverlayApi | null>(null)
@@ -11,6 +15,31 @@ export type OverlayProviderProps = {
   controller?: OverlayController
 }
 
+function DefinitionSurface({
+  controller,
+  snapshot,
+}: {
+  controller: OverlayController
+  snapshot: OverlayDefinitionSnapshot
+}) {
+  const Surface = snapshot.definition.component
+  const sessionId = snapshot.sessionId
+
+  return (
+    <Surface
+      input={snapshot.input}
+      session={{
+        open: snapshot.open,
+        status: snapshot.status,
+        resolve: (result) => controller.resolveDefinition(sessionId, result),
+        dismiss: (reason) => controller.dismissDefinition(sessionId, reason),
+        requestClose: (reason) => controller.requestDefinitionClose(sessionId, reason),
+        completeClose: () => controller.completeDefinitionClose(sessionId),
+      }}
+    />
+  )
+}
+
 export function OverlayProvider({ children, renderers, controller }: OverlayProviderProps) {
   const [internalController] = useState(createOverlayController)
   const activeController = controller ?? internalController
@@ -19,12 +48,25 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
     activeController.getSnapshot,
     activeController.getSnapshot,
   )
+  const parallelSnapshots = useSyncExternalStore(
+    activeController.subscribe,
+    activeController.getParallelSnapshots,
+    activeController.getParallelSnapshots,
+  )
   const AlertSurface = renderers.alert
   const ConfirmSurface = renderers.confirm
 
   useEffect(() => {
     if (snapshot.status === 'mounting') activeController.openCurrent()
   }, [activeController, snapshot.status])
+
+  useEffect(() => {
+    for (const parallelSnapshot of parallelSnapshots) {
+      if (parallelSnapshot.status === 'mounting') {
+        activeController.openDefinition(parallelSnapshot.sessionId)
+      }
+    }
+  }, [activeController, parallelSnapshots])
 
   return (
     <OverlayContext.Provider value={activeController.overlay}>
@@ -65,6 +107,16 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
           {snapshot.element}
         </OverlayDialogContext.Provider>
       ) : null}
+      {snapshot.kind === 'definition' ? (
+        <DefinitionSurface controller={activeController} snapshot={snapshot} />
+      ) : null}
+      {parallelSnapshots.map((parallelSnapshot) => (
+        <DefinitionSurface
+          controller={activeController}
+          key={parallelSnapshot.sessionId}
+          snapshot={parallelSnapshot}
+        />
+      ))}
     </OverlayContext.Provider>
   )
 }

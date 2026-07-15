@@ -1,5 +1,8 @@
 import type { ComponentType, ReactElement, ReactNode } from 'react'
 
+declare const overlayDefinitionType: unique symbol
+declare const overlayGroupType: unique symbol
+
 export type AlertRequest = {
   title: ReactNode
   description?: ReactNode
@@ -28,6 +31,49 @@ export type DialogStatus = 'idle' | 'mounting' | 'open' | 'closing'
 
 export type DialogOptions = {
   dismiss?: 'allow' | 'block'
+}
+
+export type OverlayGroupStrategy = 'parallel'
+
+export type OverlayGroup = {
+  readonly strategy: OverlayGroupStrategy
+  readonly [overlayGroupType]: true
+}
+
+export type OverlayGroupOptions = {
+  strategy: OverlayGroupStrategy
+}
+
+export type OverlayOpenOptions = DialogOptions & {
+  group?: OverlayGroup
+}
+
+export type OverlayDismissReason = 'cancel' | 'escape' | 'outside' | 'route-change' | 'programmatic'
+
+export type OverlayOutcome<Result> =
+  | { status: 'resolved'; value: Result }
+  | { status: 'dismissed'; reason: OverlayDismissReason }
+
+export type OverlaySession<Result> = {
+  open: boolean
+  status: Exclude<DialogStatus, 'idle'>
+  resolve: (result: Result) => void
+  dismiss: (reason: OverlayDismissReason) => void
+  requestClose: (reason: OverlayDismissReason) => void
+  completeClose: () => void
+}
+
+export type OverlayDefinitionComponentProps<Input, Result> = {
+  input: Input
+  session: OverlaySession<Result>
+}
+
+export type OverlayDefinition<Input, Result> = {
+  readonly component: ComponentType<OverlayDefinitionComponentProps<Input, Result>>
+  readonly [overlayDefinitionType]?: {
+    input: Input
+    result: Result
+  }
 }
 
 export type AlertSnapshot = {
@@ -82,5 +128,16 @@ export type OverlayApi = {
   alert: (request: AlertRequest) => Promise<void>
   confirm: (request: ConfirmRequest) => Promise<boolean>
   dialog: <Result>(element: ReactElement, options?: DialogOptions) => Promise<Result | undefined>
+  open: <Input, Result>(
+    definition: OverlayDefinition<Input, Result>,
+    input: Input,
+    options?: OverlayOpenOptions,
+  ) => Promise<OverlayOutcome<Result>>
+  upsert: <Input, Result>(
+    definition: OverlayDefinition<Input, Result>,
+    identity: string,
+    input: Input,
+    options?: OverlayOpenOptions,
+  ) => Promise<OverlayOutcome<Result>>
   dismissAll: (reason?: 'route-change' | 'programmatic') => void
 }

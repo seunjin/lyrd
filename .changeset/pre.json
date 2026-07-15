@@ -8,11 +8,15 @@
     "@lyrd/core": "0.0.0"
   },
   "changesets": [
+    "brave-owls-define",
     "calm-ravens-build",
     "early-pandas-travel",
+    "fair-pandas-upsert",
     "fresh-dogs-open",
     "quiet-lamps-sing",
     "soft-cats-type",
-    "tidy-rice-publish"
+    "tidy-rice-publish",
+    "tiny-wolves-parallel",
+    "witty-toasts-release"
   ]
 }

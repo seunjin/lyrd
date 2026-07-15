@@ -25,7 +25,7 @@ pnpm dlx @lyrd/cli add overlay --verbose
 
 첫 번째 `add` 명령은 `lyrd.json`이 없으면 자동으로 생성한다. `paths.overlay`는 오버레이 로컬 파일 경로이며, `adapters.overlay`는 생성 템플릿이 사용하는 기반 프리미티브를 기록한다.
 
-vNext CLI는 이전 `dialog`, `toast`, `drawer` 생성 명령과 호환되지 않는다. 이전 구현은 Git 태그와 릴리스에서만 유지하며 새 CLI에는 호환 계층을 두지 않는다.
+vNext CLI는 이전 `drawer` 생성 명령과 호환되지 않는다. 이전 구현은 Git 태그와 릴리스에서만 유지하며 새 CLI에는 호환 계층을 두지 않는다.
 
 ## 개별 Dialog 생성
 
@@ -44,4 +44,39 @@ src/lyrd/overlay/dialogs/
   index.ts
 ```
 
-이름은 kebab-case만 허용한다. 생성 컴포넌트는 Base UI Dialog와 `useOverlayDialog()`의 닫힘·결과 계약을 연결한 시작점이며, 모달·Drawer·풀페이지 등 앱이 원하는 형태로 자유롭게 수정할 수 있다. 기존 컴포넌트와 공유 스타일은 덮어쓰지 않는다.
+이름은 kebab-case만 허용한다. 생성 파일은 Base UI Dialog와 `defineOverlay<Input, Result>()`의 typed session 계약을 연결한 시작점이며, 모달·Drawer·풀페이지 등 앱이 원하는 형태로 자유롭게 수정할 수 있다. 호출부에서는 `overlay.open(definition, input)`을 사용한다. 기존 definition과 공유 스타일은 덮어쓰지 않는다.
+
+## Toast starter 생성
+
+Toast는 코어의 고정 recipe가 아니라, Base UI Toast와 Lyrd의 병렬 그룹을 연결한 앱 소유 adapter로 제공한다.
+
+```bash
+pnpm dlx @lyrd/cli add toast
+```
+
+먼저 `lyrd add overlay`를 실행해야 한다. 아래 파일을 생성하며, 이미 존재하는 파일은 덮어쓰지 않는다.
+
+```text
+src/lyrd/overlay/
+  toast.tsx
+  toast-group.ts
+  toast.css
+```
+
+생성된 `AppToastProvider`는 기존 `AppOverlayProvider`를 감싸도록 앱 루트에서 한 번만 합성한다. 생성 명령은 기존 Provider나 진입 파일을 자동 수정하지 않는다. 표시 개수·timeout·스타일·Undo 동작은 생성된 로컬 파일에서 제품 UX에 맞게 바꾼다.
+
+```tsx
+<AppToastProvider>
+  <AppOverlayProvider>{children}</AppOverlayProvider>
+</AppToastProvider>
+```
+
+호출부는 별도 병렬 그룹을 명시한다.
+
+```ts
+const outcome = await overlay.open(
+  appToast,
+  { toastId: crypto.randomUUID(), title: '저장했습니다.' },
+  { group: toastGroup },
+)
+```

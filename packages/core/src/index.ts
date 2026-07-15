@@ -1,5 +1,11 @@
-export type { OverlayController, OverlayControllerSnapshot } from './controller'
+export type {
+  OverlayController,
+  OverlayControllerSnapshot,
+  OverlayDefinitionSnapshot,
+} from './controller'
 export { createOverlayController } from './controller'
+export { defineOverlay } from './definition'
+export { defineOverlayGroup } from './group'
 export type { OverlayProviderProps } from './provider'
 export { OverlayProvider, useOverlay, useOverlayDialog } from './provider'
 export type {
@@ -16,6 +22,15 @@ export type {
   DialogSnapshot,
   DialogStatus,
   OverlayApi,
+  OverlayDefinition,
+  OverlayDefinitionComponentProps,
   OverlayDialogApi,
+  OverlayDismissReason,
+  OverlayGroup,
+  OverlayGroupOptions,
+  OverlayGroupStrategy,
+  OverlayOpenOptions,
+  OverlayOutcome,
   OverlayRenderers,
+  OverlaySession,
 } from './types'

@@ -5,6 +5,7 @@ import {
   getDialogScaffoldFiles,
   getNextAppRouterProviderTemplate,
   getOverlayScaffoldFiles,
+  getToastScaffoldFiles,
 } from './templates'
 
 const storybookOverlayDirectory = new URL('../../../apps/storybook/src/lyrd/', import.meta.url)
@@ -52,9 +53,26 @@ describe('overlay 생성 템플릿', () => {
     const component = dialogFiles.get('project-settings-dialog.tsx')
 
     expect(dialogFiles.has('dialog.css')).toBe(true)
-    expect(component).toContain('export function ProjectSettingsDialog')
-    expect(component).toContain('useOverlayDialog<ProjectSettingsDialogResult>()')
+    expect(component).toContain('function ProjectSettingsDialog')
+    expect(component).toContain('OverlayDefinitionComponentProps<')
+    expect(component).toContain(
+      'export const projectSettingsDialog = defineOverlay(ProjectSettingsDialog)',
+    )
     expect(component).toContain('onOpenChangeComplete')
-    expect(component).toContain('dialog.resolve({ completed: true })')
+    expect(component).toContain("session.dismiss('cancel')")
+    expect(component).toContain('session.resolve({ completed: true })')
+  })
+
+  it('병렬 그룹을 사용하는 앱 소유 Toast adapter를 생성한다', () => {
+    const toastFiles = new Map(getToastScaffoldFiles().map((file) => [file.name, file.content]))
+    const component = toastFiles.get('toast.tsx')
+
+    expect(toastFiles.get('toast-group.ts')).toContain("strategy: 'parallel'")
+    expect(toastFiles.get('toast.css')).toContain('.lyrd-toast-viewport')
+    expect(component).toContain('Toast.Provider limit={5} timeout={5000}')
+    expect(component).toContain('export const appToast = defineOverlay(AppToast)')
+    expect(component).toContain("sessionRef.current.resolve({ action: 'undo' })")
+    expect(component).toContain("sessionRef.current.resolve({ action: 'dismissed' })")
+    expect(component).toContain('sessionRef.current.completeClose()')
   })
 })

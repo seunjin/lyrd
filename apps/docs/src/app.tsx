@@ -2,7 +2,7 @@ import { useOverlay } from '@lyrd/core'
 import { useRef, useState } from 'react'
 
 import { AppOverlayProvider } from './lyrd/overlay-provider'
-import { PlaygroundDialog, type PlaygroundDialogResult } from './playground-dialog'
+import { playgroundDialog } from './playground-dialog'
 
 const confirmCode = `const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
@@ -13,8 +13,15 @@ const confirmCode = `const confirmed = await overlay.confirm({
   onConfirm: () => deleteProject(projectId),
 })`
 
-const dialogCode = `const result = await overlay.dialog<EditorResult>(
-  <DocumentEditorDialog documentId="rfc-0002" />,
+const dialogCode = `const outcome = await overlay.open(
+  documentEditor,
+  { documentId: 'rfc-0003' },
+)`
+
+const toastCode = `const outcome = await overlay.open(
+  appToast,
+  { toastId: crypto.randomUUID(), title: '저장했습니다.' },
+  { group: toastGroup },
 )`
 
 function DocsPage() {
@@ -59,10 +66,12 @@ function DocsPage() {
   }
 
   async function showDialog() {
-    const saved = await overlay.dialog<PlaygroundDialogResult>(
-      <PlaygroundDialog projectId="lyrd-docs" />,
+    const outcome = await overlay.open(playgroundDialog, { projectId: 'lyrd-docs' })
+    setResult(
+      outcome.status === 'resolved'
+        ? `dialog · “${outcome.value.name}”을 저장했습니다.`
+        : `dialog · 저장하지 않았습니다. (${outcome.reason})`,
     )
-    setResult(saved ? `dialog · “${saved.name}”을 저장했습니다.` : 'dialog · 저장하지 않았습니다.')
   }
 
   return (
@@ -322,13 +331,38 @@ function DocsPage() {
             </article>
             <article>
               <div>
-                <span>DIALOG</span>
-                <small>Promise&lt;Result | undefined&gt;</small>
+                <span>CUSTOM OVERLAY</span>
+                <small>Promise&lt;OverlayOutcome&lt;Result&gt;&gt;</small>
               </div>
               <pre>
                 <code>{dialogCode}</code>
               </pre>
             </article>
+            <article>
+              <div>
+                <span>TOAST STARTER</span>
+                <small>parallel · App-owned Base UI adapter</small>
+              </div>
+              <pre>
+                <code>{toastCode}</code>
+              </pre>
+            </article>
+          </div>
+          <div className="terminal-card">
+            <div className="terminal-title">
+              <span>TOAST</span>
+              <small>02 — add the optional app-owned starter</small>
+            </div>
+            <pre>
+              <code>
+                <i>$</i> pnpm dlx @lyrd/cli add toast
+              </code>
+            </pre>
+            <p className="section-description">
+              생성된 <code>AppToastProvider</code>가 기존 <code>AppOverlayProvider</code>를 감싸도록
+              앱 루트에서 한 번 합성하세요. timeout, 표시 개수, 스타일, Undo 행동은 모두 생성된 로컬
+              파일에서 제품에 맞게 바꿉니다.
+            </p>
           </div>
         </section>
 
@@ -345,6 +379,7 @@ function DocsPage() {
               <span>App-owned UI</span>
               <span>Promise results</span>
               <span>Queue by default</span>
+              <span>Parallel by choice</span>
             </div>
           </div>
         </section>

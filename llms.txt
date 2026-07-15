@@ -1,0 +1,44 @@
+# Lyrd
+
+Lyrd is a React overlay intent system. It centrally owns overlay request state, lifecycle, results, deduplication, and scheduling policy. Applications own JSX, styling, copy, and the accessibility primitive adapter (for example Base UI or Radix).
+
+Documentation: https://seunjin.github.io/lyrd/
+Repository: https://github.com/seunjin/lyrd
+Packages: @lyrd/core and @lyrd/cli
+
+## Install
+
+Use `pnpm dlx @lyrd/cli add overlay` in a React application. This installs `@lyrd/core` and `@base-ui/react`, then creates local files under `src/lyrd/overlay`. Do not overwrite those generated files; they are application-owned code.
+
+Use `pnpm dlx @lyrd/cli add dialog <kebab-case-name>` for a typed custom overlay starter.
+
+Use `pnpm dlx @lyrd/cli add toast` for an optional Base UI Toast adapter. It creates `toast.tsx`, `toast-group.ts`, and `toast.css`. Compose its `AppToastProvider` around the generated `AppOverlayProvider` once at the application root. Do not expect `@lyrd/core` to export a built-in `overlay.toast` API.
+
+## Public APIs
+
+- `overlay.alert(request): Promise<void>` is the simple acknowledgement recipe.
+- `overlay.confirm(request): Promise<boolean>` is the simple confirm/cancel recipe. It supports async `onConfirm` with pending, error, and retry behavior.
+- `defineOverlay<Input, Result>(Component)` creates a reusable typed overlay definition.
+- `overlay.open(definition, input, options?): Promise<OverlayOutcome<Result>>` opens an independent session.
+- `overlay.upsert(definition, identity, input, options?)` updates an active session with the same definition and identity while preserving the Promise and component instance. Use it for progress-like UI, not ordinary repeated dialogs.
+- `defineOverlayGroup({ strategy: 'parallel' })` creates an explicit non-blocking group. Open a Toast with `{ group: toastGroup }`.
+- `overlay.dialog(element)` is an escape hatch for one-off JSX. Prefer `defineOverlay` for reusable behavior.
+
+`OverlayOutcome<Result>` is discriminated: check `outcome.status === 'resolved'` before reading `outcome.value`; otherwise handle `outcome.reason`.
+
+## Constraints
+
+- Default `alert`, `confirm`, and `open` calls use the safe modal queue.
+- A parallel group is opt-in and should be used only when overlays must not block each other, such as Toast notifications.
+- Do not add a UI-kit-specific renderer or a generic Toast recipe to core unless repeated application usage proves a stable cross-project contract.
+- Let the underlying primitive manage accessibility, focus, portals, and transitions. Let Lyrd manage product lifecycle and policy.
+
+## Canonical Toast call
+
+```ts
+const outcome = await overlay.open(
+  appToast,
+  { toastId: crypto.randomUUID(), title: 'Saved.' },
+  { group: toastGroup },
+)
+```
