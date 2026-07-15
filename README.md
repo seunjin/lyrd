@@ -1,6 +1,6 @@
 # Lyrd
 
-[문서와 인터랙티브 데모](https://seunjin.github.io/lyrd/) · [GitHub](https://github.com/seunjin/lyrd)
+[문서와 인터랙티브 데모](https://seunjin.github.io/lyrd/) · [LLM 가이드](https://seunjin.github.io/lyrd/llms.txt) · [전체 에이전트 문서](https://seunjin.github.io/lyrd/llms-full.txt) · [실제 앱 테스트 프롬프트](https://seunjin.github.io/lyrd/agent-test-prompt.md) · [GitHub](https://github.com/seunjin/lyrd)
 
 Base UI 기반 오버레이를 제품의 의도 단위로 중앙 관리하는 React 라이브러리다.
 
