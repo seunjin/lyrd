@@ -43,7 +43,7 @@ GitHub 웹 화면에서는 다음 순서로 실행한다.
 
 `publish`는 오입력을 막는 안전장치이며 버전이나 npm 태그가 아니다. 실제 버전과 `next` 또는 `latest` 태그는 커밋된 package.json과 Changesets 프리릴리스 상태로 결정된다. 환경 승인 전에는 npm publish가 실행되지 않는다.
 
-Changesets 프리릴리스 모드에서는 `changeset publish --tag next`를 직접 사용할 수 없다. 워크플로는 선택한 채널을 `NPM_CONFIG_TAG`로 npm에 전달하고 인자 없는 `changeset publish`를 실행한다. 따라서 Changesets의 프리릴리스 제약을 지키면서 실제 `npm publish`에는 `next`가 적용된다. `latest`는 `.changeset/pre.json`이 `exit` 상태일 때만 허용한다.
+Changesets는 안정 버전이 한 번도 배포되지 않은 패키지를 prerelease mode에서도 `latest`로 게시한다. 또한 Trusted Publishing의 OIDC 인증은 `npm publish`에는 사용할 수 있지만 별도의 `npm dist-tag` 변경에는 사용할 수 없다. 워크플로는 이 조합을 피하기 위해 공개 패키지의 미배포 버전만 골라 `pnpm publish --tag <channel>`로 직접 게시한다. `latest`는 `.changeset/pre.json`이 `exit` 상태일 때만 허용한다.
 
 터미널에서 GitHub CLI로 같은 워크플로를 시작할 수도 있다.
 
@@ -62,7 +62,7 @@ gh workflow run npm-publish.yml \
 2. 첫 후보 배포를 준비할 때 `pnpm exec changeset pre enter next`로 프리릴리스 모드에 진입한다.
 3. `pnpm version-packages`를 실행하고 생성된 `0.x.y-next.n` 버전·CHANGELOG 변경을 검토해 `main`에 반영한다.
 4. GitHub Actions의 **npm 배포** 워크플로를 `main`에서 실행한다. 확인 입력값으로 `publish`를 입력한다.
-5. 환경 승인 후 워크플로가 전체 검증과 `changeset publish`를 실행한다. 프리릴리스 모드에서는 npm의 `next` dist-tag로 게시된다.
+5. 환경 승인 후 워크플로가 전체 검증을 실행하고 미배포 패키지를 npm의 `next` dist-tag로 게시한다.
 6. npm 패키지 페이지에서 버전과 provenance를 확인한다.
 
 Changesets와 npm은 안정 버전 이력이 없는 최초 프리릴리스를 `latest`에도 연결하며, 유일한 공개 버전의 `latest` 태그는 제거할 수 없다. 따라서 첫 후보는 `latest`와 `next`에 함께 연결되고, 첫 안정 버전을 배포하면 `latest`가 안정 버전으로 이동한다.
