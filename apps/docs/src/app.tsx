@@ -18,6 +18,12 @@ const dialogCode = `const outcome = await overlay.open(
   { documentId: 'rfc-0003' },
 )`
 
+const toastCode = `const outcome = await overlay.open(
+  appToast,
+  { toastId: crypto.randomUUID(), title: '저장했습니다.' },
+  { group: toastGroup },
+)`
+
 function DocsPage() {
   const overlay = useOverlay()
   const [result, setResult] = useState('아직 실행한 오버레이가 없습니다.')
@@ -332,6 +338,31 @@ function DocsPage() {
                 <code>{dialogCode}</code>
               </pre>
             </article>
+            <article>
+              <div>
+                <span>TOAST STARTER</span>
+                <small>parallel · App-owned Base UI adapter</small>
+              </div>
+              <pre>
+                <code>{toastCode}</code>
+              </pre>
+            </article>
+          </div>
+          <div className="terminal-card">
+            <div className="terminal-title">
+              <span>TOAST</span>
+              <small>02 — add the optional app-owned starter</small>
+            </div>
+            <pre>
+              <code>
+                <i>$</i> pnpm dlx @lyrd/cli add toast
+              </code>
+            </pre>
+            <p className="section-description">
+              생성된 <code>AppToastProvider</code>가 기존 <code>AppOverlayProvider</code>를 감싸도록
+              앱 루트에서 한 번 합성하세요. timeout, 표시 개수, 스타일, Undo 행동은 모두 생성된 로컬
+              파일에서 제품에 맞게 바꿉니다.
+            </p>
           </div>
         </section>
 
@@ -348,6 +379,7 @@ function DocsPage() {
               <span>App-owned UI</span>
               <span>Promise results</span>
               <span>Queue by default</span>
+              <span>Parallel by choice</span>
             </div>
           </div>
         </section>

@@ -50,6 +50,14 @@ pnpm dlx @lyrd/cli add dialog project-settings
 
 생성된 definition은 typed session 수명주기를 연결하며, 앱이 모달·Drawer·풀페이지 등 원하는 형태로 수정한다.
 
+Toast starter는 다음 명령으로 추가한다.
+
+~~~bash
+pnpm dlx @lyrd/cli add toast
+~~~
+
+이 명령은 앱 소유의 `toast.tsx`, `toast-group.ts`, `toast.css`를 생성한다. `AppToastProvider`로 기존 `AppOverlayProvider`를 앱 루트에서 감싸고, `appToast`는 `{ group: toastGroup }`과 함께 연다. 표시 개수·timeout·스타일·Undo 동작은 생성된 파일에서 제품에 맞게 수정한다.
+
 ## 사용
 
 ~~~tsx
@@ -161,6 +169,14 @@ const outcome = await overlay.open(
 ~~~
 
 group을 생략한 `alert`, `confirm`, `open`은 기존의 안전한 modal queue를 유지한다. `parallel` group의 세션은 서로 독립적으로 열리고 닫히며 modal queue를 막지 않는다. `dismissAll()`은 기본 queue와 parallel group을 함께 정리한다. 첫 group API는 실제 Toast에 필요한 `parallel`만 제공하며, `replace`와 별도 queue group은 구체적인 사용 사례가 생길 때 추가한다.
+
+CLI Toast starter를 쓸 때는 생성된 Provider를 기존 Provider 바깥에서 한 번 합성한다.
+
+~~~tsx
+<AppToastProvider>
+  <AppOverlayProvider>{children}</AppOverlayProvider>
+</AppToastProvider>
+~~~
 
 앱 루트에는 CLI가 생성한 `AppOverlayProvider`를 한 번 연결한다.
 
