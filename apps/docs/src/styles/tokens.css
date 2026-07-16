@@ -1,0 +1,19 @@
+:root {
+  color: #171715;
+  background: #f4f1e8;
+  font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --color-ink: #171715;
+  --color-paper: #f4f1e8;
+  --color-paper-muted: #e9e6dc;
+  --color-panel: #efede5;
+  --color-line: #c9c6bc;
+  --color-muted: #65645d;
+  --color-accent: #c7f45b;
+  --color-accent-dark: #65754b;
+  --header-height: 72px;
+  --content-width: 1180px;
+  --docs-width: 1480px;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
