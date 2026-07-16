@@ -12,7 +12,8 @@
     "@base-ui/react": "^1.6.0",
     "@lyrd/core": "workspace:*",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@types/node": "^20",
