@@ -36,6 +36,10 @@
   word-break: keep-all;
 }
 
+.hero h1 > span {
+  display: block;
+}
+
 .hero h1 em {
   position: relative;
   z-index: 0;
@@ -71,6 +75,26 @@
 
 .hero-system {
   position: relative;
+}
+
+.layered-wordmark {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font: 700 10px / 1 var(--font-mono);
+  letter-spacing: 0.12em;
+}
+
+.layered-wordmark span {
+  border: 1px solid var(--color-ink);
+  padding: 7px 9px;
+  background: var(--color-accent);
+}
+
+.layered-wordmark strong {
+  color: var(--color-muted);
+  font-weight: 650;
 }
 
 .hero-system::before {
@@ -136,9 +160,11 @@
 .system-layers {
   display: grid;
   margin: 26px 0 0 28px;
+  padding: 0 28px 0 0;
+  list-style: none;
 }
 
-.system-layers div {
+.system-layers li {
   display: grid;
   grid-template-columns: 42px 1fr auto;
   align-items: center;
@@ -536,6 +562,11 @@
   word-break: keep-all;
 }
 
+.principle-grid blockquote span,
+.principle-grid blockquote strong {
+  display: block;
+}
+
 .principle-tags {
   display: flex;
   flex-wrap: wrap;
@@ -625,7 +656,7 @@
     right: 0;
   }
 
-  .system-layers div {
+  .system-layers li {
     grid-template-columns: 32px 1fr;
   }
 

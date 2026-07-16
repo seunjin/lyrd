@@ -20,7 +20,7 @@ export function HomePage() {
   async function showConfirm() {
     await overlay.confirm({
       title: '문서 구조를 직접 살펴볼까요?',
-      description: '이 데모는 문서 앱이 소유한 Base UI renderer를 사용합니다.',
+      description: '이 데모는 문서 앱이 직접 소유한 renderer를 사용합니다.',
       confirmLabel: 'Playground 보기',
       cancelLabel: '계속 둘러보기',
     })
@@ -31,17 +31,17 @@ export function HomePage() {
       <section className="hero section-shell">
         <div className="hero-copy">
           <p className="eyebrow">
-            <span>React</span> overlay intent system
+            <span>LYRD</span> layered overlay intent
           </p>
           <h1>
-            오버레이는 UI가 아니라
-            <br />
-            제품의 <em>의도</em>다.
+            <span>의도와 표현을,</span>
+            <span>
+              <em>레이어로</em> 나눕니다.
+            </span>
           </h1>
           <p className="hero-description">
-            Base UI, Radix, 커스텀 컴포넌트 중 무엇을 렌더링하든
-            <br />
-            요청·결과·정책·대기열은 한곳에서 관리합니다.
+            Lyrd는 오버레이의 요청·결과·정책·대기열을 조율합니다. 렌더러와 UI 선택권은 앱에 그대로
+            남습니다.
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" to="/getting-started">
@@ -54,6 +54,10 @@ export function HomePage() {
         </div>
 
         <div className="hero-system">
+          <div className="layered-wordmark">
+            <span>LYRD</span>
+            <strong>LAYERED</strong>
+          </div>
           <div className="code-window">
             <div className="window-bar">
               <span />
@@ -70,23 +74,23 @@ export function HomePage() {
               </code>
             </pre>
           </div>
-          <div className="system-layers">
-            <div>
+          <ol className="system-layers" aria-label="Lyrd의 세 레이어">
+            <li>
               <b>01</b>
-              <span>Lyrd core</span>
-              <small>상태 · 결과 · 정책</small>
-            </div>
-            <div>
+              <span>Intent orchestration</span>
+              <small>요청 · 결과 · 정책</small>
+            </li>
+            <li>
               <b>02</b>
-              <span>Local renderer</span>
+              <span>App renderer</span>
               <small>JSX · 스타일 · 브랜드</small>
-            </div>
-            <div>
+            </li>
+            <li>
               <b>03</b>
-              <span>Base UI</span>
+              <span>UI primitive</span>
               <small>접근성 · 포커스 · 포털</small>
-            </div>
-          </div>
+            </li>
+          </ol>
         </div>
       </section>
 
@@ -164,15 +168,15 @@ export function HomePage() {
             <span className="card-mark">Y</span>
           </article>
           <article className="ownership-card dark">
-            <p>BASE UI / RADIX</p>
-            <h3>Primitive 동작</h3>
+            <p>UI PRIMITIVE</p>
+            <h3>접근성 동작</h3>
             <ul>
               <li>접근성</li>
               <li>포커스 관리</li>
               <li>Portal</li>
               <li>키보드 동작</li>
             </ul>
-            <span className="card-mark">B</span>
+            <span className="card-mark">P</span>
           </article>
         </div>
       </section>
@@ -227,7 +231,7 @@ export function HomePage() {
             코드는 직접 소유하세요.
           </h2>
           <p className="section-description">
-            CLI는 Base UI renderer를 앱 안에 생성합니다. 기존 파일은 자동으로 덮어쓰지 않습니다.
+            CLI는 renderer 코드를 앱 안에 생성합니다. 기존 파일은 자동으로 덮어쓰지 않습니다.
           </p>
         </div>
         <div className="terminal-card">
@@ -274,9 +278,8 @@ export function HomePage() {
         <div className="section-shell principle-grid">
           <p className="section-index">05 / PRINCIPLES</p>
           <blockquote>
-            “Base UI는 동작의 기반을 제공하고,
-            <br />
-            <strong>Lyrd는 제품에서 사용할 의미와 규칙을 관리한다.</strong>”
+            <span>“표현은 앱이 소유하고,</span>
+            <strong>Lyrd는 오버레이의 의도와 흐름을 조율합니다.”</strong>
           </blockquote>
           <div className="principle-tags">
             <span>Renderer agnostic</span>
