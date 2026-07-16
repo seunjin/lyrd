@@ -58,7 +58,7 @@ function AppToast({ input, session }: AppToastProps) {
             dismiss: () => sessionRef.current.dismiss('cancel'),
           },
       onClose: () => sessionRef.current.dismiss('programmatic'),
-      onRemove: () => sessionRef.current.completeClose(),
+      onRemove: () => sessionRef.current.completeExit(),
     })
   }, [add, close, input.toastId, session.open])
 

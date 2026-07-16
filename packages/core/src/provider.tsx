@@ -33,8 +33,8 @@ function DefinitionSurface({
         status: snapshot.status,
         resolve: (result) => controller.resolveDefinition(sessionId, result),
         dismiss: (reason) => controller.dismissDefinition(sessionId, reason),
-        requestClose: (reason) => controller.requestDefinitionClose(sessionId, reason),
-        completeClose: () => controller.completeDefinitionClose(sessionId),
+        requestDismiss: (reason) => controller.requestDefinitionDismiss(sessionId, reason),
+        completeExit: () => controller.completeDefinitionExit(sessionId),
       }}
     />
   )
@@ -74,22 +74,22 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
       {snapshot.kind === 'alert' ? (
         <AlertSurface
           acknowledge={activeController.acknowledgeCurrent}
-          completeClose={activeController.completeClose}
+          completeExit={activeController.completeExit}
           open={snapshot.open}
           request={snapshot.request}
-          requestClose={activeController.requestClose}
+          requestDismiss={activeController.requestDismiss}
           status={snapshot.status}
         />
       ) : null}
       {snapshot.kind === 'confirm' ? (
         <ConfirmSurface
           cancel={activeController.cancelCurrent}
-          completeClose={activeController.completeClose}
+          completeExit={activeController.completeExit}
           confirm={activeController.confirmCurrent}
           error={snapshot.error}
           open={snapshot.open}
           request={snapshot.request}
-          requestClose={activeController.requestClose}
+          requestDismiss={activeController.requestDismiss}
           status={snapshot.status}
         />
       ) : null}
@@ -100,8 +100,8 @@ export function OverlayProvider({ children, renderers, controller }: OverlayProv
             status: snapshot.status,
             resolve: activeController.resolveDialogCurrent,
             dismiss: activeController.dismissDialogCurrent,
-            requestClose: activeController.requestClose,
-            completeClose: activeController.completeClose,
+            requestDismiss: activeController.requestDismiss,
+            completeExit: activeController.completeExit,
           }}
         >
           {snapshot.element}

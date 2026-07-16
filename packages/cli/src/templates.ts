@@ -8,18 +8,18 @@ import './overlay.css'
 
 export function AlertSurface({
   acknowledge,
-  completeClose,
+  completeExit,
   open,
   request,
-  requestClose,
+  requestDismiss,
 }: AlertSurfaceProps) {
   if (!request) return null
 
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
+      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="lyrd-overlay-backdrop" />
@@ -61,11 +61,11 @@ import './overlay.css'
 
 export function ConfirmSurface({
   cancel,
-  completeClose,
+  completeExit,
   confirm,
   open,
   request,
-  requestClose,
+  requestDismiss,
   status,
 }: ConfirmSurfaceProps) {
   if (!request) return null
@@ -75,8 +75,8 @@ export function ConfirmSurface({
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
+      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="lyrd-overlay-backdrop" />
@@ -373,7 +373,7 @@ function AppToast({ input, session }: AppToastProps) {
             dismiss: () => sessionRef.current.dismiss('cancel'),
           },
       onClose: () => sessionRef.current.dismiss('programmatic'),
-      onRemove: () => sessionRef.current.completeClose(),
+      onRemove: () => sessionRef.current.completeExit(),
     })
   }, [add, close, input.toastId, session.open])
 
@@ -654,9 +654,9 @@ function ${componentName}Dialog({ input, session }: ${componentName}DialogCompon
       open={session.open}
       onOpenChange={(nextOpen, eventDetails) =>
         !nextOpen &&
-        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        session.requestDismiss(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />

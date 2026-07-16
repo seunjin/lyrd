@@ -5,18 +5,18 @@ import './overlay.css'
 
 export function AlertSurface({
   acknowledge,
-  completeClose,
+  completeExit,
   open,
   request,
-  requestClose,
+  requestDismiss,
 }: AlertSurfaceProps) {
   if (!request) return null
 
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
+      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="docs-overlay-backdrop" />

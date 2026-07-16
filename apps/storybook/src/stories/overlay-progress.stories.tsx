@@ -30,7 +30,7 @@ function OverlayProgressStory() {
       uploadProgressDialog,
       uploadId,
       { uploadId, fileName, uploadedBytes: 0, totalBytes },
-      { dismiss: 'block' },
+      { dismissPolicy: 'block' },
     )
     void task.then(() => {
       settled = true

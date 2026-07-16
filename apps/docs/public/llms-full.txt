@@ -141,7 +141,7 @@ const confirmed = await overlay.confirm({
   confirmLabel: '삭제',
   cancelLabel: '취소',
   tone: 'danger',
-  dismiss: 'block',
+  dismissPolicy: 'block',
   dedupeKey: `delete-project:${projectId}`,
   onConfirm: async () => {
     await deleteProject(projectId)
@@ -160,7 +160,7 @@ Confirm fields:
 - `description?: ReactNode`
 - `cancelLabel?: ReactNode`
 - `tone?: 'neutral' | 'danger'`
-- `dismiss?: 'allow' | 'block'`
+- `dismissPolicy?: 'allow' | 'block'`
 - `dedupeKey?: string`
 - `onConfirm?: () => void | Promise<void>`
 
@@ -198,11 +198,11 @@ function ProjectSettingsOverlay({ input, session }: Props) {
       open={session.open}
       onOpenChange={(open, details) => {
         if (!open) {
-          session.requestClose(details.reason === 'escape-key' ? 'escape' : 'outside')
+          session.requestDismiss(details.reason === 'escape-key' ? 'escape' : 'outside')
         }
       }}
       onOpenChangeComplete={(open) => {
-        if (!open) session.completeClose()
+        if (!open) session.completeExit()
       }}
     >
       <Dialog.Portal>
@@ -252,14 +252,23 @@ type OverlayOutcome<Result> =
     }
 ```
 
-Session methods:
+Application API:
+
+- `overlay.alert(request)` and `overlay.confirm(request)` provide safe product defaults
+- `overlay.open(definition, input, options)` opens a new typed session
+- `overlay.upsert(definition, identity, input, options)` updates an identity-bound session
+- `overlay.dismissAll(reason)` cleans up the default queue and every custom group
+
+Renderer API for definition and adapter authors:
 
 - `resolve(result)` records a typed result and starts closing
 - `dismiss(reason)` records a dismissal and starts closing
-- `requestClose(reason)` honors `dismiss: 'allow' | 'block'`
-- `completeClose()` must be called when the primitive reports its exit transition completed
+- `requestDismiss(reason)` honors `dismissPolicy: 'allow' | 'block'`
+- `completeExit()` must be called when the primitive reports its exit transition completed
 - `open` is the controlled open state
 - `status` is `mounting`, `open`, or `closing`
+
+Application callers normally do not use the Renderer API. A local Base UI, Radix, or shadcn adapter connects these methods once inside its overlay definition.
 
 Use `pnpm dlx @lyrd/cli@next add dialog project-settings` to generate a Base UI Dialog starting point. The name must be kebab-case.
 
@@ -272,7 +281,7 @@ const completion = overlay.upsert(
   uploadProgress,
   uploadId,
   { uploadId, uploadedBytes: 0, totalBytes },
-  { dismiss: 'block' },
+  { dismissPolicy: 'block' },
 )
 
 overlay.upsert(uploadProgress, uploadId, {

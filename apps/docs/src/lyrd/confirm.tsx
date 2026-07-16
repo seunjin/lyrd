@@ -5,11 +5,11 @@ import './overlay.css'
 
 export function ConfirmSurface({
   cancel,
-  completeClose,
+  completeExit,
   confirm,
   open,
   request,
-  requestClose,
+  requestDismiss,
   status,
 }: ConfirmSurfaceProps) {
   if (!request) return null
@@ -18,8 +18,8 @@ export function ConfirmSurface({
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
+      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="docs-overlay-backdrop" />
