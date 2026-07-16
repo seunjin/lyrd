@@ -1,4 +1,5 @@
 import { useOverlay } from '@lyrd/core'
+import { X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const confirmCode = `const confirmed = await overlay.confirm({
@@ -92,11 +93,10 @@ export function HomePage() {
       <section className="manifesto">
         <div className="section-shell manifesto-grid">
           <p className="section-index">01 / WHY</p>
-          <div>
+          <div className="manifesto-copy-block">
             <h2>
-              Dialog를 하나 더 만드는 것이
-              <br />
-              문제를 해결하지는 않습니다.
+              <span>Dialog를 하나 더 만드는 것이</span>
+              <span>문제를 해결하지는 않습니다.</span>
             </h2>
             <p className="manifesto-copy">
               확인창이 화면마다 다르게 동작하고 비동기 상태와 중복 요청을 호출부가 반복해서 처리하는
@@ -104,10 +104,30 @@ export function HomePage() {
             </p>
           </div>
           <ul className="problem-list">
-            <li>같은 확인창이 연속으로 두 번 열림</li>
-            <li>비동기 처리 중 ESC로 닫힘</li>
-            <li>화면마다 달라지는 결과와 오류 처리</li>
-            <li>Dialog 구현에 섞이는 제품 규칙</li>
+            <li>
+              <span className="problem-icon" aria-hidden="true">
+                <X size={16} strokeWidth={2.5} />
+              </span>
+              <span>같은 확인창이 연속으로 두 번 열림</span>
+            </li>
+            <li>
+              <span className="problem-icon" aria-hidden="true">
+                <X size={16} strokeWidth={2.5} />
+              </span>
+              <span>비동기 처리 중 ESC로 닫힘</span>
+            </li>
+            <li>
+              <span className="problem-icon" aria-hidden="true">
+                <X size={16} strokeWidth={2.5} />
+              </span>
+              <span>화면마다 달라지는 결과와 오류 처리</span>
+            </li>
+            <li>
+              <span className="problem-icon" aria-hidden="true">
+                <X size={16} strokeWidth={2.5} />
+              </span>
+              <span>Dialog 구현에 섞이는 제품 규칙</span>
+            </li>
           </ul>
         </div>
       </section>
@@ -200,14 +220,12 @@ export function HomePage() {
 
       <section className="start section-shell">
         <div className="section-heading start-heading">
-          <div>
-            <p className="section-index">04 / QUICK START</p>
-            <h2>
-              UI는 생성하고,
-              <br />
-              코드는 직접 소유하세요.
-            </h2>
-          </div>
+          <p className="section-index">04 / QUICK START</p>
+          <h2>
+            UI는 생성하고,
+            <br />
+            코드는 직접 소유하세요.
+          </h2>
           <p className="section-description">
             CLI는 Base UI renderer를 앱 안에 생성합니다. 기존 파일은 자동으로 덮어쓰지 않습니다.
           </p>
