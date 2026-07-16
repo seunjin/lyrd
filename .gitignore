@@ -8,8 +8,6 @@ debug-storybook.log
 *.tsbuildinfo
 .source
 
-AGENTS.md
-
 # 내부 문서 (RFC는 추적)
 ARCHITECTURE.md
 CONTRIBUTING.md
