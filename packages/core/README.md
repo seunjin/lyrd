@@ -21,11 +21,13 @@ pnpm add @lyrd/core
 반복 사용하는 커스텀 오버레이는 `defineOverlay<Input, Result>()`로 입력과 결과를 한 번에
 정의하고 `overlay.open(definition, input)`으로 연다. 성공과 dismiss는
 `OverlayOutcome<Result>`로 구분된다. `alert()`와 `confirm()`은 각각 `void`와 `boolean`을
-반환하는 간단한 기본 경로를 유지한다.
+반환하는 간단한 기본 경로를 유지한다. `open()`이 반환하는 `OverlayHandle`은 Promise이므로
+그대로 `await`할 수 있고, 보관하면 `update(input)`과 `dismiss(reason)`으로 해당 활성 세션을
+제어할 수 있다.
 
 진행률처럼 동일한 작업의 input을 계속 갱신할 때는
-`overlay.upsert(definition, identity, input)`을 사용한다. 같은 definition과 identity의
-활성 세션만 Promise와 렌더러 인스턴스를 공유하며, `open()` 호출과 다른 identity는 항상
+`overlay.openOrUpdate(definition, identity, input)`을 사용한다. 같은 definition과 identity의
+활성 세션만 Handle과 렌더러 인스턴스를 공유하며, `open()` 호출과 다른 identity는 항상
 독립 세션이다.
 
 Toast처럼 여러 세션을 동시에 렌더링할 때는 `defineOverlayGroup({ strategy: 'parallel' })`로
@@ -33,7 +35,7 @@ Toast처럼 여러 세션을 동시에 렌더링할 때는 `defineOverlayGroup({
 호출은 기존 modal queue를 유지하며 `dismissAll()`은 두 경로를 함께 정리한다. Group은
 전략만 감싼 플래그가 아니라 같은 실행 전략과 상태 공간을 공유하는 coordination boundary다.
 
-일반 호출자는 `alert`, `confirm`, `open`, `upsert`, `dismissAll` Application API를 사용한다.
+일반 호출자는 `alert`, `confirm`, `open`, `openOrUpdate`, `dismissAll` Application API를 사용한다.
 로컬 renderer와 definition 작성자는 `resolve`, `dismiss`, `requestDismiss`, `completeExit`
 Renderer API를 UI primitive에 한 번 연결한다. `requestDismiss`는 `dismissPolicy`를 확인하며,
 `completeExit`은 closing 이후 exit lifecycle이 끝났음을 런타임에 알린다.

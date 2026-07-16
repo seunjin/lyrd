@@ -5,7 +5,7 @@ import { createOverlayController } from './controller'
 import { defineOverlay } from './definition'
 import { defineOverlayGroup } from './group'
 import { OverlayProvider, type OverlayProviderProps } from './provider'
-import type { OverlayOpenOptions, OverlayOutcome } from './types'
+import type { OverlayHandle, OverlayOpenOptions } from './types'
 
 type ProjectSettingsInput = {
   projectId: string
@@ -25,16 +25,20 @@ describe('overlay definition types', () => {
     const controller = createOverlayController()
     const result = controller.overlay.open(projectSettings, { projectId: 'project-a' })
 
-    expectTypeOf(result).toEqualTypeOf<Promise<OverlayOutcome<ProjectSettingsResult>>>()
+    expectTypeOf(result).toEqualTypeOf<OverlayHandle<ProjectSettingsInput, ProjectSettingsResult>>()
+    result.update({ projectId: 'project-b' })
+
+    // @ts-expect-error projectId는 문자열이어야 한다.
+    result.update({ projectId: 1 })
   })
 
-  it('definition의 input과 result를 upsert 호출까지 추론한다', () => {
+  it('definition의 input과 result를 openOrUpdate 호출까지 추론한다', () => {
     const controller = createOverlayController()
-    const result = controller.overlay.upsert(projectSettings, 'project-a', {
+    const result = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'project-a',
     })
 
-    expectTypeOf(result).toEqualTypeOf<Promise<OverlayOutcome<ProjectSettingsResult>>>()
+    expectTypeOf(result).toEqualTypeOf<OverlayHandle<ProjectSettingsInput, ProjectSettingsResult>>()
   })
 
   it('definition의 session resolve에 선언한 result 타입을 연결한다', () => {
@@ -198,9 +202,9 @@ describe('overlay parallel group', () => {
     expect(markup).toContain('<output>toast-b:true:open</output>')
   })
 
-  it('parallel upsert는 Promise와 group을 유지하며 input만 갱신한다', async () => {
+  it('parallel openOrUpdate는 Handle과 group을 유지하며 input만 갱신한다', async () => {
     const controller = createOverlayController()
-    const first = controller.overlay.upsert(
+    const first = controller.overlay.openOrUpdate(
       projectSettings,
       'toast-a',
       { projectId: 'before' },
@@ -211,7 +215,7 @@ describe('overlay parallel group', () => {
     const sessionId = parallelSnapshot.sessionId
     controller.openDefinition(sessionId)
 
-    const updated = controller.overlay.upsert(projectSettings, 'toast-a', {
+    const updated = controller.overlay.openOrUpdate(projectSettings, 'toast-a', {
       projectId: 'after',
     })
 
@@ -225,13 +229,13 @@ describe('overlay parallel group', () => {
     ])
 
     expect(() =>
-      controller.overlay.upsert(
+      controller.overlay.openOrUpdate(
         projectSettings,
         'toast-a',
         { projectId: 'moved' },
         { group: defineOverlayGroup({ strategy: 'parallel' }) },
       ),
-    ).toThrow('활성 upsert 세션의 overlay group은 변경할 수 없습니다.')
+    ).toThrow('활성 openOrUpdate 세션의 overlay group은 변경할 수 없습니다.')
     expect(controller.getParallelSnapshots()).toMatchObject([
       { input: { projectId: 'after' }, options: { group: toastGroup, dismissPolicy: 'block' } },
     ])
@@ -309,6 +313,97 @@ describe('overlay parallel group', () => {
 })
 
 describe('overlay definition controller', () => {
+  it('open은 즉시 제어하고 직접 await할 수 있는 handle을 반환한다', async () => {
+    const controller = createOverlayController()
+    const handle = controller.overlay.open(
+      projectSettings,
+      { projectId: 'before' },
+      { dismissPolicy: 'block' },
+    )
+    const initialSnapshot = controller.getSnapshot()
+    if (initialSnapshot.kind !== 'definition') throw new Error('definition snapshot이 필요합니다.')
+
+    expect(handle).toBeInstanceOf(Promise)
+    expect(handle.update({ projectId: 'mounting' })).toBe(true)
+    expect(controller.getSnapshot()).toMatchObject({
+      sessionId: initialSnapshot.sessionId,
+      input: { projectId: 'mounting' },
+      status: 'mounting',
+    })
+
+    controller.openCurrent()
+    expect(handle.update({ projectId: 'open' })).toBe(true)
+    expect(controller.getSnapshot()).toMatchObject({
+      sessionId: initialSnapshot.sessionId,
+      input: { projectId: 'open' },
+      status: 'open',
+    })
+
+    expect(handle.dismiss('cancel')).toBe(true)
+    await expect(handle).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+    expect(handle.update({ projectId: 'too-late' })).toBe(false)
+    expect(handle.dismiss()).toBe(false)
+  })
+
+  it('handle은 아직 렌더되지 않은 queue 세션을 즉시 dismiss한다', async () => {
+    const controller = createOverlayController()
+    const blocking = controller.overlay.alert({ title: '먼저 안내' })
+    const queued = controller.overlay.open(projectSettings, { projectId: 'queued' })
+
+    expect(queued.dismiss()).toBe(true)
+    await expect(queued).resolves.toEqual({
+      status: 'dismissed',
+      reason: 'programmatic',
+    })
+    expect(queued.update({ projectId: 'too-late' })).toBe(false)
+    expect(controller.getSnapshot()).toMatchObject({ kind: 'alert', status: 'mounting' })
+
+    controller.openCurrent()
+    controller.acknowledgeCurrent()
+    await expect(blocking).resolves.toBeUndefined()
+  })
+
+  it('handle은 mounting 중인 현재 세션을 exit 대기 없이 dismiss한다', async () => {
+    const controller = createOverlayController()
+    const first = controller.overlay.open(projectSettings, { projectId: 'first' })
+    const second = controller.overlay.open(projectSettings, { projectId: 'second' })
+
+    expect(first.dismiss()).toBe(true)
+    await expect(first).resolves.toEqual({
+      status: 'dismissed',
+      reason: 'programmatic',
+    })
+    expect(controller.getSnapshot()).toMatchObject({
+      input: { projectId: 'second' },
+      status: 'mounting',
+    })
+
+    expect(second.dismiss()).toBe(true)
+    await expect(second).resolves.toEqual({
+      status: 'dismissed',
+      reason: 'programmatic',
+    })
+    expect(controller.getSnapshot()).toMatchObject({ kind: null, status: 'idle' })
+  })
+
+  it('handle은 아직 렌더되지 않은 parallel 세션을 즉시 dismiss한다', async () => {
+    const controller = createOverlayController()
+    const parallelGroup = defineOverlayGroup({ strategy: 'parallel' })
+    const handle = controller.overlay.open(
+      projectSettings,
+      { projectId: 'parallel' },
+      { group: parallelGroup },
+    )
+
+    expect(controller.getParallelSnapshots()).toHaveLength(1)
+    expect(handle.dismiss('route-change')).toBe(true)
+    await expect(handle).resolves.toEqual({
+      status: 'dismissed',
+      reason: 'route-change',
+    })
+    expect(controller.getParallelSnapshots()).toEqual([])
+  })
+
   it('alert, definition, confirm을 같은 session queue에서 순서대로 처리한다', async () => {
     const controller = createOverlayController()
     const alertResult = controller.overlay.alert({ title: '먼저 안내' })
@@ -430,14 +525,14 @@ describe('overlay definition controller', () => {
     await expect(second).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
   })
 
-  it('같은 definition과 identity를 upsert하면 Promise를 유지하고 현재 input을 갱신한다', async () => {
+  it('같은 definition과 identity를 openOrUpdate하면 Handle을 유지하고 현재 input을 갱신한다', async () => {
     const controller = createOverlayController()
-    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+    const first = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'before',
     })
 
     controller.openCurrent()
-    const updated = controller.overlay.upsert(projectSettings, 'project-a', {
+    const updated = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'after',
     })
 
@@ -453,12 +548,12 @@ describe('overlay definition controller', () => {
     await expect(first).resolves.toEqual({ status: 'resolved', value: { saved: true } })
   })
 
-  it('다른 identity의 upsert는 독립 Promise로 queue에 들어간다', async () => {
+  it('다른 identity의 openOrUpdate는 독립 Handle로 queue에 들어간다', async () => {
     const controller = createOverlayController()
-    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+    const first = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'project-a',
     })
-    const second = controller.overlay.upsert(projectSettings, 'project-b', {
+    const second = controller.overlay.openOrUpdate(projectSettings, 'project-b', {
       projectId: 'project-b',
     })
 
@@ -484,10 +579,10 @@ describe('overlay definition controller', () => {
     const alternateProjectSettings = defineOverlay<ProjectSettingsInput, ProjectSettingsResult>(
       () => null,
     )
-    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+    const first = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'first',
     })
-    const second = controller.overlay.upsert(alternateProjectSettings, 'project-a', {
+    const second = controller.overlay.openOrUpdate(alternateProjectSettings, 'project-a', {
       projectId: 'second',
     })
 
@@ -495,13 +590,13 @@ describe('overlay definition controller', () => {
     expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'first' } })
   })
 
-  it('대기 중인 upsert도 열리기 전에 최신 input으로 갱신한다', async () => {
+  it('대기 중인 openOrUpdate도 열리기 전에 최신 input으로 갱신한다', async () => {
     const controller = createOverlayController()
     const blocking = controller.overlay.alert({ title: '먼저 안내' })
-    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+    const first = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'before',
     })
-    const updated = controller.overlay.upsert(projectSettings, 'project-a', {
+    const updated = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'after',
     })
 
@@ -518,20 +613,20 @@ describe('overlay definition controller', () => {
     })
   })
 
-  it('일반 open 세션과 upsert 세션은 같은 definition이어도 공유하지 않는다', () => {
+  it('일반 open 세션과 openOrUpdate 세션은 같은 definition이어도 공유하지 않는다', () => {
     const controller = createOverlayController()
     const opened = controller.overlay.open(projectSettings, { projectId: 'opened' })
-    const upserted = controller.overlay.upsert(projectSettings, 'project-a', {
-      projectId: 'upserted',
+    const openedOrUpdated = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
+      projectId: 'openedOrUpdated',
     })
 
-    expect(upserted).not.toBe(opened)
+    expect(openedOrUpdated).not.toBe(opened)
     expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'opened' } })
   })
 
   it('settle된 identity는 재사용하지 않고 새 세션을 만든다', async () => {
     const controller = createOverlayController()
-    const first = controller.overlay.upsert(projectSettings, 'project-a', {
+    const first = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'first',
     })
 
@@ -539,7 +634,7 @@ describe('overlay definition controller', () => {
     controller.dismissDefinitionCurrent('cancel')
     await expect(first).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
 
-    const second = controller.overlay.upsert(projectSettings, 'project-a', {
+    const second = controller.overlay.openOrUpdate(projectSettings, 'project-a', {
       projectId: 'second',
     })
     expect(second).not.toBe(first)
@@ -548,9 +643,9 @@ describe('overlay definition controller', () => {
     expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'second' } })
   })
 
-  it('upsert 옵션은 명시적으로 전달할 때만 갱신한다', async () => {
+  it('openOrUpdate 옵션은 명시적으로 전달할 때만 갱신한다', async () => {
     const controller = createOverlayController()
-    const result = controller.overlay.upsert(
+    const result = controller.overlay.openOrUpdate(
       projectSettings,
       'project-a',
       { projectId: 'before' },
@@ -558,11 +653,11 @@ describe('overlay definition controller', () => {
     )
 
     controller.openCurrent()
-    controller.overlay.upsert(projectSettings, 'project-a', { projectId: 'after' })
+    controller.overlay.openOrUpdate(projectSettings, 'project-a', { projectId: 'after' })
     controller.requestDismiss('outside')
     expect(controller.getSnapshot()).toMatchObject({ open: true, status: 'open' })
 
-    controller.overlay.upsert(projectSettings, 'project-a', { projectId: 'after' }, {})
+    controller.overlay.openOrUpdate(projectSettings, 'project-a', { projectId: 'after' }, {})
     controller.requestDismiss('outside')
     await expect(result).resolves.toEqual({ status: 'dismissed', reason: 'outside' })
   })

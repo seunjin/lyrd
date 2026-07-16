@@ -126,7 +126,7 @@ async function main() {
       [
         '--input-type=module',
         '--eval',
-        "import { createOverlayController, defineOverlay, defineOverlayGroup } from '@lyrd/core'; const controller = createOverlayController(); if (typeof defineOverlay !== 'function' || typeof defineOverlayGroup !== 'function' || typeof controller.overlay.upsert !== 'function' || typeof controller.getParallelSnapshots !== 'function') process.exit(1)",
+        "import { createOverlayController, defineOverlay, defineOverlayGroup } from '@lyrd/core'; const controller = createOverlayController(); const definition = defineOverlay(() => null); const handle = controller.overlay.open(definition, { value: 1 }); if (typeof defineOverlayGroup !== 'function' || typeof controller.overlay.openOrUpdate !== 'function' || typeof controller.overlay.upsert !== 'undefined' || typeof controller.getParallelSnapshots !== 'function' || !(handle instanceof Promise) || typeof handle.update !== 'function' || typeof handle.dismiss !== 'function' || !handle.update({ value: 2 }) || !handle.dismiss()) process.exit(1); const outcome = await handle; if (outcome.status !== 'dismissed') process.exit(1)",
       ],
       fixtureDirectory,
     )
@@ -136,7 +136,7 @@ async function main() {
       'node',
       [
         '--eval',
-        "const { createOverlayController, defineOverlay, defineOverlayGroup } = require('@lyrd/core'); const controller = createOverlayController(); if (typeof defineOverlay !== 'function' || typeof defineOverlayGroup !== 'function' || typeof controller.overlay.upsert !== 'function' || typeof controller.getParallelSnapshots !== 'function') process.exit(1)",
+        "const { createOverlayController, defineOverlay, defineOverlayGroup } = require('@lyrd/core'); const controller = createOverlayController(); const definition = defineOverlay(() => null); const handle = controller.overlay.open(definition, { value: 1 }); if (typeof defineOverlayGroup !== 'function' || typeof controller.overlay.openOrUpdate !== 'function' || typeof controller.overlay.upsert !== 'undefined' || typeof controller.getParallelSnapshots !== 'function' || !(handle instanceof Promise) || typeof handle.update !== 'function' || typeof handle.dismiss !== 'function' || !handle.update({ value: 2 }) || !handle.dismiss()) process.exit(1); handle.then((outcome) => { if (outcome.status !== 'dismissed') process.exit(1) })",
       ],
       fixtureDirectory,
     )
