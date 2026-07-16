@@ -5,11 +5,23 @@ import { SiteLayout } from './layouts/site-layout'
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
 
+function RouteFallback() {
+  return (
+    <main className="route-fallback" aria-live="polite">
+      <span>
+        LYRD<span aria-hidden="true">.</span>
+      </span>
+      <p>문서를 불러오는 중입니다.</p>
+    </main>
+  )
+}
+
 export const router = createBrowserRouter(
   [
     {
       path: '/',
       element: <SiteLayout />,
+      hydrateFallbackElement: <RouteFallback />,
       children: [
         {
           index: true,

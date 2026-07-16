@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Callout, CodeBlock, DocPage } from '../components/doc-page'
@@ -59,10 +60,23 @@ export function IntroductionPage() {
           <code>session.completeExit()</code>을 UI primitive에 연결합니다. 두 역할은 서로 다른
           문서에서 설명합니다.
         </p>
-        <div className="doc-actions">
-          <Link to="/getting-started">설치부터 시작하기 →</Link>
-          <Link to="/api/application">Application API 보기 →</Link>
-        </div>
+        <nav aria-label="추천 다음 단계" className="doc-next-steps">
+          <span>NEXT STEPS</span>
+          <Link to="/getting-started">
+            <span>
+              <strong>설치부터 시작하기</strong>
+              <small>CLI와 Provider를 연결하고 첫 오버레이를 엽니다.</small>
+            </span>
+            <ArrowRight aria-hidden size={19} strokeWidth={2} />
+          </Link>
+          <Link to="/api/application">
+            <span>
+              <strong>Application API 보기</strong>
+              <small>제품 코드가 사용하는 요청과 결과 API를 확인합니다.</small>
+            </span>
+            <ArrowRight aria-hidden size={19} strokeWidth={2} />
+          </Link>
+        </nav>
       </section>
     </DocPage>
   )

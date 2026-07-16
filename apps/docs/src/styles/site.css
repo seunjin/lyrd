@@ -15,6 +15,31 @@
   transform: translateY(0);
 }
 
+.route-fallback {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.route-fallback > span {
+  font:
+    900 32px / 1 Arial,
+    sans-serif;
+  letter-spacing: -0.08em;
+}
+
+.route-fallback > span span {
+  color: #8cae35;
+}
+
+.route-fallback p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
 .site-header {
   position: sticky;
   z-index: 100;

@@ -94,15 +94,28 @@ export function LifecyclePage() {
     >
       <section id="states">
         <h2>상태 흐름</h2>
-        <div className="lifecycle-flow">
-          <span>mounting</span>
-          <i aria-hidden>→</i>
-          <span>open</span>
-          <i aria-hidden>→</i>
-          <span>closing</span>
-          <i aria-hidden>→</i>
-          <span>removed</span>
-        </div>
+        <ol className="lifecycle-flow">
+          <li>
+            <span>01</span>
+            <strong>mounting</strong>
+            <small>Renderer가 트리에 들어옵니다.</small>
+          </li>
+          <li>
+            <span>02</span>
+            <strong>open</strong>
+            <small>Primitive가 상호작용 가능한 상태입니다.</small>
+          </li>
+          <li>
+            <span>03</span>
+            <strong>closing</strong>
+            <small>결과가 확정되고 exit이 진행됩니다.</small>
+          </li>
+          <li>
+            <span>04</span>
+            <strong>removed</strong>
+            <small>completeExit 이후 최종 제거됩니다.</small>
+          </li>
+        </ol>
         <p>
           Confirm은 작업을 실행하는 동안 <code>pending</code>, 실패 후 재시도할 때{' '}
           <code>error</code> 상태도 사용합니다. Renderer는 <code>session.open</code>과{' '}

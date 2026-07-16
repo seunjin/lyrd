@@ -26,7 +26,6 @@ export function SiteLayout() {
         </Link>
         <nav aria-label="주요 내비게이션" className="site-primary-nav">
           <NavLink to="/introduction">문서</NavLink>
-          <NavLink to="/getting-started">시작하기</NavLink>
           <NavLink to="/playground">Playground</NavLink>
         </nav>
         <div className="site-header-actions">

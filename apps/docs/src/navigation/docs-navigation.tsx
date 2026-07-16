@@ -1,4 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
+import { ExternalLink, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 
@@ -36,7 +37,7 @@ export function DocsSidebar() {
         <p className="docs-sidebar-kicker">DOCUMENTATION</p>
         <NavigationItems />
         <NavLink className="docs-playground-link" to="/playground">
-          Playground <span aria-hidden>↗</span>
+          Playground <ExternalLink aria-hidden size={14} strokeWidth={2} />
         </NavLink>
       </div>
     </aside>
@@ -48,15 +49,17 @@ export function MobileNavigation() {
 
   return (
     <Dialog.Root onOpenChange={setOpen} open={open}>
-      <Dialog.Trigger className="mobile-nav-trigger">문서 메뉴</Dialog.Trigger>
+      <Dialog.Trigger aria-label="문서 메뉴 열기" className="mobile-nav-trigger">
+        <Menu aria-hidden size={22} strokeWidth={2} />
+      </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="mobile-nav-backdrop" />
         <Dialog.Viewport className="mobile-nav-viewport">
           <Dialog.Popup className="mobile-nav-popup">
             <div className="mobile-nav-heading">
               <Dialog.Title>문서 탐색</Dialog.Title>
-              <Dialog.Close className="mobile-nav-close" aria-label="문서 메뉴 닫기">
-                닫기
+              <Dialog.Close aria-label="문서 메뉴 닫기" className="mobile-nav-close">
+                <X aria-hidden size={22} strokeWidth={2} />
               </Dialog.Close>
             </div>
             <nav aria-label="모바일 문서 내비게이션" className="mobile-nav-content">
@@ -69,7 +72,7 @@ export function MobileNavigation() {
                 onClick={() => setOpen(false)}
                 to="/playground"
               >
-                Playground <span aria-hidden>↗</span>
+                Playground <ExternalLink aria-hidden size={14} strokeWidth={2} />
               </NavLink>
             </nav>
           </Dialog.Popup>

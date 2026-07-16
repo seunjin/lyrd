@@ -80,7 +80,7 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: 'API Reference',
+    title: 'API',
     items: [
       {
         path: '/api/application',
@@ -110,7 +110,7 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: 'Recipes',
+    title: '활용',
     items: [
       {
         path: '/recipes/toast',
@@ -136,7 +136,7 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: 'Migrations',
+    title: '마이그레이션',
     items: [
       {
         path: '/migrations/lifecycle-api',
