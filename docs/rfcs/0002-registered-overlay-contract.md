@@ -38,7 +38,7 @@ Lyrd가 책임질 핵심은 “어떤 모양인가”가 아니라 “하나의 
 - 컴포넌트 props 전달은 일반 React JSX로 해결한다.
 - 열린 UI가 타입 안전하게 결과를 반환하거나 취소할 수 있다.
 - 렌더링 방식과 UI 프리미티브 선택은 앱에 남긴다.
-- 현재 단일 대기열과 `completeClose()` 기반 전환 원칙을 보존한다.
+- 현재 단일 대기열과 `completeExit()` 기반 전환 원칙을 보존한다.
 - `overlay.*`를 호출부의 중심 API로 유지한다.
 
 ## 하지 않는 것
@@ -60,7 +60,7 @@ function EditProjectButton({ projectId }: { projectId: string }) {
 
   async function edit() {
     const result = await overlay.dialog(<ProjectSettings projectId={projectId} />, {
-      dismiss: 'allow',
+      dismissPolicy: 'allow',
     })
 
     if (result?.saved) {
@@ -78,7 +78,7 @@ function EditProjectButton({ projectId }: { projectId: string }) {
 
 ```ts
 type DialogOptions = {
-  dismiss?: 'allow' | 'block'
+  dismissPolicy?: 'allow' | 'block'
 }
 ```
 
@@ -114,8 +114,8 @@ type OverlayDialogApi<Result> = {
   status: 'open' | 'closing'
   resolve(result: Result): void
   dismiss(): void
-  requestClose(): void
-  completeClose(): void
+  requestDismiss(): void
+  completeExit(): void
 }
 ```
 
@@ -125,8 +125,8 @@ function ProjectSettings({ projectId }: { projectId: string }) {
 
   return (
     <AppDrawer
-      onOpenChange={(nextOpen) => !nextOpen && dialog.requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeClose()}
+      onOpenChange={(nextOpen) => !nextOpen && dialog.requestDismiss()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && dialog.completeExit()}
       open={dialog.open}
     >
       <ProjectSettingsForm
@@ -141,8 +141,8 @@ function ProjectSettings({ projectId }: { projectId: string }) {
 
 - 저장, 선택, 완료처럼 제품 결과가 생기면 `resolve(result)`를 호출한다.
 - 명시적 취소 버튼은 `dismiss()`를 호출한다.
-- ESC·바깥 클릭 등 UI 기반 라이브러리의 닫힘 요청은 `requestClose()`로 보낸다.
-- 닫힘 애니메이션이 끝난 뒤 `completeClose()`를 한 번 호출한다.
+- ESC·바깥 클릭 등 UI 기반 라이브러리의 dismiss 요청은 `requestDismiss()`로 보낸다.
+- 닫힘 애니메이션이 끝난 뒤 `completeExit()`을 한 번 호출한다.
 
 `dialog()`의 반환 타입은 `Promise<Result | undefined>`다. `undefined`는 사용자가 취소하거나 허용된 방식으로 닫았음을 뜻한다.
 
@@ -179,14 +179,14 @@ alert / confirm / dialog(element)
               ↓
        현재 element 하나
               ↓
-       completeClose()
+       completeExit()
               ↓
           다음 요청
 ```
 
-`resolve()`와 `dismiss()`는 Promise 결과를 먼저 확정하고 closing 상태로 전환한다. 다음 요청은 `completeClose()`가 호출된 뒤에만 열린다. 애니메이션이 없는 UI도 `completeClose()`를 호출해야 한다.
+`resolve()`와 `dismiss()`는 Promise 결과를 먼저 확정하고 closing 상태로 전환한다. 다음 요청은 `completeExit()`이 호출된 뒤에만 열린다. 애니메이션이 없는 UI도 `completeExit()`을 호출해야 한다.
 
-`requestClose()`는 `dismiss: 'block'`과 같은 controller 정책을 확인한다. 렌더러는 pending 또는 닫힘 방지 규칙을 자체 구현하지 않는다.
+`requestDismiss()`는 `dismissPolicy: 'block'`과 같은 controller 정책을 확인한다. 렌더러는 pending 또는 dismiss 방지 규칙을 자체 구현하지 않는다.
 
 ## 내부 요청 ID와 SSR
 

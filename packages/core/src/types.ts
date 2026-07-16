@@ -18,7 +18,8 @@ export type ConfirmRequest = {
   confirmLabel: ReactNode
   cancelLabel?: ReactNode
   tone?: ConfirmTone
-  dismiss?: 'allow' | 'block'
+  /** ESC, outside click 같은 외부 dismiss 요청을 허용할지 결정한다. */
+  dismissPolicy?: 'allow' | 'block'
   dedupeKey?: string
   onConfirm?: () => void | Promise<void>
 }
@@ -30,12 +31,14 @@ export type AlertStatus = 'idle' | 'mounting' | 'open' | 'closing'
 export type DialogStatus = 'idle' | 'mounting' | 'open' | 'closing'
 
 export type DialogOptions = {
-  dismiss?: 'allow' | 'block'
+  /** ESC, outside click 같은 외부 dismiss 요청을 허용할지 결정한다. */
+  dismissPolicy?: 'allow' | 'block'
 }
 
 export type OverlayGroupStrategy = 'parallel'
 
 export type OverlayGroup = {
+  /** 이 실행 공간에 속한 세션을 스케줄링하는 방식. */
   readonly strategy: OverlayGroupStrategy
   readonly [overlayGroupType]: true
 }
@@ -59,8 +62,10 @@ export type OverlaySession<Result> = {
   status: Exclude<DialogStatus, 'idle'>
   resolve: (result: Result) => void
   dismiss: (reason: OverlayDismissReason) => void
-  requestClose: (reason: OverlayDismissReason) => void
-  completeClose: () => void
+  /** UI primitive에서 발생한 dismiss 시도를 현재 dismissPolicy에 따라 처리한다. */
+  requestDismiss: (reason: OverlayDismissReason) => void
+  /** closing 이후 exit lifecycle이 끝났음을 런타임에 알려 세션 제거를 완료한다. */
+  completeExit: () => void
 }
 
 export type OverlayDefinitionComponentProps<Input, Result> = {
@@ -100,14 +105,14 @@ export type DialogSnapshot = {
 export type ConfirmSurfaceProps = ConfirmSnapshot & {
   confirm: () => void
   cancel: () => void
-  requestClose: () => void
-  completeClose: () => void
+  requestDismiss: () => void
+  completeExit: () => void
 }
 
 export type AlertSurfaceProps = AlertSnapshot & {
   acknowledge: () => void
-  requestClose: () => void
-  completeClose: () => void
+  requestDismiss: () => void
+  completeExit: () => void
 }
 
 export type OverlayRenderers = {
@@ -120,8 +125,8 @@ export type OverlayDialogApi<Result> = {
   status: Exclude<DialogStatus, 'idle'>
   resolve: (result: Result) => void
   dismiss: () => void
-  requestClose: () => void
-  completeClose: () => void
+  requestDismiss: () => void
+  completeExit: () => void
 }
 
 export type OverlayApi = {

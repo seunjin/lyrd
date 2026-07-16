@@ -1,5 +1,11 @@
 # @lyrd/cli
 
+## 0.1.0-next.4
+
+### Minor Changes
+
+- Clarify the stable renderer contract by renaming external close requests to `requestDismiss`, exit completion to `completeExit`, and the application option to `dismissPolicy`. Store parallel sessions by overlay group identity so groups are real coordination boundaries rather than strategy wrappers.
+
 ## 0.1.0-next.3
 
 ### Patch Changes

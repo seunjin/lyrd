@@ -38,6 +38,8 @@ src/lyrd/overlay/
 
 생성된 파일은 애플리케이션 코드다. Lyrd은 파일을 자동으로 덮어쓰지 않으며 JSX, 스타일, 버튼, 오류 표현을 자유롭게 수정할 수 있다.
 
+기존 prerelease 앱을 새 Renderer API로 옮길 때는 [0.1 lifecycle API migration](docs/migrations/0.1-lifecycle-api.md)을 참고한다.
+
 Vite 프로젝트에서는 CLI가 실제 `src/main.tsx` 또는 `src/main.jsx`에 넣을 Provider 연결 코드를 안내한다. Next App Router에서는 `app/lyrd-overlay-provider.tsx`(또는 `src/app/...`) 클라이언트 연결 파일을 생성하고, `layout.tsx`에 추가할 코드만 안내한다. 어떤 경우에도 기존 앱 진입 파일은 자동으로 수정하지 않는다.
 
 생성 파일을 앱의 디자인 시스템과 기존 확인창에 연결하는 방법은 [로컬 오버레이 렌더러 커스터마이징 cookbook](docs/cookbook/local-overlay-renderer.md)을 참고한다.
@@ -103,8 +105,8 @@ function ProjectSettingsOverlay({ input, session }: ProjectSettingsOverlayProps)
   return (
     <AppDrawer
       open={session.open}
-      onOpenChange={(open) => !open && session.requestClose('outside')}
-      onOpenChangeComplete={(open) => !open && session.completeClose()}
+      onOpenChange={(open) => !open && session.requestDismiss('outside')}
+      onOpenChangeComplete={(open) => !open && session.completeExit()}
     >
       <ProjectSettingsForm
         projectId={input.projectId}
@@ -139,7 +141,7 @@ const upload = overlay.upsert(
   uploadProgress,
   uploadId,
   { uploadId, fileName, uploadedBytes: 0, totalBytes },
-  { dismiss: 'block' },
+  { dismissPolicy: 'block' },
 )
 
 overlay.upsert(uploadProgress, uploadId, {
@@ -168,7 +170,9 @@ const outcome = await overlay.open(
 )
 ~~~
 
-group을 생략한 `alert`, `confirm`, `open`은 기존의 안전한 modal queue를 유지한다. `parallel` group의 세션은 서로 독립적으로 열리고 닫히며 modal queue를 막지 않는다. `dismissAll()`은 기본 queue와 parallel group을 함께 정리한다. 첫 group API는 실제 Toast에 필요한 `parallel`만 제공하며, `replace`와 별도 queue group은 구체적인 사용 사례가 생길 때 추가한다.
+group을 생략한 `alert`, `confirm`, `open`은 기존의 안전한 modal queue를 유지한다. Overlay group은 같은 실행 전략과 상태 공간을 공유하는 coordination boundary다. `parallel` group의 세션은 같은 group 안에서 서로 기다리지 않고, 다른 group이나 modal queue를 막지 않는다. `dismissAll()`은 기본 queue와 모든 parallel group을 함께 정리한다. 첫 group API는 실제 Toast에 필요한 `parallel`만 제공하며, `replace`와 별도 queue group은 구체적인 사용 사례가 생길 때 추가한다.
+
+일반 호출자는 Application API인 `alert`, `confirm`, `open`, `upsert`, `dismissAll`을 사용한다. `resolve`, `dismiss`, `requestDismiss`, `completeExit`은 Base UI·Radix 같은 UI primitive를 definition에 연결하는 Renderer API다. `requestDismiss`는 `dismissPolicy`를 확인하는 외부 닫기 요청이고, `completeExit`은 closing 이후 exit lifecycle이 끝났음을 런타임에 알린다.
 
 CLI Toast starter를 쓸 때는 생성된 Provider를 기존 Provider 바깥에서 한 번 합성한다.
 

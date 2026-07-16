@@ -48,7 +48,7 @@ describe('overlay confirm controller', () => {
     controller.confirmCurrent()
     await expect(first).resolves.toBe(true)
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot().request?.title).toBe('두 번째')
     expect(controller.getSnapshot()).toMatchObject({ open: false, status: 'mounting' })
     controller.openCurrent()
@@ -124,7 +124,7 @@ describe('overlay confirm controller', () => {
     controller.openCurrent()
     controller.confirmCurrent()
     await flushPromises()
-    controller.requestClose()
+    controller.requestDismiss()
     controller.cancelCurrent()
 
     expect(controller.getSnapshot().status).toBe('pending')
@@ -132,16 +132,16 @@ describe('overlay confirm controller', () => {
     expect(await Promise.race([result, Promise.resolve('unsettled')])).toBe('unsettled')
   })
 
-  it('dismiss block이면 외부 닫기 요청을 무시한다', () => {
+  it('dismissPolicy block이면 외부 닫기 요청을 무시한다', () => {
     const controller = createOverlayController()
     controller.overlay.confirm({
       title: '제목',
       confirmLabel: '확인',
-      dismiss: 'block',
+      dismissPolicy: 'block',
     })
 
     controller.openCurrent()
-    controller.requestClose()
+    controller.requestDismiss()
 
     expect(controller.getSnapshot().status).toBe('open')
   })
@@ -175,7 +175,7 @@ describe('overlay alert controller', () => {
     controller.acknowledgeCurrent()
     await expect(alertResult).resolves.toBeUndefined()
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'confirm',
       open: false,
@@ -197,7 +197,7 @@ describe('overlay alert controller', () => {
     expect(controller.getSnapshot().request?.title).toBe('첫 번째')
 
     controller.openCurrent()
-    controller.requestClose()
+    controller.requestDismiss()
     await expect(duplicate).resolves.toBeUndefined()
   })
 
@@ -212,7 +212,7 @@ describe('overlay alert controller', () => {
     await expect(queued).resolves.toBe(false)
     expect(controller.getSnapshot()).toMatchObject({ open: false, status: 'closing' })
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({ kind: null, status: 'idle' })
   })
 })
@@ -270,7 +270,7 @@ describe('overlay dialog controller', () => {
       status: 'closing',
     })
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'confirm',
       open: false,
@@ -295,7 +295,7 @@ describe('overlay dialog controller', () => {
     controller.resolveDialogCurrent({ saved: true })
     await expect(first).resolves.toEqual({ saved: true })
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'dialog',
       open: false,
@@ -306,12 +306,12 @@ describe('overlay dialog controller', () => {
     await expect(second).resolves.toEqual({ saved: true })
   })
 
-  it('dismiss block이면 닫힘 요청을 무시하고 dismiss는 취소 결과를 반환한다', async () => {
+  it('dismissPolicy block이면 닫힘 요청을 무시하고 dismiss는 취소 결과를 반환한다', async () => {
     const controller = createOverlayController()
-    const result = controller.overlay.dialog(createElement('div'), { dismiss: 'block' })
+    const result = controller.overlay.dialog(createElement('div'), { dismissPolicy: 'block' })
 
     controller.openCurrent()
-    controller.requestClose()
+    controller.requestDismiss()
     expect(controller.getSnapshot()).toMatchObject({ kind: 'dialog', open: true, status: 'open' })
 
     controller.dismissDialogCurrent()

@@ -30,6 +30,12 @@ pnpm add @lyrd/core
 
 Toast처럼 여러 세션을 동시에 렌더링할 때는 `defineOverlayGroup({ strategy: 'parallel' })`로
 정책을 선언하고 `overlay.open(definition, input, { group })`에서 선택한다. group을 생략한
-호출은 기존 modal queue를 유지하며 `dismissAll()`은 두 경로를 함께 정리한다.
+호출은 기존 modal queue를 유지하며 `dismissAll()`은 두 경로를 함께 정리한다. Group은
+전략만 감싼 플래그가 아니라 같은 실행 전략과 상태 공간을 공유하는 coordination boundary다.
+
+일반 호출자는 `alert`, `confirm`, `open`, `upsert`, `dismissAll` Application API를 사용한다.
+로컬 renderer와 definition 작성자는 `resolve`, `dismiss`, `requestDismiss`, `completeExit`
+Renderer API를 UI primitive에 한 번 연결한다. `requestDismiss`는 `dismissPolicy`를 확인하며,
+`completeExit`은 closing 이후 exit lifecycle이 끝났음을 런타임에 알린다.
 
 사용법과 인터랙티브 데모는 [Lyrd 문서](https://seunjin.github.io/lyrd/)에서 확인할 수 있다.

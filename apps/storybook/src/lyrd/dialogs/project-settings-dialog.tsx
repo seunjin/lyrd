@@ -30,9 +30,9 @@ function ProjectSettingsDialog({ input, session }: ProjectSettingsDialogProps) {
       open={session.open}
       onOpenChange={(nextOpen, eventDetails) =>
         !nextOpen &&
-        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        session.requestDismiss(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />

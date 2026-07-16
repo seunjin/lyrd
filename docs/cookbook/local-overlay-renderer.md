@@ -131,14 +131,14 @@ import type { ConfirmSurfaceProps } from '@lyrd/core'
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 
 export function ConfirmSurface(props: ConfirmSurfaceProps) {
-  const { cancel, completeClose, confirm, error, open, request, requestClose, status } = props
+  const { cancel, completeExit, confirm, error, open, request, requestDismiss, status } = props
 
   return (
     <DeleteConfirmDialog
       errorMessage={status === 'error' ? '작업을 완료하지 못했습니다.' : undefined}
       onConfirm={confirm}
-      onOpenChange={(nextOpen) => !nextOpen && requestClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
+      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
       onCancel={cancel}
       open={open}
       pending={status === 'pending'}
@@ -148,7 +148,7 @@ export function ConfirmSurface(props: ConfirmSurfaceProps) {
 }
 ```
 
-`completeClose`는 닫힘 애니메이션이 끝났을 때 한 번 호출한다. 이를 생략하면 다음 대기 요청으로 넘어가지 않을 수 있다. 애니메이션이 없다면 UI 기반 라이브러리의 닫힘 완료 콜백에서 즉시 호출하면 된다.
+`completeExit`은 닫힘 애니메이션이 끝났을 때 한 번 호출한다. 이를 생략하면 다음 대기 요청으로 넘어가지 않을 수 있다. 애니메이션이 없다면 UI 기반 라이브러리의 닫힘 완료 콜백에서 즉시 호출하면 된다.
 
 ## 유지해야 하는 연결 계약
 
@@ -156,11 +156,11 @@ export function ConfirmSurface(props: ConfirmSurfaceProps) {
 
 - `confirm()`은 확인 버튼에서만 호출한다.
 - `cancel()`은 취소 버튼에서 호출한다.
-- ESC나 바깥 클릭처럼 사용자가 닫기를 요청한 경우 `requestClose()`를 호출한다.
-- 실제 닫힘 애니메이션이 끝나면 `completeClose()`를 호출한다.
+- ESC나 바깥 클릭처럼 사용자가 dismiss를 시도한 경우 `requestDismiss()`를 호출한다.
+- 실제 닫힘 애니메이션이 끝나면 `completeExit()`을 호출한다.
 - `open`, `request`, `status`, `error`는 Lyrd가 제공한 값을 그대로 화면에 반영한다.
 
-`requestClose()`가 pending 중인 닫힘을 거절하는 정책은 Lyrd 코어가 관리한다. 렌더러는 이 정책을 재구현하지 않는다.
+`requestDismiss()`가 pending 중인 dismiss를 거절하는 정책은 Lyrd 코어가 관리한다. 렌더러는 이 정책을 재구현하지 않는다.
 
 ## 호출부는 의도만 표현하기
 

@@ -100,7 +100,7 @@ describe('overlay parallel group', () => {
       { sessionId: secondSnapshot.sessionId, status: 'open', open: true },
     ])
 
-    controller.completeDefinitionClose(firstSnapshot.sessionId)
+    controller.completeDefinitionExit(firstSnapshot.sessionId)
     expect(controller.getParallelSnapshots()).toMatchObject([
       { sessionId: secondSnapshot.sessionId, status: 'open' },
     ])
@@ -118,6 +118,62 @@ describe('overlay parallel group', () => {
     expect(controller.getParallelSnapshots()).toMatchObject([
       { input: { projectId: 'toast-a' }, status: 'mounting' },
     ])
+  })
+
+  it('서로 다른 group identity를 독립된 실행 공간으로 유지한다', async () => {
+    const controller = createOverlayController()
+    const editorGroup = defineOverlayGroup({ strategy: 'parallel' })
+    const toast = controller.overlay.open(
+      projectSettings,
+      { projectId: 'toast' },
+      { group: toastGroup },
+    )
+    const editor = controller.overlay.open(
+      projectSettings,
+      { projectId: 'editor' },
+      { group: editorGroup },
+    )
+    const laterToast = controller.overlay.open(
+      projectSettings,
+      { projectId: 'toast-later' },
+      { group: toastGroup },
+    )
+    const [toastSnapshot, editorSnapshot, laterToastSnapshot] = controller.getParallelSnapshots()
+    if (!toastSnapshot || !editorSnapshot || !laterToastSnapshot) {
+      throw new Error('parallel snapshot이 필요합니다.')
+    }
+
+    expect(toastSnapshot.options.group).toBe(toastGroup)
+    expect(editorSnapshot.options.group).toBe(editorGroup)
+    expect(controller.getParallelSnapshots().map(({ input }) => input)).toEqual([
+      { projectId: 'toast' },
+      { projectId: 'editor' },
+      { projectId: 'toast-later' },
+    ])
+
+    controller.openDefinition(toastSnapshot.sessionId)
+    controller.openDefinition(editorSnapshot.sessionId)
+    controller.resolveDefinition(toastSnapshot.sessionId, { saved: true })
+    await expect(toast).resolves.toEqual({ status: 'resolved', value: { saved: true } })
+    controller.completeDefinitionExit(toastSnapshot.sessionId)
+
+    expect(controller.getParallelSnapshots()).toMatchObject([
+      { sessionId: editorSnapshot.sessionId, open: true, status: 'open' },
+      { input: { projectId: 'toast-later' }, status: 'mounting' },
+    ])
+
+    controller.dismissDefinition(editorSnapshot.sessionId, 'cancel')
+    await expect(editor).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
+    controller.completeDefinitionExit(editorSnapshot.sessionId)
+
+    controller.openDefinition(laterToastSnapshot.sessionId)
+    controller.dismissDefinition(laterToastSnapshot.sessionId, 'programmatic')
+    await expect(laterToast).resolves.toEqual({
+      status: 'dismissed',
+      reason: 'programmatic',
+    })
+    controller.completeDefinitionExit(laterToastSnapshot.sessionId)
+    expect(controller.getParallelSnapshots()).toEqual([])
   })
 
   it('Provider가 여러 parallel definition session을 함께 렌더링한다', () => {
@@ -148,7 +204,7 @@ describe('overlay parallel group', () => {
       projectSettings,
       'toast-a',
       { projectId: 'before' },
-      { group: toastGroup, dismiss: 'block' },
+      { group: toastGroup, dismissPolicy: 'block' },
     )
     const [parallelSnapshot] = controller.getParallelSnapshots()
     if (!parallelSnapshot) throw new Error('parallel snapshot이 필요합니다.')
@@ -163,7 +219,7 @@ describe('overlay parallel group', () => {
     expect(controller.getParallelSnapshots()).toMatchObject([
       {
         input: { projectId: 'after' },
-        options: { group: toastGroup, dismiss: 'block' },
+        options: { group: toastGroup, dismissPolicy: 'block' },
         status: 'open',
       },
     ])
@@ -177,7 +233,7 @@ describe('overlay parallel group', () => {
       ),
     ).toThrow('활성 upsert 세션의 overlay group은 변경할 수 없습니다.')
     expect(controller.getParallelSnapshots()).toMatchObject([
-      { input: { projectId: 'after' }, options: { group: toastGroup, dismiss: 'block' } },
+      { input: { projectId: 'after' }, options: { group: toastGroup, dismissPolicy: 'block' } },
     ])
 
     controller.resolveDefinition(sessionId, { saved: true })
@@ -233,18 +289,18 @@ describe('overlay parallel group', () => {
     ])
   })
 
-  it('parallel dismiss block은 requestClose만 막고 명시적인 dismiss는 허용한다', async () => {
+  it('parallel dismissPolicy block은 requestDismiss만 막고 명시적인 dismiss는 허용한다', async () => {
     const controller = createOverlayController()
     const result = controller.overlay.open(
       projectSettings,
       { projectId: 'blocked' },
-      { group: toastGroup, dismiss: 'block' },
+      { group: toastGroup, dismissPolicy: 'block' },
     )
     const [snapshot] = controller.getParallelSnapshots()
     if (!snapshot) throw new Error('parallel snapshot이 필요합니다.')
     controller.openDefinition(snapshot.sessionId)
 
-    controller.requestDefinitionClose(snapshot.sessionId, 'outside')
+    controller.requestDefinitionDismiss(snapshot.sessionId, 'outside')
     expect(controller.getParallelSnapshots()).toMatchObject([{ open: true, status: 'open' }])
 
     controller.dismissDefinition(snapshot.sessionId, 'cancel')
@@ -269,7 +325,7 @@ describe('overlay definition controller', () => {
     controller.acknowledgeCurrent()
     await expect(alertResult).resolves.toBeUndefined()
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'definition',
       input: { projectId: 'project-a' },
@@ -283,7 +339,7 @@ describe('overlay definition controller', () => {
       value: { saved: true },
     })
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({ kind: 'confirm', status: 'mounting' })
     controller.openCurrent()
     controller.cancelCurrent()
@@ -338,7 +394,7 @@ describe('overlay definition controller', () => {
     const result = controller.overlay.open(projectSettings, { projectId: 'project-a' })
 
     controller.openCurrent()
-    controller.requestClose('escape')
+    controller.requestDismiss('escape')
 
     await expect(result).resolves.toEqual({
       status: 'dismissed',
@@ -361,7 +417,7 @@ describe('overlay definition controller', () => {
     controller.dismissDefinitionCurrent('cancel')
     await expect(first).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'definition',
       input: { projectId: 'project-b' },
@@ -411,7 +467,7 @@ describe('overlay definition controller', () => {
     controller.dismissDefinitionCurrent('cancel')
     await expect(first).resolves.toEqual({ status: 'dismissed', reason: 'cancel' })
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'definition',
       input: { projectId: 'project-b' },
@@ -453,7 +509,7 @@ describe('overlay definition controller', () => {
     controller.openCurrent()
     controller.acknowledgeCurrent()
     await expect(blocking).resolves.toBeUndefined()
-    controller.completeClose()
+    controller.completeExit()
 
     expect(controller.getSnapshot()).toMatchObject({
       kind: 'definition',
@@ -488,7 +544,7 @@ describe('overlay definition controller', () => {
     })
     expect(second).not.toBe(first)
 
-    controller.completeClose()
+    controller.completeExit()
     expect(controller.getSnapshot()).toMatchObject({ input: { projectId: 'second' } })
   })
 
@@ -498,29 +554,29 @@ describe('overlay definition controller', () => {
       projectSettings,
       'project-a',
       { projectId: 'before' },
-      { dismiss: 'block' },
+      { dismissPolicy: 'block' },
     )
 
     controller.openCurrent()
     controller.overlay.upsert(projectSettings, 'project-a', { projectId: 'after' })
-    controller.requestClose('outside')
+    controller.requestDismiss('outside')
     expect(controller.getSnapshot()).toMatchObject({ open: true, status: 'open' })
 
     controller.overlay.upsert(projectSettings, 'project-a', { projectId: 'after' }, {})
-    controller.requestClose('outside')
+    controller.requestDismiss('outside')
     await expect(result).resolves.toEqual({ status: 'dismissed', reason: 'outside' })
   })
 
-  it('dismiss block은 requestClose만 막고 명시적인 dismiss는 허용한다', async () => {
+  it('dismissPolicy block은 requestDismiss만 막고 명시적인 dismiss는 허용한다', async () => {
     const controller = createOverlayController()
     const result = controller.overlay.open(
       projectSettings,
       { projectId: 'project-a' },
-      { dismiss: 'block' },
+      { dismissPolicy: 'block' },
     )
 
     controller.openCurrent()
-    controller.requestClose('outside')
+    controller.requestDismiss('outside')
     expect(controller.getSnapshot()).toMatchObject({ open: true, status: 'open' })
 
     controller.dismissDefinitionCurrent('cancel')
