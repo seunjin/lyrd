@@ -26,7 +26,7 @@ function OverlayProgressStory() {
     const uploadId = `storybook-upload-${nextUploadId.current++}`
     const fileName = 'lyrd-demo.mov'
     let settled = false
-    const task = overlay.upsert(
+    const task = overlay.openOrUpdate(
       uploadProgressDialog,
       uploadId,
       { uploadId, fileName, uploadedBytes: 0, totalBytes },
@@ -39,7 +39,7 @@ function OverlayProgressStory() {
     for (let step = 1; step <= 10; step += 1) {
       await wait(240)
       if (settled) break
-      overlay.upsert(uploadProgressDialog, uploadId, {
+      task.update({
         uploadId,
         fileName,
         uploadedBytes: Math.round((totalBytes * step) / 10),
@@ -69,6 +69,6 @@ function OverlayProgressStory() {
   )
 }
 
-export const IdentityBasedUpsert: Story = {
+export const IdentityBasedOpenOrUpdate: Story = {
   render: () => <OverlayProgressStory />,
 }

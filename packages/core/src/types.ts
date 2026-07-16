@@ -57,6 +57,15 @@ export type OverlayOutcome<Result> =
   | { status: 'resolved'; value: Result }
   | { status: 'dismissed'; reason: OverlayDismissReason }
 
+/**
+ * `await`하면 최종 outcome을 반환하고, 보관하면 해당 활성 세션을 직접 제어할 수 있다.
+ * 종료된 세션의 `update`와 `dismiss`는 `false`를 반환한다.
+ */
+export type OverlayHandle<Input, Result> = Promise<OverlayOutcome<Result>> & {
+  update: (input: Input) => boolean
+  dismiss: (reason?: OverlayDismissReason) => boolean
+}
+
 export type OverlaySession<Result> = {
   open: boolean
   status: Exclude<DialogStatus, 'idle'>
@@ -137,12 +146,12 @@ export type OverlayApi = {
     definition: OverlayDefinition<Input, Result>,
     input: Input,
     options?: OverlayOpenOptions,
-  ) => Promise<OverlayOutcome<Result>>
-  upsert: <Input, Result>(
+  ) => OverlayHandle<Input, Result>
+  openOrUpdate: <Input, Result>(
     definition: OverlayDefinition<Input, Result>,
     identity: string,
     input: Input,
     options?: OverlayOpenOptions,
-  ) => Promise<OverlayOutcome<Result>>
+  ) => OverlayHandle<Input, Result>
   dismissAll: (reason?: 'route-change' | 'programmatic') => void
 }

@@ -29,6 +29,7 @@ export type {
   OverlayGroup,
   OverlayGroupOptions,
   OverlayGroupStrategy,
+  OverlayHandle,
   OverlayOpenOptions,
   OverlayOutcome,
   OverlayRenderers,

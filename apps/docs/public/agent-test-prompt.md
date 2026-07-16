@@ -26,7 +26,7 @@ Goals:
    - one typed custom overlay created with `defineOverlay()` and opened with `overlay.open()`
    - both resolved and dismissed `OverlayOutcome` branches
 6. Run `pnpm dlx @lyrd/cli@next add toast --verbose`. Compose `AppToastProvider` around `AppOverlayProvider` once. Demonstrate a simple `notify()`, actionable `notifyWithUndo()`, at least two simultaneous Toasts, and six Toasts to verify the generated `data-limited` styling.
-7. If this application has a progress-like operation, evaluate `overlay.upsert()` using a stable operation identity. If no honest use case exists, document why it was not added instead of creating artificial production code.
+7. If this application has a progress-like operation, retain the awaitable handle returned by `open()` or `openOrUpdate()`, update that exact session with `handle.update()`, and await its final outcome. Use `openOrUpdate()` only if the application has an honest stable operation identity shared by multiple call sites.
 8. Verify the default modal queue does not overlap, parallel Toasts do not block modal overlays, and route cleanup can call `dismissAll('route-change')` when appropriate.
 9. Re-run the CLI commands and verify customized generated files are not overwritten.
 10. Run the repository's formatter, lint, typecheck, tests, and production build. Perform browser verification for every added interaction.
@@ -39,7 +39,7 @@ Constraints:
 - Use `alert()` and `confirm()` for the safe common paths.
 - Use `defineOverlay()` for reusable custom overlays.
 - Use `overlay.dialog()` only as a migration or one-off escape hatch.
-- Use `upsert()` only for a stable identity whose active input must update.
+- Use a retained Handle for local session updates and `openOrUpdate()` only for a stable identity shared across call sites.
 - Use a parallel group only for overlays that genuinely must not queue.
 - Do not commit secrets, publish packages, or change production behavior outside the evaluation scope.
 
