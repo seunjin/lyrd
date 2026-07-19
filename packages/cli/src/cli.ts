@@ -12,6 +12,7 @@ import {
   pathExists,
   toPosixPath,
 } from './project'
+import { CLI_PACKAGE_SPECIFIER, OVERLAY_DEPENDENCIES } from './release-channel'
 import {
   getDialogScaffoldFiles,
   getNextAppRouterProviderTemplate,
@@ -59,10 +60,10 @@ Usage:
   lyrd add toast [--cwd <path>] [--verbose]
 
 Examples:
-  pnpm dlx @lyrd/cli add overlay
-  pnpm dlx @lyrd/cli add dialog project-settings
-  pnpm dlx @lyrd/cli add toast
-  pnpm dlx @lyrd/cli init
+  pnpm dlx ${CLI_PACKAGE_SPECIFIER} add overlay
+  pnpm dlx ${CLI_PACKAGE_SPECIFIER} add dialog project-settings
+  pnpm dlx ${CLI_PACKAGE_SPECIFIER} add toast
+  pnpm dlx ${CLI_PACKAGE_SPECIFIER} init
 `)
 }
 
@@ -284,21 +285,25 @@ async function runAddOverlay(cwd: string, skipInstall: boolean, verbose: boolean
 
   await ensureDirectory(overlayDir)
 
-  const missingPackages: string[] = []
-  for (const packageName of ['@lyrd/core', '@base-ui/react']) {
-    if (await isDependencyInstalled(projectRoot, packageName)) {
-      console.log(`Using existing ${packageName}`)
+  const missingPackages: Array<(typeof OVERLAY_DEPENDENCIES)[number]> = []
+  for (const requiredPackage of OVERLAY_DEPENDENCIES) {
+    if (await isDependencyInstalled(projectRoot, requiredPackage.name)) {
+      console.log(`Using existing ${requiredPackage.name}`)
     } else {
-      missingPackages.push(packageName)
+      missingPackages.push(requiredPackage)
     }
   }
 
   if (missingPackages.length > 0) {
     if (skipInstall) {
-      console.log(`Skipping install for ${missingPackages.join(', ')}`)
+      console.log(`Skipping install for ${missingPackages.map(({ name }) => name).join(', ')}`)
     } else {
-      console.log(`Installing ${missingPackages.join(', ')}...`)
-      await installDependencies(projectRoot, config.packageManager, missingPackages)
+      console.log(`Installing ${missingPackages.map(({ specifier }) => specifier).join(', ')}...`)
+      await installDependencies(
+        projectRoot,
+        config.packageManager,
+        missingPackages.map(({ specifier }) => specifier),
+      )
     }
   }
 
