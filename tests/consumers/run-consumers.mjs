@@ -1,0 +1,292 @@
+import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
+import {
+  access,
+  cp,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
+import net from 'node:net'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { chromium } from 'playwright'
+
+import { verifyNextConsumer } from './specs/next-app-router.mjs'
+import { verifyViteConsumer } from './specs/vite-react.mjs'
+
+const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
+const fixturesRoot = path.join(repositoryRoot, 'tests/consumers/fixtures')
+const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+const mode = process.argv[process.argv.indexOf('--mode') + 1]
+
+if (mode !== 'local-package' && mode !== 'registry') {
+  throw new Error('Usage: node tests/consumers/run-consumers.mjs --mode <local-package|registry>')
+}
+
+function runCommand(command, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: { ...process.env, CI: 'true' },
+      stdio: 'inherit',
+    })
+
+    child.on('error', reject)
+    child.on('exit', (code, signal) => {
+      if (code === 0) resolve()
+      else {
+        reject(
+          new Error(
+            `${command} ${args.join(' ')} failed with ${signal ? `signal ${signal}` : `exit code ${String(code)}`}`,
+          ),
+        )
+      }
+    })
+  })
+}
+
+async function createTarballs(temporaryRoot) {
+  await runCommand(pnpmCommand, ['--filter', '@lyrd/core', 'build'], repositoryRoot)
+  await runCommand(pnpmCommand, ['--filter', '@lyrd/cli', 'build'], repositoryRoot)
+
+  const packRoot = path.join(temporaryRoot, 'packages')
+  const corePackDirectory = path.join(packRoot, 'core')
+  const cliPackDirectory = path.join(packRoot, 'cli')
+  await mkdir(corePackDirectory, { recursive: true })
+  await mkdir(cliPackDirectory, { recursive: true })
+
+  await runCommand(
+    pnpmCommand,
+    ['pack', '--pack-destination', corePackDirectory],
+    path.join(repositoryRoot, 'packages/core'),
+  )
+  await runCommand(
+    pnpmCommand,
+    ['pack', '--pack-destination', cliPackDirectory],
+    path.join(repositoryRoot, 'packages/cli'),
+  )
+
+  return {
+    core: await findTarball(corePackDirectory),
+    cli: await findTarball(cliPackDirectory),
+  }
+}
+
+async function findTarball(directory) {
+  const tarballs = (await readdir(directory)).filter((fileName) => fileName.endsWith('.tgz'))
+  assert.equal(tarballs.length, 1, `${directory}에 tarball이 정확히 하나 있어야 합니다.`)
+  return path.join(directory, tarballs[0])
+}
+
+async function copyFixture(name, temporaryRoot, packageSpecs) {
+  const fixtureDirectory = path.join(temporaryRoot, name)
+  await cp(path.join(fixturesRoot, name), fixtureDirectory, { recursive: true })
+
+  const packageJsonPath = path.join(fixtureDirectory, 'package.json')
+  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
+  packageJson.dependencies['@lyrd/core'] = packageSpecs.core
+  packageJson.devDependencies['@lyrd/cli'] = packageSpecs.cli
+  await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`)
+
+  return fixtureDirectory
+}
+
+async function verifyIsolatedInstallation(fixtureDirectory) {
+  const lockfile = await readFile(path.join(fixtureDirectory, 'pnpm-lock.yaml'), 'utf8')
+  assert.doesNotMatch(lockfile, /@lyrd\/(?:core|cli):[\s\S]{0,120}(?:link:|workspace:)/)
+
+  for (const packageName of ['core', 'cli']) {
+    const installedRoot = await realpath(
+      path.join(fixtureDirectory, 'node_modules/@lyrd', packageName),
+    )
+    assert.equal(
+      installedRoot.startsWith(repositoryRoot),
+      false,
+      `${packageName}이 workspace에서 연결되면 안 됩니다.`,
+    )
+  }
+}
+
+async function readInstalledVersions(fixtureDirectory) {
+  const versions = {}
+  for (const packageName of ['core', 'cli']) {
+    const packageJson = JSON.parse(
+      await readFile(
+        path.join(fixtureDirectory, 'node_modules/@lyrd', packageName, 'package.json'),
+        'utf8',
+      ),
+    )
+    versions[packageName] = packageJson.version
+  }
+  return versions
+}
+
+async function generateRenderers(fixtureDirectory) {
+  await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'overlay', '--verbose'], fixtureDirectory)
+  await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'dialog', 'consumer-lab'], fixtureDirectory)
+  await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
+
+  const overlayDirectory = path.join(fixtureDirectory, 'src/lyrd/overlay')
+  const expectedFiles = [
+    'alert.tsx',
+    'confirm.tsx',
+    'overlay-provider.tsx',
+    'overlay.css',
+    'toast-definition.ts',
+    'toast.tsx',
+    'toast-group.ts',
+    'notify.ts',
+    'toast.css',
+    'dialogs/consumer-lab-dialog.tsx',
+  ]
+  await Promise.all(expectedFiles.map((fileName) => access(path.join(overlayDirectory, fileName))))
+}
+
+async function verifyGeneratedBoundaries(name, fixtureDirectory) {
+  const config = JSON.parse(await readFile(path.join(fixtureDirectory, 'lyrd.json'), 'utf8'))
+  assert.equal(config.framework, name)
+
+  if (name !== 'next-app-router') return
+
+  const provider = await readFile(
+    path.join(fixtureDirectory, 'src/app/lyrd-overlay-provider.tsx'),
+    'utf8',
+  )
+  const layout = await readFile(path.join(fixtureDirectory, 'src/app/layout.tsx'), 'utf8')
+  assert.match(provider, /^'use client'/)
+  assert.doesNotMatch(layout, /^['"]use client['"]/)
+  assert.match(layout, /<LyrdOverlayProvider>\{children\}<\/LyrdOverlayProvider>/)
+}
+
+async function prepareFixture(name, temporaryRoot, packageSpecs) {
+  const fixtureDirectory = await copyFixture(name, temporaryRoot, packageSpecs)
+  console.log(`\n[consumer:${mode}] ${name} clean install`)
+  await runCommand(pnpmCommand, ['install', '--no-frozen-lockfile'], fixtureDirectory)
+  await verifyIsolatedInstallation(fixtureDirectory)
+  const versions = await readInstalledVersions(fixtureDirectory)
+
+  await generateRenderers(fixtureDirectory)
+  await verifyGeneratedBoundaries(name, fixtureDirectory)
+  await runCommand(pnpmCommand, ['typecheck'], fixtureDirectory)
+  await runCommand(pnpmCommand, ['build'], fixtureDirectory)
+
+  console.log(
+    `[consumer:${mode}] ${name} built with @lyrd/core@${versions.core} and @lyrd/cli@${versions.cli}`,
+  )
+  return fixtureDirectory
+}
+
+async function getAvailablePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.on('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      if (!address || typeof address === 'string') {
+        reject(new Error('임시 server port를 할당하지 못했습니다.'))
+        return
+      }
+      server.close(() => resolve(address.port))
+    })
+  })
+}
+
+async function waitForServer(url, processLogs) {
+  const deadline = Date.now() + 60_000
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url)
+      if (response.ok) return
+    } catch {
+      // Production server가 준비될 때까지 재시도합니다.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+  throw new Error(`Production server did not start at ${url}.\n${processLogs.join('')}`)
+}
+
+function startServer(name, fixtureDirectory, port) {
+  const args =
+    name === 'vite-react'
+      ? ['preview', '--host', '127.0.0.1', '--port', String(port)]
+      : ['start', '--hostname', '127.0.0.1', '--port', String(port)]
+  const logs = []
+  const child = spawn(pnpmCommand, args, {
+    cwd: fixtureDirectory,
+    detached: process.platform !== 'win32',
+    env: { ...process.env, CI: 'true' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  child.stdout.on('data', (chunk) => logs.push(chunk.toString()))
+  child.stderr.on('data', (chunk) => logs.push(chunk.toString()))
+  return { child, logs }
+}
+
+async function stopServer(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return
+  assert.ok(child.pid, 'Production server process id가 필요합니다.')
+
+  const exit = new Promise((resolve) => child.once('exit', resolve))
+  if (process.platform === 'win32') child.kill('SIGTERM')
+  else process.kill(-child.pid, 'SIGTERM')
+  await Promise.race([exit, new Promise((resolve) => setTimeout(resolve, 5_000))])
+
+  if (child.exitCode === null && child.signalCode === null) {
+    if (process.platform === 'win32') child.kill('SIGKILL')
+    else process.kill(-child.pid, 'SIGKILL')
+  }
+}
+
+async function verifyInBrowser(browser, name, fixtureDirectory) {
+  const port = await getAvailablePort()
+  const baseUrl = `http://127.0.0.1:${port}`
+  const { child, logs } = startServer(name, fixtureDirectory, port)
+
+  try {
+    await waitForServer(name === 'next-app-router' ? `${baseUrl}/lab` : baseUrl, logs)
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    try {
+      if (name === 'vite-react') await verifyViteConsumer(page, baseUrl)
+      else await verifyNextConsumer(page, baseUrl)
+    } finally {
+      await context.close()
+    }
+    console.log(`[consumer:${mode}] ${name} browser runtime PASS`)
+  } finally {
+    await stopServer(child)
+  }
+}
+
+const temporaryRoot = await mkdtemp(path.join(tmpdir(), `lyrd-consumers-${mode}-`))
+let browser
+
+try {
+  const packageSpecs =
+    mode === 'local-package'
+      ? Object.fromEntries(
+          Object.entries(await createTarballs(temporaryRoot)).map(([name, tarballPath]) => [
+            name,
+            `file:${tarballPath}`,
+          ]),
+        )
+      : { core: 'next', cli: 'next' }
+
+  const viteFixture = await prepareFixture('vite-react', temporaryRoot, packageSpecs)
+  const nextFixture = await prepareFixture('next-app-router', temporaryRoot, packageSpecs)
+
+  browser = await chromium.launch({ headless: true })
+  await verifyInBrowser(browser, 'vite-react', viteFixture)
+  await verifyInBrowser(browser, 'next-app-router', nextFixture)
+  console.log(`\nPASS consumer regression matrix (${mode})`)
+} finally {
+  await browser?.close()
+  await rm(temporaryRoot, { recursive: true, force: true })
+}

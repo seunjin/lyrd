@@ -12,6 +12,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r --if-present test",
     "test:package": "pnpm --filter @lyrd/cli test:package",
+    "test:consumer": "playwright install chromium && node tests/consumers/run-consumers.mjs --mode local-package",
+    "test:consumer:registry": "playwright install chromium && node tests/consumers/run-consumers.mjs --mode registry",
     "test:coverage": "pnpm -r --if-present test:coverage",
     "lint": "node scripts/check-prerelease-install-commands.mjs && biome check .",
     "check:prerelease-docs": "node scripts/check-prerelease-install-commands.mjs",
@@ -30,6 +32,7 @@
     "@commitlint/config-conventional": "^20.5.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "lefthook": "^2.1.4",
+    "playwright": "1.61.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   }
 }

@@ -57,3 +57,9 @@ jobs:
 
       - name: CLI 배포물 검증
         run: pnpm test:package
+
+      - name: Chromium 설치
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 실제 소비 앱 검증
+        run: pnpm test:consumer
