@@ -38,7 +38,10 @@ export async function findProjectRoot(startDir: string): Promise<string> {
 
     const parentDir = path.dirname(currentDir)
     if (parentDir === currentDir) {
-      throw new Error(`Could not find a package.json above ${startDir}`)
+      throw new Error(
+        `package.json을 찾지 못했습니다: ${startDir}\n` +
+          '프로젝트 루트에서 다시 실행하거나 --cwd <project-root>를 지정해 주세요.',
+      )
     }
     currentDir = parentDir
   }
@@ -219,14 +222,27 @@ export async function installDependencies(
       stdio: 'inherit',
     })
 
-    child.on('error', reject)
+    child.on('error', (error) => {
+      reject(
+        new Error(
+          `${command} 실행을 시작하지 못했습니다: ${error.message}\n` +
+            `직접 실행: ${command} ${args.join(' ')}\n` +
+            '의존성을 직접 설치했다면 Lyrd 명령에 --skip-install을 추가해 다시 실행해 주세요.',
+        ),
+      )
+    })
     child.on('exit', (code) => {
       if (code === 0) {
         resolve()
         return
       }
 
-      reject(new Error(`${command} ${args.join(' ')} failed with exit code ${code ?? 'unknown'}`))
+      reject(
+        new Error(
+          `의존성 설치에 실패했습니다 (exit ${code ?? 'unknown'}): ${command} ${args.join(' ')}\n` +
+            '위 명령을 직접 실행해 원인을 확인하거나, 의존성을 설치한 뒤 Lyrd 명령에 --skip-install을 추가해 다시 실행해 주세요.',
+        ),
+      )
     })
   })
 }

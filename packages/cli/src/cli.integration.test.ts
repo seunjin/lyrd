@@ -184,6 +184,7 @@ describe('overlay CLI 통합', () => {
     await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install'])
 
     expect(await readFile(alertPath, 'utf8')).toBe(customizedAlert)
+    expect(log.mock.calls.flat().join('\n')).toContain('Existing files were not overwritten')
     const indexContent = await readFile(path.join(overlayDirectory, 'index.ts'), 'utf8')
     expect(indexContent.match(/export \* from/g)).toHaveLength(3)
 
@@ -296,6 +297,7 @@ describe('overlay CLI 통합', () => {
     const output = log.mock.calls.flat().join('\n')
     expect(output).toContain('src/app/layout.tsx')
     expect(output).toContain("import { LyrdOverlayProvider } from './lyrd-overlay-provider'")
+    expect(output).toContain('verify the Provider is mounted once')
 
     const providerBeforeToast = await readFile(providerPath, 'utf8')
     await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
@@ -319,5 +321,17 @@ describe('overlay CLI 통합', () => {
     await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install'])
 
     expect(await readFile(providerPath, 'utf8')).toBe(customizedProvider)
+  })
+
+  it('지원 구조를 감지하지 못하면 수동 Provider 연결을 명확히 안내한다', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const fixtureDirectory = await createViteFixture()
+    await rm(path.join(fixtureDirectory, 'src/main.tsx'))
+
+    await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install'])
+
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain('Framework detection failed')
+    expect(output).toContain('Mount AppOverlayProvider manually')
   })
 })

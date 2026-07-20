@@ -130,6 +130,16 @@ const IDLE_SNAPSHOT: IdleControllerSnapshot = {
   error: null,
 }
 
+const CLOSING_WARNING_DELAY_MS = 10_000
+
+function isDevelopmentRuntime(): boolean {
+  const runtimeProcess = (
+    globalThis as typeof globalThis & { process?: { env?: { NODE_ENV?: string } } }
+  ).process
+  if (runtimeProcess) return runtimeProcess.env?.NODE_ENV !== 'production'
+  return Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV)
+}
+
 function createDeferred<Result>(): Deferred<Result> {
   let resolve!: (result: Result) => void
   const promise = new Promise<Result>((nextResolve) => {
@@ -146,6 +156,28 @@ export function createOverlayController(): OverlayController {
   let snapshot: OverlayControllerSnapshot = IDLE_SNAPSHOT
   let parallelSnapshots: readonly OverlayDefinitionSnapshot[] = []
   const listeners = new Set<() => void>()
+  const closingWarningTimers = new Map<number, ReturnType<typeof setTimeout>>()
+
+  function clearClosingWarning(entryId: number) {
+    const timer = closingWarningTimers.get(entryId)
+    if (timer === undefined) return
+    clearTimeout(timer)
+    closingWarningTimers.delete(entryId)
+  }
+
+  function scheduleClosingWarning(entry: OverlayEntry) {
+    if (!isDevelopmentRuntime() || closingWarningTimers.has(entry.id)) return
+
+    const timer = setTimeout(() => {
+      closingWarningTimers.delete(entry.id)
+      console.warn(
+        `[Lyrd] ${entry.kind} overlay session ${entry.id} has remained in "closing" for 10 seconds. ` +
+          'Call completeExit() after the exit transition finishes so queued overlays can continue.',
+      )
+    }, CLOSING_WARNING_DELAY_MS)
+    ;(timer as ReturnType<typeof setTimeout> & { unref?: () => void }).unref?.()
+    closingWarningTimers.set(entry.id, timer)
+  }
 
   function notify() {
     for (const listener of listeners) listener()
@@ -296,6 +328,7 @@ export function createOverlayController(): OverlayController {
   }
 
   function removeParallelSession(session: ParallelDefinitionSession) {
+    clearClosingWarning(session.entry.id)
     const group = session.entry.options.group
     if (!group) return
     const remaining = (parallelGroupSessions.get(group) ?? []).filter(
@@ -324,6 +357,7 @@ export function createOverlayController(): OverlayController {
     entry.settled = true
     resolve()
     publishEntry(entry, false, 'closing')
+    scheduleClosingWarning(entry)
   }
 
   function settleAlert(entry: AlertEntry) {
@@ -352,6 +386,7 @@ export function createOverlayController(): OverlayController {
     session.open = false
     session.status = 'closing'
     publishParallel()
+    scheduleClosingWarning(session.entry)
   }
 
   function alert(request: AlertRequest): Promise<void> {
@@ -641,6 +676,7 @@ export function createOverlayController(): OverlayController {
 
   function completeExit() {
     if (!current || snapshot.status !== 'closing') return
+    clearClosingWarning(current.id)
     current = null
     showNext()
   }
@@ -686,6 +722,7 @@ export function createOverlayController(): OverlayController {
           session.open = false
           session.status = 'closing'
           remaining.push(session)
+          scheduleClosingWarning(session.entry)
         }
         dismissedParallel = true
       }

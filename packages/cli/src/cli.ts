@@ -262,6 +262,15 @@ async function runInit(cwd: string): Promise<number> {
   console.log(`Package manager: ${config.packageManager}`)
   console.log(`Overlay path: ${getOverlayPath(config)}`)
 
+  if (config.framework === 'unknown') {
+    console.log(
+      '\nCould not detect a supported app entry. Lyrd currently detects Vite React (src/main.tsx or src/main.jsx) and Next App Router (app/layout.tsx or src/app/layout.tsx).',
+    )
+    console.log(
+      'Generated files are still usable, but you must connect AppOverlayProvider manually.',
+    )
+  }
+
   return 0
 }
 
@@ -346,6 +355,12 @@ async function runAddOverlay(cwd: string, skipInstall: boolean, verbose: boolean
     `Mount ${runtimeTarget.providerFile ? 'LyrdOverlayProvider' : 'AppOverlayProvider'} from '${runtimeTarget.importPath}' once in ${runtimeTarget.appRootFile ?? 'your app root'}`,
   )
 
+  if (config.framework === 'unknown') {
+    nextSteps.push(
+      'Framework detection failed. Mount AppOverlayProvider manually in your React application root; Lyrd did not modify an app entry file.',
+    )
+  }
+
   if (verbose) {
     runtimeSnippets.push({
       title: 'Overlay runtime',
@@ -371,10 +386,16 @@ async function runAddOverlay(cwd: string, skipInstall: boolean, verbose: boolean
 
   if (skippedPaths.length > 0) {
     printList('Kept existing', skippedPaths)
+    console.log(
+      'Existing files were not overwritten. Compare and merge template changes manually if these files came from an older Lyrd version.',
+    )
   }
 
   if (nextSteps.length > 0) {
-    printList('Next step', [...new Set(nextSteps)])
+    printList('Required next step', [...new Set(nextSteps)])
+    console.log(
+      'Lyrd does not edit your app entry automatically; verify the Provider is mounted once.',
+    )
   }
 
   printList('Docs', [...new Set(docs)])
