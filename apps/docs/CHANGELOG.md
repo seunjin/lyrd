@@ -1,5 +1,20 @@
 # @lyrd/docs
 
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [e3f7184]
+- Updated dependencies [ff51351]
+- Updated dependencies [e3f7184]
+- Updated dependencies [095595b]
+- Updated dependencies [f317427]
+- Updated dependencies [67d266d]
+- Updated dependencies [3a062b9]
+- Updated dependencies [7b2518b]
+- Updated dependencies [e3f7184]
+  - @lyrd/core@0.1.0
+
 ## 0.0.1-next.3
 
 ### Patch Changes

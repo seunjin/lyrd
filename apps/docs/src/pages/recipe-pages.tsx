@@ -84,7 +84,7 @@ export function ToastRecipePage() {
           <li>일반 호출부는 notify()와 notifyWithUndo() helper를 사용합니다.</li>
           <li>일반 Toast에는 openOrUpdate()를 사용하지 않습니다.</li>
         </ContractList>
-        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli@next add toast</CodeBlock>
+        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli add toast</CodeBlock>
       </section>
 
       <section id="group">
