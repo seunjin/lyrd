@@ -1,2 +1,6 @@
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@lyrd/core'
+  - '@lyrd/cli'

@@ -14,6 +14,7 @@
     "test:package": "pnpm --filter @lyrd/cli test:package",
     "test:consumer": "playwright install chromium && node tests/consumers/run-consumers.mjs --mode local-package",
     "test:consumer:registry": "playwright install chromium && node tests/consumers/run-consumers.mjs --mode registry",
+    "test:consumer:registry:latest": "playwright install chromium && node tests/consumers/run-consumers.mjs --mode registry --tag latest",
     "test:coverage": "pnpm -r --if-present test:coverage",
     "lint": "node scripts/check-prerelease-install-commands.mjs && biome check .",
     "check:prerelease-docs": "node scripts/check-prerelease-install-commands.mjs",

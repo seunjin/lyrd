@@ -24,10 +24,37 @@ import { verifyViteConsumer } from './specs/vite-react.mjs'
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 const fixturesRoot = path.join(repositoryRoot, 'tests/consumers/fixtures')
 const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-const mode = process.argv[process.argv.indexOf('--mode') + 1]
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+
+function readOption(name) {
+  const optionIndex = process.argv.indexOf(name)
+  if (optionIndex === -1) return undefined
+
+  const value = process.argv[optionIndex + 1]
+  if (!value || value.startsWith('--')) {
+    throw new Error(`${name} 옵션에는 값이 필요합니다.`)
+  }
+  return value
+}
+
+const mode = readOption('--mode')
+const requestedTag = readOption('--tag')
 
 if (mode !== 'local-package' && mode !== 'registry') {
-  throw new Error('Usage: node tests/consumers/run-consumers.mjs --mode <local-package|registry>')
+  throw new Error(
+    'Usage: node tests/consumers/run-consumers.mjs --mode <local-package|registry> [--tag <next|latest>]',
+  )
+}
+
+if (mode === 'local-package' && requestedTag !== undefined) {
+  throw new Error('--tag 옵션은 registry 모드에서만 사용할 수 있습니다.')
+}
+
+const registryTag = requestedTag ?? 'next'
+if (mode === 'registry' && registryTag !== 'next' && registryTag !== 'latest') {
+  throw new Error(
+    `지원하지 않는 registry tag입니다: ${registryTag}. next 또는 latest를 사용하세요.`,
+  )
 }
 
 function runCommand(command, args, cwd) {
@@ -50,6 +77,76 @@ function runCommand(command, args, cwd) {
       }
     })
   })
+}
+
+function readCommand(command, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env: { ...process.env, CI: 'true' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    const stdout = []
+    const stderr = []
+    child.stdout.on('data', (chunk) => stdout.push(chunk.toString()))
+    child.stderr.on('data', (chunk) => stderr.push(chunk.toString()))
+    child.on('error', reject)
+    child.on('exit', (code, signal) => {
+      if (code === 0) {
+        resolve(stdout.join('').trim())
+        return
+      }
+
+      reject(
+        new Error(
+          `${command} ${args.join(' ')} failed with ${
+            signal ? `signal ${signal}` : `exit code ${String(code)}`
+          }${stderr.length > 0 ? `\n${stderr.join('').trim()}` : ''}`,
+        ),
+      )
+    })
+  })
+}
+
+async function readRegistryVersion(packageName, tag) {
+  const packageSpecifier = `@lyrd/${packageName}@${tag}`
+  let output
+  try {
+    output = await readCommand(
+      npmCommand,
+      ['view', packageSpecifier, 'version', '--json'],
+      repositoryRoot,
+    )
+  } catch (error) {
+    throw new Error(`npm registry에서 ${packageSpecifier} 기대 버전을 조회하지 못했습니다.`, {
+      cause: error,
+    })
+  }
+
+  let version
+  try {
+    version = JSON.parse(output)
+  } catch (error) {
+    throw new Error(`npm registry의 ${packageSpecifier} 버전 응답이 올바른 JSON이 아닙니다.`, {
+      cause: error,
+    })
+  }
+
+  if (typeof version !== 'string' || version.length === 0) {
+    throw new Error(`npm registry의 ${packageSpecifier} 버전 응답이 문자열이 아닙니다: ${output}`)
+  }
+  return version
+}
+
+async function readExpectedRegistryVersions(tag) {
+  const [core, cli] = await Promise.all([
+    readRegistryVersion('core', tag),
+    readRegistryVersion('cli', tag),
+  ])
+  console.log(
+    `[consumer:registry] expected ${tag} versions: @lyrd/core@${core} and @lyrd/cli@${cli}`,
+  )
+  return { core, cli }
 }
 
 async function createTarballs(temporaryRoot) {
@@ -128,6 +225,18 @@ async function readInstalledVersions(fixtureDirectory) {
   return versions
 }
 
+function verifyInstalledVersions(name, actualVersions, expectedVersions) {
+  if (!expectedVersions) return
+
+  for (const packageName of ['core', 'cli']) {
+    assert.equal(
+      actualVersions[packageName],
+      expectedVersions[packageName],
+      `[consumer:registry] ${name}에 설치된 @lyrd/${packageName}@${actualVersions[packageName]}이(가) npm dist-tag ${registryTag}의 기대 버전 ${expectedVersions[packageName]}과 일치해야 합니다.`,
+    )
+  }
+}
+
 async function generateRenderers(fixtureDirectory) {
   await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'overlay', '--verbose'], fixtureDirectory)
   await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'dialog', 'consumer-lab'], fixtureDirectory)
@@ -165,12 +274,13 @@ async function verifyGeneratedBoundaries(name, fixtureDirectory) {
   assert.match(layout, /<LyrdOverlayProvider>\{children\}<\/LyrdOverlayProvider>/)
 }
 
-async function prepareFixture(name, temporaryRoot, packageSpecs) {
+async function prepareFixture(name, temporaryRoot, packageSpecs, expectedVersions) {
   const fixtureDirectory = await copyFixture(name, temporaryRoot, packageSpecs)
   console.log(`\n[consumer:${mode}] ${name} clean install`)
   await runCommand(pnpmCommand, ['install', '--no-frozen-lockfile'], fixtureDirectory)
   await verifyIsolatedInstallation(fixtureDirectory)
   const versions = await readInstalledVersions(fixtureDirectory)
+  verifyInstalledVersions(name, versions, expectedVersions)
 
   await generateRenderers(fixtureDirectory)
   await verifyGeneratedBoundaries(name, fixtureDirectory)
@@ -269,6 +379,8 @@ const temporaryRoot = await mkdtemp(path.join(tmpdir(), `lyrd-consumers-${mode}-
 let browser
 
 try {
+  const expectedVersions =
+    mode === 'registry' ? await readExpectedRegistryVersions(registryTag) : undefined
   const packageSpecs =
     mode === 'local-package'
       ? Object.fromEntries(
@@ -277,10 +389,20 @@ try {
             `file:${tarballPath}`,
           ]),
         )
-      : { core: 'next', cli: 'next' }
+      : { core: registryTag, cli: registryTag }
 
-  const viteFixture = await prepareFixture('vite-react', temporaryRoot, packageSpecs)
-  const nextFixture = await prepareFixture('next-app-router', temporaryRoot, packageSpecs)
+  const viteFixture = await prepareFixture(
+    'vite-react',
+    temporaryRoot,
+    packageSpecs,
+    expectedVersions,
+  )
+  const nextFixture = await prepareFixture(
+    'next-app-router',
+    temporaryRoot,
+    packageSpecs,
+    expectedVersions,
+  )
 
   browser = await chromium.launch({ headless: true })
   await verifyInBrowser(browser, 'vite-react', viteFixture)
