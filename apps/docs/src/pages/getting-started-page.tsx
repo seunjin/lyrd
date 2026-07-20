@@ -10,12 +10,12 @@ export function GettingStartedPage() {
       <section id="install">
         <h2>1. Core와 CLI 사용 준비</h2>
         <p>
-          권장 경로는 CLI를 한 번 실행하는 것입니다. CLI가 <code>@lyrd/core</code>와{' '}
+          권장 경로는 CLI를 한 번 실행하는 것입니다. CLI가 <code>@lyrd/core@next</code>와{' '}
           <code>@base-ui/react</code>를 설치하고 로컬 renderer 파일을 생성합니다.
         </p>
-        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli add overlay</CodeBlock>
+        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli@next add overlay</CodeBlock>
         <p>Renderer 없이 Core 런타임만 직접 사용할 때는 별도로 설치할 수 있습니다.</p>
-        <CodeBlock label="TERMINAL">pnpm add @lyrd/core</CodeBlock>
+        <CodeBlock label="TERMINAL">pnpm add @lyrd/core@next</CodeBlock>
       </section>
 
       <section id="generate-renderer">

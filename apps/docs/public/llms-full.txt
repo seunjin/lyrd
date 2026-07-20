@@ -47,7 +47,7 @@ Run from the target application root:
 pnpm dlx @lyrd/cli@next add overlay --verbose
 ```
 
-The command installs `@lyrd/core` and `@base-ui/react`, creates `lyrd.json`, and creates app-owned files similar to:
+The command installs `@lyrd/core@next` and `@base-ui/react`, creates `lyrd.json`, and creates app-owned files similar to:
 
 ```text
 src/lyrd/overlay/
