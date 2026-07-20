@@ -1,0 +1,26 @@
+:root {
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  display: grid;
+  max-width: 760px;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+output {
+  min-width: 180px;
+  padding: 6px;
+}
