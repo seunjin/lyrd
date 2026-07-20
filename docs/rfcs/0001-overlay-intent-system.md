@@ -231,10 +231,10 @@ export type OverlayRenderers = {
 기본 연결 방식은 Lyrd 컴포넌트를 패키지에서 렌더링하는 것이 아니라, 앱에 코드를 생성하는 방식이다.
 
 ```bash
-pnpm dlx @lyrd/cli@next add overlay
+pnpm dlx @lyrd/cli add overlay
 ```
 
-이 명령은 애플리케이션 의존성으로 현재 CLI와 같은 prerelease 채널의 `@lyrd/core@next`와 `@base-ui/react`를 설치한다. 이미 설치된 버전은 그대로 사용하며, 생성된 파일이 앱의 Base UI를 직접 import한다.
+이 명령은 애플리케이션 의존성으로 stable `@lyrd/core`와 `@base-ui/react`를 설치한다. 이미 설치된 버전은 그대로 사용하며, 생성된 파일이 앱의 Base UI를 직접 import한다.
 
 ```text
 components/lyrd/

@@ -56,14 +56,15 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          PRE_MODE=$(node -p "require('./.changeset/pre.json').mode")
-          PRE_TAG=$(node -p "require('./.changeset/pre.json').tag")
-
           if [ "$RELEASE_TAG" = "next" ]; then
+            test -f .changeset/pre.json
+            PRE_MODE=$(node -p "require('./.changeset/pre.json').mode")
+            PRE_TAG=$(node -p "require('./.changeset/pre.json').tag")
             test "$PRE_MODE" = "pre"
             test "$PRE_TAG" = "next"
           else
-            test "$PRE_MODE" = "exit"
+            test ! -e .changeset/pre.json
+            node -e 'for (const packagePath of ["./packages/core/package.json", "./packages/cli/package.json"]) { const { name, version } = require(packagePath); if (version.includes("-")) throw new Error(name + "@" + version + " is not a stable version.") }'
           fi
 
       - name: npm에 공개 배포

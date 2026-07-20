@@ -15,12 +15,12 @@ const documentationTargets = [
 const documentationExtensions = new Set(['.md', '.mdx', '.txt', '.ts', '.tsx'])
 const unsupportedCommands = [
   {
-    description: 'CLI 실행 명령에는 @next가 필요합니다.',
-    pattern: /(?:pnpm dlx|npm exec|npx|yarn dlx|bunx) @lyrd\/cli(?!@next\b)/g,
+    description: 'stable CLI 실행 명령에는 prerelease tag를 사용하지 않습니다.',
+    pattern: /(?:pnpm dlx|npm exec|npx|yarn dlx|bunx) @lyrd\/cli@[^\s`]+/g,
   },
   {
-    description: 'Core 설치 명령에는 @next가 필요합니다.',
-    pattern: /(?:pnpm add|npm (?:install|i)|yarn add|bun add) @lyrd\/core(?!@next\b)/g,
+    description: 'stable Core 설치 명령에는 prerelease tag를 사용하지 않습니다.',
+    pattern: /(?:pnpm add|npm (?:install|i)|yarn add|bun add) @lyrd\/core@[^\s`]+/g,
   },
 ]
 
@@ -63,8 +63,8 @@ for (const file of documentationFiles) {
 }
 
 if (violations.length > 0) {
-  console.error(['프리릴리스 설치 명령을 확인해 주세요.', ...violations].join('\n'))
+  console.error(['stable 설치 명령을 확인해 주세요.', ...violations].join('\n'))
   process.exitCode = 1
 } else {
-  console.log('프리릴리스 문서의 @next 설치 명령을 확인했습니다.')
+  console.log('stable 문서의 태그 없는 설치 명령을 확인했습니다.')
 }

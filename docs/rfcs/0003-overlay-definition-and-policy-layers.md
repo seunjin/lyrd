@@ -587,8 +587,8 @@ await appOverlay.confirm(...)
 2. `dialog()`의 자동 dedupe를 제거하거나 명시적 `dedupeKey` 옵션으로 변경한다.
 3. 기존 React `key` 기반 dedupe가 필요하면 마이그레이션 문서를 제공한다.
 
-현재 패키지가 `0.1.0-next` 단계이므로 공개 stable 이후보다 지금 계약을 바로잡는 비용이
-낮다.
+이 계약을 정리할 당시 패키지가 `0.1.0-next` 단계였으므로 공개 stable 이후보다 계약을
+바로잡는 비용이 낮았다.
 
 ## 구현 단계
 

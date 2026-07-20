@@ -241,7 +241,7 @@ export function HomePage() {
           </div>
           <pre>
             <code>
-              <i>$</i> pnpm dlx @lyrd/cli@next add overlay
+              <i>$</i> pnpm dlx @lyrd/cli add overlay
             </code>
           </pre>
           <div className="file-tree">

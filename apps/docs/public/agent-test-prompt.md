@@ -16,7 +16,7 @@ Use the exact CLI version documented for this evaluation when one is provided, a
 Goals:
 
 1. Inspect this repository's framework, package manager, application entry point, existing Provider tree, UI primitives, styling conventions, and existing Dialog or Toast components.
-2. Run `pnpm dlx @lyrd/cli@next add overlay --verbose` from the application root. If this repository does not use pnpm, use the equivalent package executor while keeping the `@next` version.
+2. Run `pnpm dlx @lyrd/cli add overlay --verbose` from the application root. If this repository does not use pnpm, use the equivalent package executor.
 3. Review every generated file before changing the application. Preserve existing files and product-specific behavior.
 4. Mount the generated overlay Provider exactly once. For Next App Router, keep the client bridge separate from the Server Component layout. For Vite, compose it in the existing root render tree.
 5. Add a small, removable evaluation screen or development-only route that demonstrates:
@@ -25,7 +25,7 @@ Goals:
    - asynchronous Confirm pending, failure, and retry
    - one typed custom overlay created with `defineOverlay()` and opened with `overlay.open()`
    - both resolved and dismissed `OverlayOutcome` branches
-6. Run `pnpm dlx @lyrd/cli@next add toast --verbose`. Compose `AppToastProvider` around `AppOverlayProvider` once. Demonstrate a simple `notify()`, actionable `notifyWithUndo()`, at least two simultaneous Toasts, and six Toasts to verify the generated `data-limited` styling.
+6. Run `pnpm dlx @lyrd/cli add toast --verbose`. Compose `AppToastProvider` around `AppOverlayProvider` once. Demonstrate a simple `notify()`, actionable `notifyWithUndo()`, at least two simultaneous Toasts, and six Toasts to verify the generated `data-limited` styling.
 7. If this application has a progress-like operation, retain the awaitable handle returned by `open()` or `openOrUpdate()`, update that exact session with `handle.update()`, and await its final outcome. Use `openOrUpdate()` only if the application has an honest stable operation identity shared by multiple call sites.
 8. Verify the default modal queue does not overlap, parallel Toasts do not block modal overlays, and route cleanup can call `dismissAll('route-change')` when appropriate.
 9. Re-run the CLI commands and verify customized generated files are not overwritten.

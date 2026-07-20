@@ -43,7 +43,7 @@ GitHub 웹 화면에서는 다음 순서로 실행한다.
 
 `publish`는 오입력을 막는 안전장치이며 버전이나 npm 태그가 아니다. 실제 버전과 `next` 또는 `latest` 태그는 커밋된 package.json과 Changesets 프리릴리스 상태로 결정된다. 환경 승인 전에는 npm publish가 실행되지 않는다.
 
-Changesets는 안정 버전이 한 번도 배포되지 않은 패키지를 prerelease mode에서도 `latest`로 게시한다. 또한 Trusted Publishing의 OIDC 인증은 `npm publish`에는 사용할 수 있지만 별도의 `npm dist-tag` 변경에는 사용할 수 없다. 워크플로는 이 조합을 피하기 위해 공개 패키지의 미배포 버전만 골라 `pnpm publish --tag <channel>`로 직접 게시한다. `latest`는 `.changeset/pre.json`이 `exit` 상태일 때만 허용한다.
+Changesets는 안정 버전이 한 번도 배포되지 않은 패키지를 prerelease mode에서도 `latest`로 게시한다. 또한 Trusted Publishing의 OIDC 인증은 `npm publish`에는 사용할 수 있지만 별도의 `npm dist-tag` 변경에는 사용할 수 없다. 워크플로는 이 조합을 피하기 위해 공개 패키지의 미배포 버전만 골라 `pnpm publish --tag <channel>`로 직접 게시한다. `next`는 `.changeset/pre.json`이 `pre` 상태이고 tag가 `next`일 때만 허용한다. `latest`는 `pnpm exec changeset pre exit` 후 `pnpm version-packages`가 `pre.json`을 제거하고 두 공개 패키지 버전이 prerelease suffix 없는 안정 버전일 때만 허용한다.
 
 터미널에서 GitHub CLI로 같은 워크플로를 시작할 수도 있다.
 
@@ -72,7 +72,7 @@ Changesets와 npm은 안정 버전 이력이 없는 최초 프리릴리스를 `l
 ## 안정 버전 전환
 
 1. 후보 검증이 끝나면 `pnpm exec changeset pre exit`를 실행한다.
-2. `pnpm version-packages`로 안정 버전을 생성하고 변경을 검토한다.
+2. `pnpm version-packages`로 안정 버전을 생성하고, `.changeset/pre.json`이 제거되었는지 확인한 뒤 변경을 검토한다.
 3. 동일한 수동 워크플로와 환경 승인을 거쳐 `latest`로 배포한다.
 
 `pnpm release`는 로컬에서 즉시 publish를 시도하므로 일상 릴리스 절차로 사용하지 않는다. npm 배포 의사를 명시적으로 확인한 경우에만 사용한다.

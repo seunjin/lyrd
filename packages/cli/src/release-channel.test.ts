@@ -8,11 +8,11 @@ import {
 } from './release-channel'
 
 describe('release channel package specifier', () => {
-  it('현재 prerelease 채널을 CLI와 Core specifier에 함께 적용한다', () => {
-    expect(CLI_PACKAGE_SPECIFIER).toBe('@lyrd/cli@next')
-    expect(CORE_PACKAGE_SPECIFIER).toBe('@lyrd/core@next')
+  it('현재 stable 채널은 CLI와 Core specifier에 tag를 붙이지 않는다', () => {
+    expect(CLI_PACKAGE_SPECIFIER).toBe('@lyrd/cli')
+    expect(CORE_PACKAGE_SPECIFIER).toBe('@lyrd/core')
     expect(OVERLAY_DEPENDENCIES).toEqual([
-      { name: '@lyrd/core', specifier: '@lyrd/core@next' },
+      { name: '@lyrd/core', specifier: '@lyrd/core' },
       { name: '@base-ui/react', specifier: '@base-ui/react' },
     ])
   })

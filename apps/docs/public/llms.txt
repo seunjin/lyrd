@@ -11,7 +11,7 @@ Packages: @lyrd/core and @lyrd/cli
 ## Start here
 
 1. Read `llms-full.txt` before changing an application.
-2. Use `pnpm dlx @lyrd/cli@next add overlay --verbose` to generate app-owned Base UI renderers.
+2. Use `pnpm dlx @lyrd/cli add overlay --verbose` to generate app-owned Base UI renderers.
 3. Mount the generated Provider exactly once at the app root.
 4. Use `alert()` and `confirm()` for safe built-in recipes.
 5. Use `defineOverlay()` and `open()` for reusable custom overlays.
@@ -19,4 +19,4 @@ Packages: @lyrd/core and @lyrd/cli
 7. Use `openOrUpdate()` only when multiple call sites must find one active operation by a stable identity.
 8. Use an explicit parallel group for non-blocking overlays such as Toast.
 
-There is no built-in `overlay.toast()` API. Use `pnpm dlx @lyrd/cli@next add toast` and keep the generated adapter in the application.
+There is no built-in `overlay.toast()` API. Use `pnpm dlx @lyrd/cli add toast` and keep the generated adapter in the application.

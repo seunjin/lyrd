@@ -9,13 +9,13 @@ Lyrd는 Dialog 같은 UI 프리미티브를 다시 구현하거나 JSX와 스타
 로컬 Base UI 렌더러와 함께 설치하려면 CLI를 사용한다.
 
 ```bash
-pnpm dlx @lyrd/cli@next add overlay
+pnpm dlx @lyrd/cli add overlay
 ```
 
 런타임만 직접 설치할 수도 있다.
 
 ```bash
-pnpm add @lyrd/core@next
+pnpm add @lyrd/core
 ```
 
 반복 사용하는 커스텀 오버레이는 `defineOverlay<Input, Result>()`로 입력과 결과를 한 번에

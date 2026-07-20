@@ -44,10 +44,10 @@ Do not invent a built-in `overlay.toast()` API. Toast is an app-owned adapter ge
 Run from the target application root:
 
 ```bash
-pnpm dlx @lyrd/cli@next add overlay --verbose
+pnpm dlx @lyrd/cli add overlay --verbose
 ```
 
-The command installs `@lyrd/core@next` and `@base-ui/react`, creates `lyrd.json`, and creates app-owned files similar to:
+The command installs stable `@lyrd/core` and `@base-ui/react`, creates `lyrd.json`, and creates app-owned files similar to:
 
 ```text
 src/lyrd/overlay/
@@ -284,7 +284,7 @@ Renderer API for definition and adapter authors:
 
 Application callers normally do not use the Renderer API. A local Base UI, Radix, or shadcn adapter connects these methods once inside its overlay definition.
 
-Use `pnpm dlx @lyrd/cli@next add dialog project-settings` to generate a Base UI Dialog starting point. The name must be kebab-case.
+Use `pnpm dlx @lyrd/cli add dialog project-settings` to generate a Base UI Dialog starting point. The name must be kebab-case.
 
 ## 8. Identity-based updates with openOrUpdate
 
@@ -324,7 +324,7 @@ The default queue is correct for modal overlays. Use an explicit parallel group 
 Generate the app-owned Toast adapter:
 
 ```bash
-pnpm dlx @lyrd/cli@next add toast --verbose
+pnpm dlx @lyrd/cli add toast --verbose
 ```
 
 Generated files:
