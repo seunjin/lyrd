@@ -25,6 +25,12 @@ pnpm dlx @lyrd/cli add overlay --verbose
 
 첫 번째 `add` 명령은 `lyrd.json`이 없으면 자동으로 생성한다. `paths.overlay`는 오버레이 로컬 파일 경로이며, `adapters.overlay`는 생성 템플릿이 사용하는 기반 프리미티브를 기록한다.
 
+CLI는 앱 진입 파일을 자동 수정하지 않는다. 출력의 `Required next step`에 따라 Provider를
+한 번 연결해야 한다. 기존 생성 파일이 있으면 덮어쓰지 않고 수동 비교·병합을 안내하며,
+Vite React 또는 Next App Router 구조를 감지하지 못하면 수동 연결 경로를 출력한다. 의존성
+설치가 실패하면 표시된 패키지 매니저 명령을 직접 실행한 뒤 `--skip-install`로 재시도할 수
+있다.
+
 현재 CLI는 이전 `drawer` 생성 명령과 호환되지 않는다. 이전 구현은 Git 태그와 릴리스에서만 유지하며 새 CLI에는 호환 계층을 두지 않는다.
 
 ## 개별 Dialog 생성

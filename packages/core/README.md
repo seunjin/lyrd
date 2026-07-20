@@ -39,5 +39,7 @@ Toast처럼 여러 세션을 동시에 렌더링할 때는 `defineOverlayGroup({
 로컬 renderer와 definition 작성자는 `resolve`, `dismiss`, `requestDismiss`, `completeExit`
 Renderer API를 UI primitive에 한 번 연결한다. `requestDismiss`는 `dismissPolicy`를 확인하며,
 `completeExit`은 closing 이후 exit lifecycle이 끝났음을 런타임에 알린다.
+개발 모드에서 closing 상태가 10초 이상 지속되면 Lyrd가 누락 가능성을 경고한다. 경고를
+timeout으로 숨기지 말고 UI primitive의 실제 exit-complete 콜백 연결을 확인해야 한다.
 
 사용법과 인터랙티브 데모는 [Lyrd 문서](https://seunjin.github.io/lyrd/)에서 확인할 수 있다.

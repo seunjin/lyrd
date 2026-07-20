@@ -1,6 +1,6 @@
 import { type ComponentType, createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createOverlayController } from './controller'
 import { OverlayProvider, type OverlayProviderProps, useOverlayDialog } from './provider'
 
@@ -10,7 +10,59 @@ async function flushPromises() {
   }
 }
 
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllEnvs()
+  vi.restoreAllMocks()
+})
+
 describe('overlay confirm controller', () => {
+  it('closing이 10초간 완료되지 않으면 개발 모드 경고를 한 번 출력한다', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const controller = createOverlayController()
+
+    const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인' })
+    controller.openCurrent()
+    controller.confirmCurrent()
+    await expect(result).resolves.toBe(true)
+
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(warn).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('completeExit()'))
+  })
+
+  it('closing 완료 시 개발 모드 경고를 취소한다', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const controller = createOverlayController()
+
+    const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인' })
+    controller.openCurrent()
+    controller.confirmCurrent()
+    await expect(result).resolves.toBe(true)
+    controller.completeExit()
+
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('production에서는 closing 경고를 출력하지 않는다', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const controller = createOverlayController()
+
+    const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인' })
+    controller.openCurrent()
+    controller.confirmCurrent()
+    await expect(result).resolves.toBe(true)
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    expect(warn).not.toHaveBeenCalled()
+  })
   it('확인하면 true를 반환하고 닫힘 상태로 전환한다', async () => {
     const controller = createOverlayController()
     const result = controller.overlay.confirm({ title: '제목', confirmLabel: '확인' })
