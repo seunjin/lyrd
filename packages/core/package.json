@@ -1,6 +1,6 @@
 {
   "name": "@lyrd/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Central overlay intent runtime for Lyrd",
   "homepage": "https://seunjin.github.io/lyrd/",
   "repository": {
