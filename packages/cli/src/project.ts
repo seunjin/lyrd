@@ -3,7 +3,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { readJsonFile } from './json'
-import type { Framework, LyrdConfig, PackageManager } from './types'
+import type { Framework, LyrdConfig, PackageManager, Styling } from './types'
 
 const SCHEMA_URL = 'https://raw.githubusercontent.com/seunjin/lyrd/main/lyrd.schema.json'
 const CONFIG_FILES = ['lyrd.json'] as const
@@ -126,17 +126,16 @@ async function detectSourceRoot(projectRoot: string): Promise<string> {
   return (await pathExists(srcDir)) ? 'src' : ''
 }
 
-async function createConfig(projectRoot: string): Promise<LyrdConfig> {
+async function createConfig(projectRoot: string, styling: Styling): Promise<LyrdConfig> {
   const sourceRoot = await detectSourceRoot(projectRoot)
 
   return {
     $schema: SCHEMA_URL,
     framework: await detectFramework(projectRoot),
     packageManager: await detectPackageManager(projectRoot),
+    styling,
     paths: {
-      overlay: toPosixPath(
-        sourceRoot ? path.join(sourceRoot, 'lyrd', 'overlay') : path.join('lyrd', 'overlay'),
-      ),
+      overlay: toPosixPath(sourceRoot ? path.join(sourceRoot, 'overlays') : 'overlays'),
     },
     adapters: {
       overlay: 'base-ui',
@@ -144,7 +143,7 @@ async function createConfig(projectRoot: string): Promise<LyrdConfig> {
   }
 }
 
-export async function ensureConfig(projectRoot: string): Promise<LoadedConfig> {
+export async function ensureConfig(projectRoot: string, styling?: Styling): Promise<LoadedConfig> {
   const existingConfigPath = await findExistingConfigPath(projectRoot)
 
   if (existingConfigPath) {
@@ -155,8 +154,14 @@ export async function ensureConfig(projectRoot: string): Promise<LoadedConfig> {
     }
   }
 
+  if (!styling) {
+    throw new Error(
+      '스타일 방식을 선택해 주세요. 대화형으로 `lyrd init`을 실행하거나 --style css-modules 또는 --style tailwind-v4를 지정해 주세요.',
+    )
+  }
+
   const configPath = path.join(projectRoot, 'lyrd.json')
-  const config = await createConfig(projectRoot)
+  const config = await createConfig(projectRoot, styling)
 
   await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 
@@ -181,9 +186,15 @@ export async function ensureIndexExport(
     return 'skipped'
   }
 
-  const nextContent = currentContent.trimEnd()
-    ? `${currentContent.trimEnd()}\n${exportLine}\n`
-    : `${exportLine}\n`
+  const currentLines = currentContent.split('\n').filter(Boolean)
+  const generatedIndex = currentLines.every((line) => /^export \* from '.+'$/.test(line))
+  const nextContent = generatedIndex
+    ? `${[...currentLines, exportLine]
+        .sort((left, right) => left.toLowerCase().localeCompare(right.toLowerCase()))
+        .join('\n')}\n`
+    : currentContent.trimEnd()
+      ? `${currentContent.trimEnd()}\n${exportLine}\n`
+      : `${exportLine}\n`
   await writeFile(indexPath, nextContent, 'utf8')
   return 'updated'
 }

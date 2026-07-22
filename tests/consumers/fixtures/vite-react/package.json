@@ -6,17 +6,18 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "tsc --noEmit && vite build",
+    "dev": "vite",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
-    "@lyrd/core": "__LYRD_CORE_SPEC__",
+    "@lyrd/core": "file:../../../../packages/core",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@lyrd/cli": "__LYRD_CLI_SPEC__",
+    "@lyrd/cli": "file:../../../../packages/cli",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",

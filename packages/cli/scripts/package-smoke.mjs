@@ -149,18 +149,23 @@ async function main() {
 
     const add = await runCommand(
       pnpmCommand,
-      ['exec', 'lyrd', 'add', 'overlay', '--skip-install'],
+      ['exec', 'lyrd', 'add', 'overlay', '--style', 'css-modules', '--skip-install'],
       fixtureDirectory,
     )
     assert.match(add.stdout, /Added overlay/)
     assert.match(add.stdout, /Using existing @lyrd\/core/)
     assert.match(add.stdout, /Skipping install for @base-ui\/react/)
 
-    const overlayDirectory = path.join(fixtureDirectory, 'src/lyrd/overlay')
+    const overlayDirectory = path.join(fixtureDirectory, 'src/overlays')
     await Promise.all(
-      ['alert.tsx', 'confirm.tsx', 'overlay-provider.tsx', 'overlay.css', 'index.ts'].map(
-        (fileName) => access(path.join(overlayDirectory, fileName)),
-      ),
+      [
+        'alert/AlertSurface.tsx',
+        'alert/Alert.module.css',
+        'confirm/ConfirmSurface.tsx',
+        'confirm/Confirm.module.css',
+        'OverlayProvider.tsx',
+        'index.ts',
+      ].map((fileName) => access(path.join(overlayDirectory, fileName))),
     )
 
     const dialog = await runCommand(
@@ -170,23 +175,24 @@ async function main() {
     )
     assert.match(dialog.stdout, /Added dialog project-settings/)
     await Promise.all(
-      ['project-settings-dialog.tsx', 'dialog.css', 'index.ts'].map((fileName) =>
-        access(path.join(overlayDirectory, 'dialogs', fileName)),
+      ['ProjectSettingsDialog.tsx', 'ProjectSettingsDialog.module.css', 'index.ts'].map(
+        (fileName) => access(path.join(overlayDirectory, 'dialogs', 'project-settings', fileName)),
       ),
     )
 
     const toast = await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
     assert.match(toast.stdout, /Added toast/)
     await Promise.all(
-      ['toast-definition.ts', 'toast.tsx', 'toast-group.ts', 'notify.ts', 'toast.css'].map(
-        (fileName) => access(path.join(overlayDirectory, fileName)),
+      ['definition.ts', 'manager.ts', 'AppToastProvider.tsx', 'notify.ts', 'Toast.module.css'].map(
+        (fileName) => access(path.join(overlayDirectory, 'toast', fileName)),
       ),
     )
 
     const config = JSON.parse(await readFile(path.join(fixtureDirectory, 'lyrd.json'), 'utf8'))
     assert.equal(config.framework, 'unknown')
-    assert.equal(config.paths.overlay, 'src/lyrd/overlay')
+    assert.equal(config.paths.overlay, 'src/overlays')
     assert.equal(config.adapters.overlay, 'base-ui')
+    assert.equal(config.styling, 'css-modules')
 
     console.log('PASS packaged lyrd CLI')
   } finally {

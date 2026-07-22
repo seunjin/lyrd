@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/seunjin/lyrd/main/lyrd.schema.json",
+  "framework": "next-app-router",
+  "packageManager": "pnpm",
+  "styling": "tailwind-v4",
+  "paths": {
+    "overlay": "src/overlays"
+  },
+  "adapters": {
+    "overlay": "base-ui"
+  }
+}

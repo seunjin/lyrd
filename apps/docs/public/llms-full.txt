@@ -50,11 +50,14 @@ pnpm dlx @lyrd/cli add overlay --verbose
 The command installs stable `@lyrd/core` and `@base-ui/react`, creates `lyrd.json`, and creates app-owned files similar to:
 
 ```text
-src/lyrd/overlay/
-  alert.tsx
-  confirm.tsx
-  overlay-provider.tsx
-  overlay.css
+src/overlays/
+  OverlayProvider.tsx
+  alert/
+    AlertSurface.tsx
+    Alert.module.css
+  confirm/
+    ConfirmSurface.tsx
+    Confirm.module.css
   index.ts
 ```
 
@@ -62,18 +65,18 @@ Existing files are never overwritten. Review the command output and mount the ge
 
 ### Vite React
 
-Compose `AppOverlayProvider` around the application in `src/main.tsx` or `src/main.jsx`:
+Compose `OverlayProvider` around the application in `src/main.tsx` or `src/main.jsx`:
 
 ```tsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { AppOverlayProvider } from './lyrd/overlay/overlay-provider'
+import { OverlayProvider } from './overlays/OverlayProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppOverlayProvider>
+    <OverlayProvider>
       <App />
-    </AppOverlayProvider>
+    </OverlayProvider>
   </StrictMode>,
 )
 ```
@@ -108,7 +111,7 @@ function Example() {
 }
 ```
 
-`useOverlay()` must be called below `OverlayProvider` or the generated `AppOverlayProvider`.
+`useOverlay()` must be called below the generated `OverlayProvider`.
 
 ## 5. Alert recipe
 
@@ -330,20 +333,21 @@ pnpm dlx @lyrd/cli add toast --verbose
 Generated files:
 
 ```text
-src/lyrd/overlay/
-  toast-definition.ts
-  toast.tsx
-  toast-group.ts
+src/overlays/toast/
+  AppToastProvider.tsx
+  definition.ts
+  manager.ts
   notify.ts
-  toast.css
+  Toast.module.css
 ```
 
-Compose Providers once:
+Render the independent Provider/renderer and the Lyrd Provider once. The generated global manager connects the Toast definition to its renderer:
 
 ```tsx
-<AppToastProvider>
-  <AppOverlayProvider>{children}</AppOverlayProvider>
-</AppToastProvider>
+<>
+  <AppToastProvider />
+  <OverlayProvider>{children}</OverlayProvider>
+</>
 ```
 
 Use the generated helper for ordinary calls. It owns default ID generation and selects the parallel group:

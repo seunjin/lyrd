@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { consumerLabDialog } from '../../lyrd/overlay/dialogs/consumer-lab-dialog'
+import { consumerLabDialog } from '../../overlays/dialogs/consumer-lab/ConsumerLabDialog'
+import { notify } from '../../overlays/toast/notify'
 
 export function OverlayLab() {
   const overlay = useOverlay()
@@ -26,6 +27,13 @@ export function OverlayLab() {
     window.setTimeout(() => router.push('/other'), 250)
   }
 
+  function openToast() {
+    notify(overlay, {
+      title: 'Tailwind CSS v4 toast',
+      description: 'Base UI 공식 hero 예제의 stack 스타일입니다.',
+    })
+  }
+
   return (
     <section>
       <button data-testid="next-alert" onClick={openAlert} type="button">
@@ -33,6 +41,9 @@ export function OverlayLab() {
       </button>
       <button data-testid="open-and-navigate" onClick={openAndNavigate} type="button">
         Open and navigate
+      </button>
+      <button data-testid="next-toast" onClick={openToast} type="button">
+        Open Tailwind toast
       </button>
       <output data-testid="next-result">{result}</output>
       <nav>

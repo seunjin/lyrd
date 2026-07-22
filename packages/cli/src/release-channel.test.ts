@@ -13,7 +13,7 @@ describe('release channel package specifier', () => {
     expect(CORE_PACKAGE_SPECIFIER).toBe('@lyrd/core')
     expect(OVERLAY_DEPENDENCIES).toEqual([
       { name: '@lyrd/core', specifier: '@lyrd/core' },
-      { name: '@base-ui/react', specifier: '@base-ui/react' },
+      { name: '@base-ui/react', specifier: '@base-ui/react@^1.6.0' },
     ])
   })
 

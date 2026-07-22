@@ -14,6 +14,9 @@ export async function verifyNextConsumer(page, baseUrl) {
   assert.equal(await page.getByTestId('next-result').innerText(), 'alert:resolved')
   await page.getByText('Next hydrated alert', { exact: true }).waitFor({ state: 'hidden' })
 
+  await page.getByTestId('next-toast').click()
+  await page.getByText('Tailwind CSS v4 toast', { exact: true }).waitFor({ state: 'visible' })
+
   await page.getByTestId('open-and-navigate').click()
   await page.getByText('Route cleanup dialog', { exact: true }).waitFor({ state: 'visible' })
   await page.waitForURL(`${baseUrl}/other`)

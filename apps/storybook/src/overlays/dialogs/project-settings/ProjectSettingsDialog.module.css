@@ -1,0 +1,124 @@
+.Backdrop {
+  position: fixed;
+  min-height: 100dvh;
+  inset: 0;
+  background-color: black;
+  opacity: 0.2;
+  transition: opacity 150ms;
+}
+
+.Backdrop[data-starting-style],
+.Backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.Popup {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 24rem;
+  max-width: calc(100vw - 3rem);
+  gap: 1rem;
+  margin-top: -2rem;
+  padding: 1rem;
+  border: 1px solid oklch(14.5% 0 0deg);
+  color: oklch(14.5% 0 0deg);
+  background-color: white;
+  box-shadow: 0.25rem 0.25rem 0 rgb(0 0 0 / 12%);
+  transform: translate(-50%, -50%);
+  transition:
+    transform 100ms ease-out,
+    opacity 100ms ease-out;
+}
+
+.Popup[data-starting-style],
+.Popup[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+.Header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.Title,
+.Description {
+  margin: 0;
+}
+
+.Title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+
+.Description {
+  margin-top: 0.25rem;
+  color: oklch(43.9% 0 0deg);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.IconButton {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid oklch(14.5% 0 0deg);
+  border-radius: 0;
+  color: oklch(14.5% 0 0deg);
+  background: white;
+  cursor: pointer;
+}
+
+.Field {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-weight: 650;
+}
+
+.Field input {
+  width: 100%;
+  border: 1px solid oklch(14.5% 0 0deg);
+  border-radius: 0;
+  padding: 10px 12px;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+}
+
+.Field input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 14%);
+}
+
+.Actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.Button {
+  height: 2rem;
+  border: 1px solid oklch(14.5% 0 0deg);
+  border-radius: 0;
+  padding: 0 0.75rem;
+  color: oklch(14.5% 0 0deg);
+  background: white;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Backdrop,
+  .Popup {
+    transition-duration: 1ms;
+  }
+}

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Lyrd configuration",
   "type": "object",
-  "required": ["$schema", "framework", "packageManager", "paths", "adapters"],
+  "required": ["$schema", "framework", "packageManager", "styling", "paths", "adapters"],
   "properties": {
     "$schema": {
       "type": "string"
@@ -12,6 +12,9 @@
     },
     "packageManager": {
       "enum": ["pnpm", "npm", "yarn", "bun"]
+    },
+    "styling": {
+      "enum": ["css-modules", "tailwind-v4"]
     },
     "paths": {
       "type": "object",

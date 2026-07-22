@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/seunjin/lyrd/main/lyrd.schema.json",
+  "framework": "vite-react",
+  "packageManager": "pnpm",
+  "styling": "css-modules",
+  "paths": {
+    "overlay": "src/overlays"
+  },
+  "adapters": {
+    "overlay": "base-ui"
+  }
+}

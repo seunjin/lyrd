@@ -36,7 +36,10 @@ export async function verifyViteConsumer(page, baseUrl) {
   await firstQueueTitle.waitFor({ state: 'visible' })
   assert.equal(await secondQueueTitle.count(), 0, '두 번째 modal은 queue에서 기다려야 합니다.')
   await page.getByRole('button', { name: '완료' }).click()
-  await page.locator('.lyrd-dialog-popup[data-ending-style]').waitFor({ state: 'attached' })
+  await page
+    .locator('[role="dialog"][data-ending-style]')
+    .filter({ hasText: 'Queue first' })
+    .waitFor({ state: 'attached' })
   assert.equal(
     await secondQueueTitle.count(),
     0,
@@ -74,7 +77,7 @@ export async function verifyViteConsumer(page, baseUrl) {
     'dismissed:programmatic,dismissed:programmatic',
   )
   assert.ok(
-    (await page.locator('.lyrd-toast[data-ending-style]').count()) > 0,
+    (await page.locator('[data-ending-style]').filter({ hasText: 'Parallel toast' }).count()) > 0,
     'parallel session은 outcome 뒤 exit animation이 끝날 때까지 렌더링되어야 합니다.',
   )
   await page.getByText('Parallel toast one', { exact: true }).waitFor({ state: 'hidden' })

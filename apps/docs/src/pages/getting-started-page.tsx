@@ -13,7 +13,8 @@ export function GettingStartedPage() {
           권장 경로는 CLI를 한 번 실행하는 것입니다. CLI가 <code>@lyrd/core</code>와{' '}
           <code>@base-ui/react</code>를 설치하고 로컬 renderer 파일을 생성합니다.
         </p>
-        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli add overlay</CodeBlock>
+        <CodeBlock label="TERMINAL">{`pnpm dlx @lyrd/cli init
+pnpm dlx @lyrd/cli add overlay`}</CodeBlock>
         <p>Renderer 없이 Core 런타임만 직접 사용할 때는 별도로 설치할 수 있습니다.</p>
         <CodeBlock label="TERMINAL">pnpm add @lyrd/core</CodeBlock>
       </section>
@@ -22,11 +23,14 @@ export function GettingStartedPage() {
         <h2>2. 앱 소유 Renderer 확인</h2>
         <p>CLI는 기존 진입 파일을 덮어쓰지 않고 다음 파일을 애플리케이션 안에 생성합니다.</p>
         <CodeBlock label="GENERATED FILES">
-          {`src/lyrd/overlay/
-├─ alert.tsx
-├─ confirm.tsx
-├─ overlay-provider.tsx
-└─ overlay.css`}
+          {`src/overlays/
+├─ OverlayProvider.tsx
+├─ alert/
+│  ├─ AlertSurface.tsx
+│  └─ Alert.module.css  # CSS Modules 선택 시
+└─ confirm/
+   ├─ ConfirmSurface.tsx
+   └─ Confirm.module.css  # CSS Modules 선택 시`}
         </CodeBlock>
         <Callout title="App-owned UI">
           이 파일들은 패키지 내부 구현이 아닙니다. 제품의 디자인 시스템, 버튼, 오류 문구와
@@ -38,12 +42,12 @@ export function GettingStartedPage() {
         <h2>3. Provider 연결</h2>
         <p>생성된 Provider를 앱 루트에서 한 번 연결합니다.</p>
         <CodeBlock label="APP ROOT">
-          {`import { AppOverlayProvider } from './lyrd/overlay/overlay-provider'
+          {`import { OverlayProvider } from './overlays/OverlayProvider'
 
 root.render(
-  <AppOverlayProvider>
+  <OverlayProvider>
     <App />
-  </AppOverlayProvider>,
+  </OverlayProvider>,
 )`}
         </CodeBlock>
       </section>

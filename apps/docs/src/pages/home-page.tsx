@@ -245,11 +245,10 @@ export function HomePage() {
             </code>
           </pre>
           <div className="file-tree">
-            <span>src/lyrd/overlay/</span>
-            <b>├─ alert.tsx</b>
-            <b>├─ confirm.tsx</b>
-            <b>├─ overlay-provider.tsx</b>
-            <b>└─ overlay.css</b>
+            <span>src/overlays/</span>
+            <b>├─ OverlayProvider.tsx</b>
+            <b>├─ alert/AlertSurface.tsx</b>
+            <b>└─ confirm/ConfirmSurface.tsx</b>
           </div>
         </div>
         <div className="code-examples">
