@@ -1,6 +1,6 @@
 {
   "name": "@lyrd/cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "CLI for scaffolding Base UI overlay renderers for Lyrd",
   "homepage": "https://seunjin.github.io/lyrd/",
   "repository": {
