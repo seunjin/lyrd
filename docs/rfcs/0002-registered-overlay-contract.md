@@ -161,9 +161,11 @@ await overlay.dialog(<CommandPalette />)
 이 구조는 `Components`를 앱의 개별 파일로 유지하는 원칙과도 맞는다. 예를 들어 CLI는 이후 다음처럼 특정 화면의 시작 파일을 생성할 수 있다.
 
 ```text
-src/lyrd/dialogs/
-  project-settings.tsx
-  document-editor.tsx
+src/overlays/dialogs/
+  project-settings/
+    ProjectSettingsDialog.tsx
+  document-editor/
+    DocumentEditorDialog.tsx
 ```
 
 생성기는 파일을 만들 뿐이며, 사용자는 공통 `AppDialogShell`을 감싸거나 각 파일에서 완전히 다른 UI 조합을 선택할 수 있다. 기존 파일은 덮어쓰지 않는다.

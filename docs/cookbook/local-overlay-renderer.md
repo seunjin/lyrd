@@ -7,11 +7,14 @@ Lyrd는 오버레이의 상태, 결과, 대기열, 중복 방지를 관리한다
 ## 생성 파일과 소유권
 
 ```text
-src/lyrd/overlay/
-  alert.tsx             # 안내 오버레이 화면
-  confirm.tsx           # 확인 오버레이 화면
-  overlay-provider.tsx  # Lyrd 렌더러 등록
-  overlay.css           # 시작 스타일
+src/overlays/
+  OverlayProvider.tsx
+  alert/
+    AlertSurface.tsx    # 안내 오버레이 화면
+    Alert.module.css    # CSS Modules 선택 시 시작 스타일
+  confirm/
+    ConfirmSurface.tsx  # 확인 오버레이 화면
+    Confirm.module.css  # CSS Modules 선택 시 시작 스타일
 ```
 
 이 파일들은 모두 앱 코드다. CLI는 기존 파일을 덮어쓰지 않으며, Lyrd 패키지 업데이트도 이 파일을 수정하지 않는다.
@@ -24,18 +27,18 @@ src/lyrd/overlay/
 
 ## Provider를 한 번 연결하기
 
-`AppOverlayProvider`는 앱 루트에서 한 번만 렌더링한다. 생성 직후 CLI가 프로젝트에 맞는 정확한 import 경로와 코드를 출력한다.
+`OverlayProvider`는 앱 루트에서 한 번만 렌더링한다. 생성 직후 CLI가 프로젝트에 맞는 정확한 import 경로와 코드를 출력한다.
 
 Vite에서는 `src/main.tsx` 또는 `src/main.jsx`의 기존 앱을 감싼다.
 
 ```tsx
-import { AppOverlayProvider } from './lyrd/overlay/overlay-provider'
+import { OverlayProvider } from './overlays/OverlayProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppOverlayProvider>
+    <OverlayProvider>
       <App />
-    </AppOverlayProvider>
+    </OverlayProvider>
   </StrictMode>,
 )
 ```

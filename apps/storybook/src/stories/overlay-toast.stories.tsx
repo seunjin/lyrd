@@ -2,7 +2,7 @@ import { useOverlay } from '@lyrd/core'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 
-import { notify, notifyWithUndo, showToast as openToast } from '../lyrd/notify'
+import { notify, notifyWithUndo, showToast as openToast } from '../overlays/toast/notify'
 
 const meta = {
   title: 'VNext/Overlay Toast',
@@ -29,7 +29,7 @@ function OverlayToastStory() {
     for (let index = 1; index <= 6; index += 1) {
       notify(overlay, {
         title: `병렬 Toast ${index}`,
-        description: 'limit을 넘는 Toast는 data-limited로 숨겨집니다.',
+        description: 'Base UI 기본 limit을 넘는 Toast는 data-limited 상태가 됩니다.',
       })
     }
   }

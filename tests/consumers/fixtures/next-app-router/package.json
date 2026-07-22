@@ -5,21 +5,24 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "build": "next build",
+    "dev": "next dev",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
-    "@lyrd/core": "__LYRD_CORE_SPEC__",
+    "@lyrd/core": "file:../../../../packages/core",
     "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
   "devDependencies": {
-    "@lyrd/cli": "__LYRD_CLI_SPEC__",
+    "@tailwindcss/postcss": "4.1.18",
+    "@lyrd/cli": "file:../../../../packages/cli",
     "@types/node": "24.10.0",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
+    "tailwindcss": "4.1.18",
     "typescript": "6.0.2"
   }
 }

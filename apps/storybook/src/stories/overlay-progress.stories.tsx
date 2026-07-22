@@ -2,7 +2,7 @@ import { useOverlay } from '@lyrd/core'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useRef, useState } from 'react'
 
-import { uploadProgressDialog } from '../lyrd/dialogs/upload-progress-dialog'
+import { uploadProgressDialog } from '../overlays/dialogs/upload-progress/UploadProgressDialog'
 
 const meta = {
   title: 'VNext/Overlay Progress',

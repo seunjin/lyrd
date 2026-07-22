@@ -1,12 +1,12 @@
 import { RouterProvider } from 'react-router-dom'
 
-import { AppOverlayProvider } from './lyrd/overlay-provider'
+import { OverlayProvider } from './overlays/OverlayProvider'
 import { router } from './router'
 
 export function App() {
   return (
-    <AppOverlayProvider>
+    <OverlayProvider>
       <RouterProvider router={router} />
-    </AppOverlayProvider>
+    </OverlayProvider>
   )
 }

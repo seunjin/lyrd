@@ -25,7 +25,7 @@ Goals:
    - asynchronous Confirm pending, failure, and retry
    - one typed custom overlay created with `defineOverlay()` and opened with `overlay.open()`
    - both resolved and dismissed `OverlayOutcome` branches
-6. Run `pnpm dlx @lyrd/cli add toast --verbose`. Compose `AppToastProvider` around `AppOverlayProvider` once. Demonstrate a simple `notify()`, actionable `notifyWithUndo()`, at least two simultaneous Toasts, and six Toasts to verify the generated `data-limited` styling.
+6. Run `pnpm dlx @lyrd/cli add toast --verbose`. Render `AppToastProvider` next to `OverlayProvider` once. Keep the generated global manager connection intact, and demonstrate a simple `notify()`, actionable `notifyWithUndo()`, at least two simultaneous Toasts, and six Toasts to verify the generated `data-limited` styling.
 7. If this application has a progress-like operation, retain the awaitable handle returned by `open()` or `openOrUpdate()`, update that exact session with `handle.update()`, and await its final outcome. Use `openOrUpdate()` only if the application has an honest stable operation identity shared by multiple call sites.
 8. Verify the default modal queue does not overlap, parallel Toasts do not block modal overlays, and route cleanup can call `dismissAll('route-change')` when appropriate.
 9. Re-run the CLI commands and verify customized generated files are not overwritten.

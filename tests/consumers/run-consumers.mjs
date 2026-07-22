@@ -185,6 +185,13 @@ async function findTarball(directory) {
 async function copyFixture(name, temporaryRoot, packageSpecs) {
   const fixtureDirectory = path.join(temporaryRoot, name)
   await cp(path.join(fixturesRoot, name), fixtureDirectory, { recursive: true })
+  await rm(path.join(fixtureDirectory, 'node_modules'), { recursive: true, force: true })
+  await rm(path.join(fixtureDirectory, 'src/lyrd'), { recursive: true, force: true })
+  await rm(path.join(fixtureDirectory, 'src/overlays'), { recursive: true, force: true })
+  await rm(path.join(fixtureDirectory, 'lyrd.json'), { force: true })
+  if (name === 'next-app-router') {
+    await rm(path.join(fixtureDirectory, 'src/app/lyrd-overlay-provider.tsx'), { force: true })
+  }
 
   const packageJsonPath = path.join(fixtureDirectory, 'package.json')
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
@@ -237,23 +244,50 @@ function verifyInstalledVersions(name, actualVersions, expectedVersions) {
   }
 }
 
-async function generateRenderers(fixtureDirectory) {
-  await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'overlay', '--verbose'], fixtureDirectory)
+async function generateRenderers(name, fixtureDirectory) {
+  const styling = name === 'next-app-router' ? 'tailwind-v4' : 'css-modules'
+  await runCommand(
+    pnpmCommand,
+    ['exec', 'lyrd', 'add', 'overlay', '--style', styling, '--verbose'],
+    fixtureDirectory,
+  )
   await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'dialog', 'consumer-lab'], fixtureDirectory)
   await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
 
-  const overlayDirectory = path.join(fixtureDirectory, 'src/lyrd/overlay')
+  if (name === 'next-app-router') {
+    await writeFile(
+      path.join(fixtureDirectory, 'src/app/lyrd-overlay-provider.tsx'),
+      `'use client'
+
+import type { ReactNode } from 'react'
+
+import { OverlayProvider } from '../overlays/OverlayProvider'
+import { AppToastProvider } from '../overlays/toast'
+
+export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <AppToastProvider />
+      <OverlayProvider>{children}</OverlayProvider>
+    </>
+  )
+}
+`,
+    )
+  }
+
+  const overlayDirectory = path.join(fixtureDirectory, 'src/overlays')
   const expectedFiles = [
-    'alert.tsx',
-    'confirm.tsx',
-    'overlay-provider.tsx',
-    'overlay.css',
-    'toast-definition.ts',
-    'toast.tsx',
-    'toast-group.ts',
-    'notify.ts',
-    'toast.css',
-    'dialogs/consumer-lab-dialog.tsx',
+    'alert/AlertSurface.tsx',
+    'confirm/ConfirmSurface.tsx',
+    'OverlayProvider.tsx',
+    ...(styling === 'css-modules' ? ['alert/Alert.module.css', 'confirm/Confirm.module.css'] : []),
+    'toast/definition.ts',
+    'toast/manager.ts',
+    'toast/AppToastProvider.tsx',
+    'toast/notify.ts',
+    ...(styling === 'css-modules' ? ['toast/Toast.module.css'] : []),
+    'dialogs/consumer-lab/ConsumerLabDialog.tsx',
   ]
   await Promise.all(expectedFiles.map((fileName) => access(path.join(overlayDirectory, fileName))))
 }
@@ -261,6 +295,7 @@ async function generateRenderers(fixtureDirectory) {
 async function verifyGeneratedBoundaries(name, fixtureDirectory) {
   const config = JSON.parse(await readFile(path.join(fixtureDirectory, 'lyrd.json'), 'utf8'))
   assert.equal(config.framework, name)
+  assert.equal(config.styling, name === 'next-app-router' ? 'tailwind-v4' : 'css-modules')
 
   if (name !== 'next-app-router') return
 
@@ -270,6 +305,8 @@ async function verifyGeneratedBoundaries(name, fixtureDirectory) {
   )
   const layout = await readFile(path.join(fixtureDirectory, 'src/app/layout.tsx'), 'utf8')
   assert.match(provider, /^'use client'/)
+  assert.match(provider, /<AppToastProvider \/>/)
+  assert.match(provider, /<OverlayProvider>\{children\}<\/OverlayProvider>/)
   assert.doesNotMatch(layout, /^['"]use client['"]/)
   assert.match(layout, /<LyrdOverlayProvider>\{children\}<\/LyrdOverlayProvider>/)
 }
@@ -282,7 +319,7 @@ async function prepareFixture(name, temporaryRoot, packageSpecs, expectedVersion
   const versions = await readInstalledVersions(fixtureDirectory)
   verifyInstalledVersions(name, versions, expectedVersions)
 
-  await generateRenderers(fixtureDirectory)
+  await generateRenderers(name, fixtureDirectory)
   await verifyGeneratedBoundaries(name, fixtureDirectory)
   await runCommand(pnpmCommand, ['typecheck'], fixtureDirectory)
   await runCommand(pnpmCommand, ['build'], fixtureDirectory)

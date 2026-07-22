@@ -2,8 +2,8 @@ import { useOverlay } from '@lyrd/core'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 
-import { documentEditorDialog } from '../lyrd/dialogs/document-editor-dialog'
-import { projectSettingsDialog } from '../lyrd/dialogs/project-settings-dialog'
+import { documentEditorDialog } from '../overlays/dialogs/document-editor/DocumentEditorDialog'
+import { projectSettingsDialog } from '../overlays/dialogs/project-settings/ProjectSettingsDialog'
 
 const meta = {
   title: 'VNext/Overlay Dialog',

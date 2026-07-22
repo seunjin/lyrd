@@ -1,0 +1,148 @@
+.Backdrop {
+  position: fixed;
+  min-height: 100dvh;
+  inset: 0;
+  background-color: black;
+  opacity: 0.2;
+  transition: opacity 150ms;
+}
+
+.Backdrop[data-starting-style],
+.Backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.FullscreenViewport {
+  position: fixed;
+  inset: 0;
+  z-index: 2101;
+}
+
+.FullscreenPopup {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #f8fafc;
+  transform: translateY(0);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.FullscreenPopup[data-starting-style],
+.FullscreenPopup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.FullscreenHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 28px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.Title,
+.Description {
+  margin: 0;
+}
+
+.Title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+
+.Description {
+  margin-top: 0.25rem;
+  color: oklch(43.9% 0 0deg);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.Actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.PrimaryButton,
+.SecondaryButton {
+  height: 2rem;
+  border: 1px solid oklch(14.5% 0 0deg);
+  border-radius: 0;
+  padding: 0 0.75rem;
+  color: oklch(14.5% 0 0deg);
+  background: white;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.FullscreenContent {
+  display: grid;
+  width: min(880px, calc(100% - 48px));
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 20px;
+  justify-self: center;
+  padding: 32px 0;
+}
+
+.Field {
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-weight: 650;
+}
+
+.Field input,
+.Field textarea {
+  width: 100%;
+  border: 1px solid oklch(14.5% 0 0deg);
+  border-radius: 0;
+  padding: 10px 12px;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+}
+
+.Field input:focus,
+.Field textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 14%);
+}
+
+.FieldGrow {
+  min-height: 0;
+}
+
+.FieldGrow textarea {
+  min-height: 280px;
+  resize: vertical;
+}
+
+@media (max-width: 640px) {
+  .FullscreenHeader {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .FullscreenContent {
+    width: calc(100% - 32px);
+    padding: 20px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Backdrop,
+  .FullscreenPopup {
+    transition-duration: 1ms;
+  }
+}

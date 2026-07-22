@@ -9,5 +9,5 @@ export const CLI_PACKAGE_SPECIFIER = getPackageSpecifier('@lyrd/cli')
 export const CORE_PACKAGE_SPECIFIER = getPackageSpecifier('@lyrd/core')
 export const OVERLAY_DEPENDENCIES = [
   { name: '@lyrd/core', specifier: CORE_PACKAGE_SPECIFIER },
-  { name: '@base-ui/react', specifier: '@base-ui/react' },
+  { name: '@base-ui/react', specifier: '@base-ui/react@^1.6.0' },
 ] as const

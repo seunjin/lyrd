@@ -6,8 +6,8 @@ import {
   type ConsumerLabDialogProps,
   type ConsumerLabDialogResult,
   consumerLabDialog,
-} from './lyrd/overlay/dialogs/consumer-lab-dialog'
-import { showToast } from './lyrd/overlay/notify'
+} from './overlays/dialogs/consumer-lab/ConsumerLabDialog'
+import { showToast } from './overlays/toast/notify'
 
 type LabHandle = OverlayHandle<ConsumerLabDialogProps, ConsumerLabDialogResult>
 
@@ -168,6 +168,7 @@ export function App() {
         <output data-testid="identity-result">{identityResult}</output>
       </section>
       <section>
+        <p>CSS Modules · Base UI 기본 limit 3 · hover/focus 시 stack이 펼쳐집니다.</p>
         <button data-testid="start-toasts" onClick={startToasts} type="button">
           Start toasts
         </button>

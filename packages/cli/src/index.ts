@@ -1,2 +1,2 @@
 export { run } from './cli'
-export type { Framework, LyrdConfig, PackageManager } from './types'
+export type { Framework, LyrdConfig, PackageManager, Styling } from './types'

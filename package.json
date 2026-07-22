@@ -6,6 +6,8 @@
     "build": "pnpm -r --filter './packages/*' build",
     "dev": "pnpm --parallel --filter './packages/*' --filter @lyrd/storybook dev",
     "dev:docs": "pnpm --filter @lyrd/docs dev",
+    "dev:fixture:next": "pnpm install --frozen-lockfile && pnpm build && CI=true pnpm --dir tests/consumers/fixtures/next-app-router install --frozen-lockfile && pnpm --dir tests/consumers/fixtures/next-app-router dev --hostname 127.0.0.1 --port 4174",
+    "dev:fixture:vite": "pnpm install --frozen-lockfile && pnpm build && CI=true pnpm --dir tests/consumers/fixtures/vite-react install --frozen-lockfile && pnpm --dir tests/consumers/fixtures/vite-react dev --host 127.0.0.1 --port 4173",
     "dev:storybook": "pnpm --filter @lyrd/storybook dev",
     "build:docs": "pnpm --filter @lyrd/docs build",
     "build:storybook": "pnpm --filter @lyrd/storybook build",

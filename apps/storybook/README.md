@@ -31,23 +31,27 @@ src/
     overlay-dialog.stories.tsx
     overlay-progress.stories.tsx
     overlay-toast.stories.tsx
-  lyrd/
-    alert.tsx
-    confirm.tsx
-    toast-definition.ts
-    toast-group.ts
-    toast.tsx
-    notify.ts
-    toast.css
-    dialog.css
+  overlays/
+    OverlayProvider.tsx
+    alert/
+      AlertSurface.tsx
+      Alert.module.css
+    confirm/
+      ConfirmSurface.tsx
+      Confirm.module.css
+    toast/
+      AppToastProvider.tsx
+      definition.ts
+      manager.ts
+      notify.ts
+      Toast.module.css
     dialogs/
-      project-settings-dialog.tsx
-      document-editor-dialog.tsx
-      upload-progress-dialog.tsx
-    overlay.css
+      project-settings/
+      document-editor/
+      upload-progress/
 ~~~
 
-`src/lyrd`은 CLI가 사용자 프로젝트에 생성하는 로컬 코드의 검증 기준이다. 코어는 이 JSX나 스타일을 소유하지 않는다.
+`src/overlays`는 CLI가 사용자 프로젝트에 생성하는 로컬 코드의 검증 기준이다. 코어는 이 JSX나 스타일을 소유하지 않는다.
 
 ## 명령어
 
