@@ -150,6 +150,39 @@ export function RendererApiPage() {
         </ContractList>
       </ApiEntry>
 
+      <section className="api-entry" id="primitive-boundary">
+        <div className="api-entry-heading">
+          <h2>UI primitive와 Core의 경계</h2>
+          <span>입력 감지는 UI가, 닫힘 결정은 Lyrd가 담당</span>
+        </div>
+        <CodeBlock label="EVENT FLOW">
+          {`사용자가 ESC를 누름
+→ Base UI·Radix·자체 UI가 입력을 감지
+→ Renderer가 requestClose('escape') 호출
+→ Lyrd가 topmost와 closeOnEscape 확인
+→ 허용되면 closing으로 전환
+→ UI의 exit가 끝나면 completeClose()`}
+        </CodeBlock>
+        <p>
+          Lyrd는 전역 keydown이나 pointer listener를 설치하지 않습니다. 선택한 UI가 ESC와 outside
+          press를 감지하고, 앱 Renderer가 그 사건을 Core에 전달합니다. Core는 어떤 UI 라이브러리를
+          사용했는지 알지 못하며 React session과 닫힘 정책만 관리합니다.
+        </p>
+        <ContractList>
+          <li>Base UI, Radix, shadcn 또는 자체 controlled modal을 사용할 수 있습니다.</li>
+          <li>UI primitive는 입력 감지, focus, portal과 접근성을 담당합니다.</li>
+          <li>
+            Renderer adapter는 UI 사건을 <code>requestClose()</code>로 변환합니다.
+          </li>
+          <li>Lyrd는 topmost, close option, Promise 결과와 LIFO stack을 담당합니다.</li>
+        </ContractList>
+        <Callout title="자체 UI도 가능하지만 동작까지 자동 생성되지는 않습니다">
+          자체 modal을 사용하면 ESC·outside 감지, focus trap과 복원, 배경 스크롤 방지, portal과 ARIA
+          처리를 앱이 구현해야 합니다. 애니메이션이 없다면 closing을 확인한 즉시{' '}
+          <code>completeClose()</code>를 호출합니다.
+        </Callout>
+      </section>
+
       <ApiEntry
         id="session-values"
         name="useOverlaySession"

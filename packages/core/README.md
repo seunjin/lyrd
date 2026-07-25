@@ -5,6 +5,10 @@
 Lyrd는 Dialog 같은 UI primitive나 스타일을 제공하지 않는다. 애플리케이션이 표시 request와
 renderer를 정의하며, Core는 LIFO stack, Promise 결과와 닫힘 lifecycle을 관리한다.
 
+ESC와 outside press는 Base UI, Radix 또는 자체 UI가 감지한다. 앱 renderer가 이를
+`requestClose()`로 전달하면 Core가 topmost와 close option을 확인한다. focus, portal, 접근성과
+exit animation은 UI가 담당하고, animation 완료는 `completeClose()`로 Core에 알린다.
+
 ## 설치
 
 로컬 Base UI 렌더러와 함께 설치하려면 CLI를 사용한다.

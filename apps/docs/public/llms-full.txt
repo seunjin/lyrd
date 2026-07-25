@@ -261,6 +261,12 @@ type OverlaySession<Result> = {
 Keep closing sessions mounted until `completeClose()`. This also prevents repeated ESC from leaking to
 the session below. The UI primitive and app CSS own nested focus, inert behavior, portals, and z-index.
 
+Core does not install global keyboard or pointer listeners. Base UI, Radix, shadcn, or a custom modal
+detects Escape and outside press; the app Renderer translates those events to `requestClose()`. When no
+primitive is used, the app must also implement focus trapping and restoration, scroll locking, portal
+behavior, and ARIA semantics. A modal without an exit animation may call `completeClose()` as soon as
+the session enters `closing`.
+
 ## 10. Public application methods
 
 ```ts

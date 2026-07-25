@@ -87,6 +87,7 @@ export const docsSections: DocsSection[] = [
         description: '앱 소유 UI와 primitive를 Core session에 연결하는 API입니다.',
         toc: [
           { id: 'managed-renderers', label: 'Alert와 Confirm' },
+          { id: 'primitive-boundary', label: 'UI primitive 경계' },
           { id: 'session-values', label: 'useOverlaySession' },
           { id: 'resolve', label: 'resolve' },
           { id: 'close', label: 'close' },

@@ -39,9 +39,15 @@ export function IntroductionPage() {
           <article>
             <span>UI PRIMITIVE</span>
             <h3>접근성 동작</h3>
-            <p>포커스, 키보드, portal과 접근 가능한 Dialog 동작을 담당합니다.</p>
+            <p>ESC·outside 감지, 포커스, portal과 접근 가능한 Dialog 동작을 담당합니다.</p>
           </article>
         </div>
+        <p>
+          앱 Renderer는 두 경계 사이의 adapter입니다. UI primitive가 감지한 ESC나 outside press를{' '}
+          <code>requestClose()</code>로 전달하고, Lyrd가 허용한 closing을 UI에 반영한 뒤 exit 완료를{' '}
+          <code>completeClose()</code>로 돌려줍니다. Lyrd가 키보드나 포인터 이벤트를 직접 감지하지는
+          않습니다.
+        </p>
       </section>
 
       <section id="mental-model">

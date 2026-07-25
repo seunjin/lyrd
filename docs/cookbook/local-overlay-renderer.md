@@ -81,6 +81,15 @@ ESC, outside, programmatic close에는 이 callback을 실행하지 않는다.
 
 ## 3. UI primitive lifecycle 연결하기
 
+Lyrd Core는 ESC나 outside press를 직접 감지하지 않는다. Base UI, Radix, shadcn 또는 자체 UI가
+입력을 감지하고, 앱 Renderer가 이를 Core의 close 요청으로 바꾼다.
+
+| 경계 | 책임 |
+| --- | --- |
+| UI primitive | ESC·outside 감지, focus, portal, 접근성, animation |
+| 앱 Renderer adapter | UI 사건을 `requestClose()`와 `completeClose()`에 연결 |
+| Lyrd Core | topmost, close option, Promise 결과, LIFO stack |
+
 ```tsx
 <AlertDialog.Root
   open={open}
@@ -101,6 +110,36 @@ ESC, outside, programmatic close에는 이 callback을 실행하지 않는다.
 
 중첩 modal은 모두 mount되므로 backdrop과 popup의 z-index도 stack 순서에 맞게 앱이 구성해야 한다.
 focus, inert, portal, `aria-hidden`은 선택한 primitive의 중첩 동작을 확인한다.
+
+### 자체 UI를 사용하는 경우
+
+React element라면 특정 UI 라이브러리 없이도 연결할 수 있다. 다만 자체 modal이 ESC·outside 감지,
+focus trap과 복원, 배경 스크롤 방지, portal과 ARIA를 직접 구현해야 한다.
+
+```tsx
+function CustomModal() {
+  const { completeClose, open, phase, requestClose } = useOverlaySession<Result>()
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') requestClose('escape')
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [requestClose])
+
+  useEffect(() => {
+    if (phase === 'closing') completeClose()
+  }, [completeClose, phase])
+
+  return open ? <AppModalContent /> : null
+}
+```
+
+두 번째 effect는 exit animation이 없는 예시다. animation이 있다면 transition 완료 callback에서
+`completeClose()`를 호출한다. 따라서 Lyrd는 UI agnostic이지만 adapter 연결까지 불필요한 것은
+아니다.
 
 ## 4. Custom overlay 연결하기
 
