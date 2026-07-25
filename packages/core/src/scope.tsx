@@ -7,6 +7,8 @@ import {
   useSyncExternalStore,
 } from 'react'
 import {
+  type AlertSessionPayload,
+  type ConfirmSessionPayload,
   type CustomSessionPayload,
   createScopedOverlayClient,
   getScopedClientInternals,
@@ -19,6 +21,7 @@ import type {
   OverlayScope,
   OverlaySession,
 } from './contract'
+import { createAlertRendererProps, createConfirmRendererProps } from './recipes'
 import type { OverlayRuntime, OverlayRuntimeSessionSnapshot } from './runtime'
 
 const OverlaySessionContext = createContext<OverlaySession<unknown> | null>(null)
@@ -67,6 +70,30 @@ function CustomSessionSurface({
   )
 }
 
+function AlertSessionSurface<Request extends object>({
+  runtime,
+  snapshot,
+  Renderer,
+}: {
+  runtime: OverlayRuntime
+  snapshot: OverlayRuntimeSessionSnapshot<'alert', AlertSessionPayload<Request>>
+  Renderer: OverlayRenderers<{ alert: Request; confirm: object }>['alert']
+}) {
+  return <Renderer {...createAlertRendererProps(runtime, snapshot)} />
+}
+
+function ConfirmSessionSurface<Request extends object>({
+  runtime,
+  snapshot,
+  Renderer,
+}: {
+  runtime: OverlayRuntime
+  snapshot: OverlayRuntimeSessionSnapshot<'confirm', ConfirmSessionPayload<Request>>
+  Renderer: OverlayRenderers<{ alert: object; confirm: Request }>['confirm']
+}) {
+  return <Renderer {...createConfirmRendererProps(runtime, snapshot)} />
+}
+
 type ScopeOverlayProviderProps<Requests extends OverlayRequestMap> = {
   children?: ReactNode
   client?: OverlayClient<Requests>
@@ -91,8 +118,6 @@ function createOverlayScopeInternal<Requests extends OverlayRequestMap>(): Overl
       runtime.getSnapshot,
     )
 
-    void renderers
-
     useEffect(() => retainOverlayRuntime(runtime), [runtime])
 
     useEffect(() => {
@@ -104,15 +129,47 @@ function createOverlayScopeInternal<Requests extends OverlayRequestMap>(): Overl
     return (
       <OverlayClientContext.Provider value={activeClient}>
         {children}
-        {snapshots.map((snapshot) =>
-          snapshot.kind === 'custom' ? (
+        {snapshots.map((snapshot) => {
+          if (snapshot.kind === 'alert') {
+            return (
+              <AlertSessionSurface
+                key={snapshot.id}
+                runtime={runtime}
+                snapshot={
+                  snapshot as OverlayRuntimeSessionSnapshot<
+                    'alert',
+                    AlertSessionPayload<Requests['alert']>
+                  >
+                }
+                Renderer={renderers.alert}
+              />
+            )
+          }
+
+          if (snapshot.kind === 'confirm') {
+            return (
+              <ConfirmSessionSurface
+                key={snapshot.id}
+                runtime={runtime}
+                snapshot={
+                  snapshot as OverlayRuntimeSessionSnapshot<
+                    'confirm',
+                    ConfirmSessionPayload<Requests['confirm']>
+                  >
+                }
+                Renderer={renderers.confirm}
+              />
+            )
+          }
+
+          return snapshot.kind === 'custom' ? (
             <CustomSessionSurface
               key={snapshot.id}
               runtime={runtime}
               snapshot={snapshot as OverlayRuntimeSessionSnapshot<'custom', CustomSessionPayload>}
             />
-          ) : null,
-        )}
+          ) : null
+        })}
       </OverlayClientContext.Provider>
     )
   }

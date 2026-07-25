@@ -32,6 +32,9 @@ export type OverlayRuntime = {
   ): CreatedOverlayRuntimeSession<Value>
   subscribe(listener: () => void): () => void
   getSnapshot(): readonly OverlayRuntimeSessionSnapshot[]
+  getSessionSnapshot(sessionId: number): OverlayRuntimeSessionSnapshot | undefined
+  isSessionActive(sessionId: number): boolean
+  updateSessionPayload<Payload>(sessionId: number, update: (payload: Payload) => Payload): boolean
   markOpen(sessionId: number): boolean
   resolveSession<Value>(sessionId: number, value: Value): boolean
   close(reason?: OverlayCloseReason): boolean
@@ -53,7 +56,7 @@ type RuntimeEntry = OverlayRuntimeSessionSnapshot & {
 const CLOSING_WARNING_DELAY_MS = 10_000
 const EMPTY_SNAPSHOT: readonly OverlayRuntimeSessionSnapshot[] = []
 
-function isDevelopmentRuntime(): boolean {
+export function isDevelopmentRuntime(): boolean {
   const runtimeProcess = (
     globalThis as typeof globalThis & { process?: { env?: { NODE_ENV?: string } } }
   ).process
@@ -183,6 +186,27 @@ export function createOverlayRuntime(): OverlayRuntime {
     return snapshot
   }
 
+  function getSessionSnapshot(sessionId: number): OverlayRuntimeSessionSnapshot | undefined {
+    return snapshot.find(({ id }) => id === sessionId)
+  }
+
+  function isSessionActive(sessionId: number): boolean {
+    const entry = findEntry(sessionId)
+    return Boolean(entry && !entry.settled)
+  }
+
+  function updateSessionPayload<Payload>(
+    sessionId: number,
+    update: (payload: Payload) => Payload,
+  ): boolean {
+    const entry = findEntry(sessionId)
+    if (!entry || entry.settled) return false
+
+    entry.payload = update(entry.payload as Payload)
+    publish()
+    return true
+  }
+
   function markOpen(sessionId: number): boolean {
     const entry = findEntry(sessionId)
     if (!entry || entry.settled || entry.phase !== 'opening') return false
@@ -266,6 +290,9 @@ export function createOverlayRuntime(): OverlayRuntime {
     createSession,
     subscribe,
     getSnapshot,
+    getSessionSnapshot,
+    isSessionActive,
+    updateSessionPayload,
     markOpen,
     resolveSession,
     close,

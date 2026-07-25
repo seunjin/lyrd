@@ -2,7 +2,13 @@ import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { type CustomSessionPayload, getScopedClientInternals } from './client'
-import type { OverlayClient, OverlayRenderers, OverlaySession } from './contract'
+import type {
+  AlertRendererProps,
+  ConfirmRendererProps,
+  OverlayClient,
+  OverlayRenderers,
+  OverlaySession,
+} from './contract'
 import { createOverlayScope, retainOverlayRuntime, useOverlaySession } from './scope'
 
 type AppRequests = {
@@ -56,6 +62,42 @@ beforeEach(() => {
 })
 
 describe('createOverlayScope custom session', () => {
+  it('Alert와 Confirm renderer를 custom session과 같은 stack 순서로 렌더한다', async () => {
+    const client = appOverlay.createClient()
+    const { runtime } = getScopedClientInternals(client)
+    let alertProps: AlertRendererProps<AppRequests['alert']> | undefined
+    let confirmProps: ConfirmRendererProps<AppRequests['confirm']> | undefined
+    const recipeRenderers: OverlayRenderers<AppRequests> = {
+      alert: (props) => {
+        alertProps = props
+        return <div>Alert: {props.request.message}</div>
+      },
+      confirm: (props) => {
+        confirmProps = props
+        return <div>Confirm: {props.request.heading}</div>
+      },
+    }
+    const alertHandle = client.alert({ message: '저장됨', onAction: () => undefined })
+    const confirmHandle = client.confirm({ heading: '삭제할까요?', onConfirm: () => undefined })
+    const customHandle = client.open(<SessionProbe label="직접 구성" name="custom" />)
+
+    for (const { id } of runtime.getSnapshot()) runtime.markOpen(id)
+    const markup = renderToStaticMarkup(<Provider client={client} renderers={recipeRenderers} />)
+
+    expect(markup.indexOf('Alert: 저장됨')).toBeLessThan(markup.indexOf('Confirm: 삭제할까요?'))
+    expect(markup.indexOf('Confirm: 삭제할까요?')).toBeLessThan(markup.indexOf('직접 구성'))
+    expect(alertProps?.request).toEqual({ message: '저장됨' })
+    expect(confirmProps?.request).toEqual({ heading: '삭제할까요?' })
+
+    alertProps?.action()
+    confirmProps?.confirm()
+    capturedSessions.get('custom')?.close()
+
+    await expect(alertHandle).resolves.toBeUndefined()
+    await expect(confirmHandle).resolves.toBe(true)
+    await expect(customHandle).resolves.toEqual({ status: 'closed', reason: 'programmatic' })
+  })
+
   it('JSX element를 snapshot으로 보관하고 OverlayOutcome을 반환한다', async () => {
     const client = appOverlay.createClient()
     const { runtime } = getScopedClientInternals(client)

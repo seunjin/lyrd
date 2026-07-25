@@ -292,8 +292,3 @@ describe('overlay stack runtime', () => {
     expect(secondSettled).toBe(false)
   })
 })
-
-describe('RFC 0004 recipe runtime contract', () => {
-  it.todo('Alert action이 동기 onAction을 실행하고 programmatic close는 실행하지 않는다')
-  it.todo('Confirm이 pending, error와 같은 onConfirm 재시도를 관리한다')
-})
