@@ -1,6 +1,6 @@
 {
   "name": "@lyrd/docs",
-  "version": "0.0.2",
+  "version": "0.0.3-next.0",
   "private": true,
   "type": "module",
   "scripts": {
