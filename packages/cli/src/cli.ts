@@ -44,7 +44,7 @@ interface RuntimeSnippet {
   snippet: string
 }
 
-const REPOSITORY_URL = 'https://github.com/seunjin/lyrd'
+const DOCS_URL = 'https://seunjin.github.io/lyrd'
 
 function printHelp(): void {
   console.log(`Lyrd CLI
@@ -152,7 +152,7 @@ function getOverlayPath(config: LyrdConfig): string {
     (config.styling !== 'css-modules' && config.styling !== 'tailwind-v4')
   ) {
     throw new Error(
-      '기존 lyrd.json은 vNext와 호환되지 않습니다. 파일을 제거한 뒤 다시 실행해 주세요.',
+      '기존 형식의 lyrd.json은 현재 CLI와 호환되지 않습니다. 파일을 제거한 뒤 다시 실행해 주세요.',
     )
   }
   return config.paths.overlay
@@ -298,7 +298,7 @@ async function runAddOverlay(
   const skippedPaths: string[] = []
   const updatedPaths = new Set<string>()
   const nextSteps: string[] = []
-  const docs = [`${REPOSITORY_URL}#readme`]
+  const docs = [`${DOCS_URL}/getting-started`, `${DOCS_URL}/api/renderer`]
   const runtimeSnippets: RuntimeSnippet[] = []
 
   if (created) {
@@ -329,7 +329,6 @@ async function runAddOverlay(
     }
   }
 
-  docs.push(`${REPOSITORY_URL}/blob/main/docs/rfcs/0001-overlay-intent-system.md`)
   for (const file of getOverlayScaffoldFiles(config.styling)) {
     const targetPath = path.join(overlayDir, file.name)
     await ensureDirectory(path.dirname(targetPath))
@@ -516,7 +515,7 @@ async function runAddDialog(dialogName: string, cwd: string, verbose: boolean): 
   printList('Next step', [
     `Open ${names.componentName} with overlay.open<${names.resultName}>(<${names.componentName} />)`,
   ])
-  printList('Docs', [`${REPOSITORY_URL}/blob/main/docs/rfcs/0002-registered-overlay-contract.md`])
+  printList('Docs', [`${DOCS_URL}/recipes/custom-overlay`])
 
   if (verbose) {
     console.log(`\nRuntime snippet (${names.fileName}.tsx):\n`)

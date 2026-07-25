@@ -1,4 +1,25 @@
-import { CodeBlock, ContractList, DocPage } from '../components/doc-page'
+import { CodeBlock } from '../components/code-block'
+import { ContractList, DocPage } from '../components/doc-page'
+import { type RelatedDoc, RelatedDocs } from '../components/related-docs'
+import { SectionHeading } from '../components/section-heading'
+
+const migrationRelatedDocs = [
+  {
+    path: '/api/application',
+    title: 'Application API',
+    description: '전환 후 사용할 현재 application method를 확인합니다.',
+  },
+  {
+    path: '/recipes/form-state',
+    title: 'Form state와 snapshot',
+    description: '제거된 update API 대신 state를 소유하는 방법을 확인합니다.',
+  },
+  {
+    path: '/troubleshooting',
+    title: 'Troubleshooting',
+    description: '전환 후 Provider와 lifecycle 연결 문제를 진단합니다.',
+  },
+] satisfies RelatedDoc[]
 
 export function OverlayApiMigrationPage() {
   return (
@@ -8,7 +29,7 @@ export function OverlayApiMigrationPage() {
       title="최소 modal stack으로 전환"
     >
       <section id="removed">
-        <h2>제거된 API</h2>
+        <SectionHeading id="removed">제거된 API</SectionHeading>
         <ContractList>
           <li>
             <code>defineOverlay</code>, definition input → JSX와 일반 props
@@ -28,7 +49,7 @@ export function OverlayApiMigrationPage() {
       </section>
 
       <section id="custom-overlay">
-        <h2>Custom overlay</h2>
+        <SectionHeading id="custom-overlay">Custom overlay</SectionHeading>
         <CodeBlock label="BEFORE AND AFTER">
           {`- const editor = defineOverlay(Editor)
 - overlay.open(editor, { projectId })
@@ -41,7 +62,7 @@ export function OverlayApiMigrationPage() {
       </section>
 
       <section id="lifecycle">
-        <h2>Lifecycle 이름</h2>
+        <SectionHeading id="lifecycle">Lifecycle 이름</SectionHeading>
         <CodeBlock label="BEFORE AND AFTER">
           {`- session.dismiss('cancel')
 - session.requestDismiss('outside')
@@ -56,7 +77,7 @@ export function OverlayApiMigrationPage() {
       </section>
 
       <section id="toast">
-        <h2>Toast</h2>
+        <SectionHeading id="toast">Toast</SectionHeading>
         <p>
           Toast와 parallel group starter는 Core와 CLI에서 제거되었습니다. Toast는 modal focus와 닫힘
           규칙을 공유하지 않는 non-modal notification이므로 앱의 기존 Toast 라이브러리나 별도 알림
@@ -69,6 +90,7 @@ export function OverlayApiMigrationPage() {
           저장소 migration 문서 보기 ↗
         </a>
       </section>
+      <RelatedDocs items={migrationRelatedDocs} title="현재 계약으로 이어서 보기" />
     </DocPage>
   )
 }

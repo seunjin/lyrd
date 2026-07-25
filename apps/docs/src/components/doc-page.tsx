@@ -1,4 +1,9 @@
 import type { ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
+
+import { findDocsRoute } from '../docs-manifest'
+import { CodeBlock } from './code-block'
+import { SectionHeading } from './section-heading'
 
 export function DocPage({
   boundary,
@@ -13,6 +18,12 @@ export function DocPage({
   eyebrow: string
   title: string
 }) {
+  const location = useLocation()
+  const route = findDocsRoute(location.pathname)
+  const editUrl = route
+    ? `https://github.com/seunjin/lyrd/edit/main/${route.sourcePath}`
+    : 'https://github.com/seunjin/lyrd/tree/main/apps/docs/src/pages'
+
   return (
     <article className="doc-page">
       <header className="doc-page-header">
@@ -22,29 +33,16 @@ export function DocPage({
         </div>
         <h1>{title}</h1>
         <p>{description}</p>
+        <div className="doc-page-meta">
+          <span>
+            문서 기준 · @lyrd/core v{__LYRD_CORE_VERSION__} · @lyrd/cli v{__LYRD_CLI_VERSION__} ·
+            npm latest
+          </span>
+          <a href={editUrl}>GitHub에서 이 페이지 수정 ↗</a>
+        </div>
       </header>
       <div className="doc-content">{children}</div>
     </article>
-  )
-}
-
-export function CodeBlock({ children, label }: { children: string; label?: string }) {
-  return (
-    <div className="doc-code-block">
-      {label ? <div className="doc-code-label">{label}</div> : null}
-      <pre>
-        <code>{children}</code>
-      </pre>
-    </div>
-  )
-}
-
-export function Callout({ children, title }: { children: ReactNode; title: string }) {
-  return (
-    <aside className="doc-callout">
-      <strong>{title}</strong>
-      <div>{children}</div>
-    </aside>
   )
 }
 
@@ -66,7 +64,7 @@ export function ApiEntry({
   return (
     <section className="api-entry" id={id}>
       <div className="api-entry-heading">
-        <h2>{name}</h2>
+        <SectionHeading id={id}>{name}</SectionHeading>
         <span>{purpose}</span>
       </div>
       <CodeBlock label="SIGNATURE">{signature}</CodeBlock>

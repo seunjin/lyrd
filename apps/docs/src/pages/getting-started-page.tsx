@@ -1,107 +1,126 @@
-import { Callout, CodeBlock, DocPage } from '../components/doc-page'
+import { Callout } from '../components/callout'
+import { CodeBlock } from '../components/code-block'
+import { ContractList, DocPage } from '../components/doc-page'
+import { type RelatedDoc, RelatedDocs } from '../components/related-docs'
+import { SectionHeading } from '../components/section-heading'
+
+const frameworkSetupDocs = [
+  {
+    path: '/getting-started/vite',
+    title: 'Vite React 설정',
+    description: 'main.tsx에 Provider를 연결하고 첫 Alert를 엽니다.',
+  },
+  {
+    path: '/getting-started/next-app-router',
+    title: 'Next.js App Router 설정',
+    description: 'Server layout과 생성된 client Provider 경계를 연결합니다.',
+  },
+] satisfies RelatedDoc[]
 
 export function GettingStartedPage() {
   return (
     <DocPage
-      description="CLI로 앱 소유 scope와 Base UI renderer를 만들고 Alert, Confirm, custom overlay를 엽니다."
-      eyebrow="GETTING STARTED"
-      title="첫 오버레이 열기"
+      description="프로젝트를 감지하고 앱이 소유할 Base UI Renderer를 생성한 뒤 프레임워크 root에 연결합니다."
+      eyebrow="QUICKSTART"
+      title="첫 오버레이를 준비하기"
     >
-      <section id="install">
-        <h2>1. 설치</h2>
-        <CodeBlock label="TERMINAL">{`pnpm dlx @lyrd/cli init
-pnpm dlx @lyrd/cli add overlay`}</CodeBlock>
-        <p>
-          CLI는 <code>@lyrd/core</code>와 <code>@base-ui/react</code>를 설치합니다. Core만 직접
-          구성하려면 <code>pnpm add @lyrd/core</code>를 사용합니다.
-        </p>
+      <section id="requirements">
+        <SectionHeading id="requirements">1. 시작하기 전에</SectionHeading>
+        <ContractList>
+          <li>Node.js 18 이상과 React 19 애플리케이션이 필요합니다.</li>
+          <li>
+            CLI는 Vite React의 <code>src/main.tsx</code>·<code>src/main.jsx</code>와 Next.js App
+            Router의 <code>app</code>·<code>src/app</code>을 감지합니다.
+          </li>
+          <li>
+            <code>package.json</code>이 있는 프로젝트 root에서 실행합니다. lockfile이 있으면 package
+            manager를 감지하고, 없으면 pnpm을 사용합니다.
+          </li>
+          <li>기존 Git 변경을 먼저 확인합니다. CLI는 생성 파일을 자동으로 덮어쓰지 않습니다.</li>
+        </ContractList>
       </section>
 
-      <section id="generate-renderer">
-        <h2>2. 앱 소유 Renderer 확인</h2>
-        <CodeBlock label="GENERATED FILES">
-          {`src/overlays/
-├─ scope.ts
-├─ OverlayProvider.tsx
-├─ index.ts
-├─ alert/AlertSurface.tsx
-└─ confirm/ConfirmSurface.tsx`}
+      <section id="generate">
+        <SectionHeading id="generate">2. Overlay Renderer 생성</SectionHeading>
+        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli add overlay</CodeBlock>
+        <p>
+          설정이 없다면 CLI가 CSS Modules와 Tailwind CSS v4 중 하나를 묻고 <code>lyrd.json</code>을
+          만듭니다. 이어서 <code>@lyrd/core</code>와 <code>@base-ui/react</code>를 설치하고 앱 안에
+          Alert·Confirm Renderer를 생성합니다.
+        </p>
+        <CodeBlock label="NON-INTERACTIVE">
+          {`pnpm dlx @lyrd/cli add overlay --style css-modules
+pnpm dlx @lyrd/cli add overlay --style tailwind-v4`}
         </CodeBlock>
         <p>
-          <code>scope.ts</code>의 request 타입에 title, tone처럼 제품에 필요한 표시 필드를
-          정의합니다. 생성 파일은 패키지 내부가 아니라 수정 가능한 애플리케이션 코드입니다.
+          대화형 입력을 사용할 수 없는 CI나 자동화에서는 <code>--style</code>을 반드시 지정합니다.{' '}
+          <code>--verbose</code>를 추가하면 감지된 app root에 넣을 Provider 코드도 출력합니다.
         </p>
-      </section>
-
-      <section id="connect-provider">
-        <h2>3. Provider 연결</h2>
-        <CodeBlock label="APPLICATION ROOT">
-          {`import { OverlayProvider } from './overlays'
-
-root.render(
-  <OverlayProvider>
-    <App />
-  </OverlayProvider>,
-)`}
-        </CodeBlock>
-        <Callout title="Scope와 Hook은 한 쌍입니다">
-          호출부는 Core의 전역 Hook이 아니라 생성된 <code>useOverlay</code>를 import합니다. 이
-          Hook의 request 타입은 같은 scope에서 추론됩니다.
+        <Callout title="init은 선택 사항입니다">
+          <code>pnpm dlx @lyrd/cli init</code>은 style을 선택받고 framework, package manager와
+          source root를 감지해 <code>lyrd.json</code>을 먼저 만듭니다. 바로 Renderer를 생성하려면{' '}
+          <code>add overlay</code> 하나만 실행해도 됩니다.
         </Callout>
       </section>
 
-      <section id="first-overlay">
-        <h2>4. Alert와 Confirm</h2>
-        <CodeBlock label="APPLICATION">
-          {`const overlay = useOverlay()
-
-await overlay.alert({
-  title: '저장했습니다.',
-  actionLabel: '확인',
-  onAction: () => trackSavedNotice(),
-})
-
-const confirmed = await overlay.confirm({
-  title: '프로젝트를 삭제할까요?',
-  tone: 'danger',
-  onConfirm: () => deleteProject(),
-})`}
+      <section id="generated-files">
+        <SectionHeading id="generated-files">3. 무엇이 생성되는가</SectionHeading>
+        <CodeBlock label="CSS MODULES OUTPUT">
+          {`lyrd.json
+src/overlays/
+├─ scope.ts
+├─ OverlayProvider.tsx
+├─ index.ts
+├─ alert/
+│  ├─ AlertSurface.tsx
+│  ├─ Alert.module.css
+│  └─ index.ts
+└─ confirm/
+   ├─ ConfirmSurface.tsx
+   ├─ Confirm.module.css
+   └─ index.ts`}
         </CodeBlock>
         <p>
-          Alert의 <code>onAction</code>은 동기 side effect를 실행하고 바로 닫습니다. Confirm의{' '}
-          <code>onConfirm</code>은 동기·비동기 작업을 지원하며, Core가 pending과 실패 후 retry를
-          관리합니다.
+          Tailwind CSS v4를 선택하면 별도 CSS Module 없이 같은 TypeScript 구조가 생성됩니다. Next.js
+          App Router에서는 여기에 <code>app/lyrd-overlay-provider.tsx</code> 또는{' '}
+          <code>src/app/lyrd-overlay-provider.tsx</code>가 추가됩니다.
         </p>
+        <ContractList>
+          <li>
+            <code>scope.ts</code>: 앱의 Alert·Confirm 표시 필드와 typed <code>useOverlay</code>
+          </li>
+          <li>
+            <code>OverlayProvider.tsx</code>: 앱 Renderer를 하나의 scope에 연결
+          </li>
+          <li>
+            <code>AlertSurface.tsx</code>·<code>ConfirmSurface.tsx</code>: 수정 가능한 앱 소유 UI
+          </li>
+        </ContractList>
       </section>
 
-      <section id="custom-overlay">
-        <h2>5. Custom overlay</h2>
-        <CodeBlock label="APPLICATION">
-          {`const outcome = await overlay.open<ProjectResult>(
-  <ProjectEditor projectId={projectId} />,
-)
-
-if (outcome.status === 'resolved') {
-  console.log(outcome.value)
-} else {
-  console.log(outcome.reason)
-}`}
-        </CodeBlock>
+      <section id="connect-framework">
+        <SectionHeading id="connect-framework">4. 프레임워크 root에 연결</SectionHeading>
         <p>
-          Dialog, Sheet, BottomSheet, Drawer와 fullscreen modal 모두 JSX를 직접 전달합니다. 컴포넌트
-          내부에서는 <code>useOverlaySession&lt;ProjectResult&gt;()</code>을 사용합니다.
+          CLI는 기존 app entry를 임의로 수정하지 않습니다. 아래에서 사용하는 프레임워크를 선택해
+          Provider 연결과 첫 Alert까지 완료합니다.
         </p>
+        <RelatedDocs items={frameworkSetupDocs} title="프레임워크 선택" />
       </section>
 
-      <section id="next-choice">
-        <h2>6. 다음 선택</h2>
-        <CodeBlock label="OPTIONAL DIALOG STARTER">
-          pnpm dlx @lyrd/cli add dialog project-settings
-        </CodeBlock>
-        <p>
-          CLI의 Dialog 명령은 <code>useOverlaySession()</code>이 연결된 JSX 시작점을 만듭니다.
-          Toast는 Core와 CLI 범위에 포함되지 않으므로 앱의 기존 알림 시스템을 사용합니다.
-        </p>
+      <section id="success-check">
+        <SectionHeading id="success-check">5. 성공 기준</SectionHeading>
+        <ContractList>
+          <li>Provider가 애플리케이션 root에 한 번만 mount됩니다.</li>
+          <li>
+            호출부는 생성된 <code>scope.ts</code>의 <code>useOverlay</code>를 import합니다.
+          </li>
+          <li>첫 Alert가 열리고 확인 버튼을 누르면 await가 완료됩니다.</li>
+          <li>브라우저 console에 Provider나 scope 관련 오류가 없습니다.</li>
+        </ContractList>
+        <Callout title="파일이 이미 있다면">
+          CLI는 기존 파일을 <code>Kept existing</code>으로 보고하고 덮어쓰지 않습니다. 이전 Lyrd에서
+          만든 파일이라면 새 template과 직접 비교해 필요한 부분만 병합합니다.
+        </Callout>
       </section>
     </DocPage>
   )

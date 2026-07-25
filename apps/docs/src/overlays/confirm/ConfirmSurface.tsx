@@ -2,7 +2,9 @@
 
 import { AlertDialog } from '@base-ui/react/alert-dialog'
 import type { ConfirmRendererProps } from '@lyrd/core'
+import { useEffect } from 'react'
 
+import { emitPlaygroundEvent } from '../../playground-events'
 import type { AppConfirmRequest } from '../scope'
 import styles from './Confirm.module.css'
 
@@ -13,23 +15,46 @@ export function ConfirmSurface({
   confirm,
   error,
   open,
+  phase,
   request,
   requestClose,
 }: ConfirmRendererProps<AppConfirmRequest>) {
   const pending = actionStatus === 'pending'
 
+  useEffect(() => {
+    emitPlaygroundEvent(request.playground, phase)
+  }, [phase, request.playground])
+
+  useEffect(() => {
+    if (actionStatus !== 'idle') {
+      emitPlaygroundEvent(request.playground, actionStatus)
+    }
+  }, [actionStatus, request.playground])
+
   function handleCancel() {
+    emitPlaygroundEvent(request.playground, 'close-reason', 'cancel')
     request.onCancel?.()
     cancel()
+  }
+
+  function handleOpenChange(nextOpen: boolean, eventDetails: { reason: string }) {
+    if (nextOpen) return
+    const reason = eventDetails.reason === 'escape-key' ? 'escape' : 'outside'
+    emitPlaygroundEvent(request.playground, 'close-reason', reason)
+    requestClose(reason)
+  }
+
+  function handleOpenChangeComplete(nextOpen: boolean) {
+    if (nextOpen) return
+    emitPlaygroundEvent(request.playground, 'removed')
+    completeClose()
   }
 
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen, eventDetails) =>
-        !nextOpen && requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
-      }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
+      onOpenChange={handleOpenChange}
+      onOpenChangeComplete={handleOpenChangeComplete}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className={styles.Backdrop} />

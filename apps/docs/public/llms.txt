@@ -9,6 +9,7 @@ Complete agent documentation: https://seunjin.github.io/lyrd/llms-full.txt
 Integration test prompt: https://seunjin.github.io/lyrd/agent-test-prompt.md
 Repository: https://github.com/seunjin/lyrd
 Packages: @lyrd/core and @lyrd/cli
+Stable documentation contract: @lyrd/core 0.2.0 and @lyrd/cli 0.3.0 on npm latest
 
 ## Start here
 
@@ -20,5 +21,20 @@ Packages: @lyrd/core and @lyrd/cli
 6. Treat JSX props as a call-time snapshot; keep changing state inside the open component or an external store/query.
 7. Use `overlay.close()` for the topmost session, `handle.close()` for one exact session, and `closeAll()` for all sessions.
 8. Connect `requestClose()` to ESC/outside attempts and `completeClose()` to the end of exit animation.
+9. Start troubleshooting at https://seunjin.github.io/lyrd/troubleshooting when a Provider, scope,
+   lifecycle, props snapshot, or Next.js client-boundary error occurs.
 
 Toast and non-modal notifications are outside Lyrd Core and CLI. Use only the documented modal APIs.
+
+## Documentation map
+
+- Overview and ownership: https://seunjin.github.io/lyrd/introduction
+- Quickstart: https://seunjin.github.io/lyrd/getting-started
+- Vite React: https://seunjin.github.io/lyrd/getting-started/vite
+- Next.js App Router: https://seunjin.github.io/lyrd/getting-started/next-app-router
+- Application API: https://seunjin.github.io/lyrd/api/application
+- Renderer API: https://seunjin.github.io/lyrd/api/renderer
+- Public types and defaults: https://seunjin.github.io/lyrd/api/public-types
+- Recipes: https://seunjin.github.io/lyrd/recipes/custom-overlay
+- Interactive Playground: https://seunjin.github.io/lyrd/playground
+- Troubleshooting: https://seunjin.github.io/lyrd/troubleshooting

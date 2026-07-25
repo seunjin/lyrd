@@ -1,12 +1,17 @@
 # RFC 0004: 최소 Modal Overlay Stack API
 
-- 상태: 승인·구현 전
+- 상태: 승인·구현 완료·역사적 설계 기준
 - 작성일: 2026-07-25
 - 담당: Lyrd 유지보수 팀
 - 선행 RFC:
   - [RFC 0001: Lyrd 오버레이 의도 관리 시스템](0001-overlay-intent-system.md)
   - [RFC 0002: 범용 Dialog 세션 계약](0002-registered-overlay-contract.md)
   - [RFC 0003: 오버레이 정의와 정책 계층 분리](0003-overlay-definition-and-policy-layers.md)
+
+> [!IMPORTANT]
+> 이 문서는 0.2 API를 결정한 설계 기록이며 현재 사용법과 정확한 공개 타입의 기준이 아니다. 실제
+> 사용법은 [Lyrd 문서 앱](https://seunjin.github.io/lyrd/), 공개 계약은
+> [`packages/core/src/index.ts`](../../packages/core/src/index.ts)를 확인한다.
 
 ## 요약
 
