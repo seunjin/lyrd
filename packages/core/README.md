@@ -1,8 +1,9 @@
 # @lyrd/core
 
-제품의 alert, confirm과 커스텀 오버레이 세션을 중앙에서 관리하는 Lyrd의 React 런타임이다.
+제품의 Alert, Confirm과 커스텀 modal overlay 세션을 관리하는 Lyrd의 React 런타임이다.
 
-Lyrd는 Dialog 같은 UI 프리미티브를 다시 구현하거나 JSX와 스타일을 강제하지 않는다. 런타임은 요청, Promise 결과, 대기열과 정책을 관리하고 실제 UI는 애플리케이션이 소유한 로컬 렌더러가 담당한다.
+Lyrd는 Dialog 같은 UI primitive나 스타일을 제공하지 않는다. 애플리케이션이 표시 request와
+renderer를 정의하며, Core는 LIFO stack, Promise 결과와 닫힘 lifecycle을 관리한다.
 
 ## 설치
 
@@ -18,28 +19,59 @@ pnpm dlx @lyrd/cli add overlay
 pnpm add @lyrd/core
 ```
 
-반복 사용하는 커스텀 오버레이는 `defineOverlay<Input, Result>()`로 입력과 결과를 한 번에
-정의하고 `overlay.open(definition, input)`으로 연다. 성공과 dismiss는
-`OverlayOutcome<Result>`로 구분된다. `alert()`와 `confirm()`은 각각 `void`와 `boolean`을
-반환하는 간단한 기본 경로를 유지한다. `open()`이 반환하는 `OverlayHandle`은 Promise이므로
-그대로 `await`할 수 있고, 보관하면 `update(input)`과 `dismiss(reason)`으로 해당 활성 세션을
-제어할 수 있다.
+## Scope 만들기
 
-진행률처럼 동일한 작업의 input을 계속 갱신할 때는
-`overlay.openOrUpdate(definition, identity, input)`을 사용한다. 같은 definition과 identity의
-활성 세션만 Handle과 렌더러 인스턴스를 공유하며, `open()` 호출과 다른 identity는 항상
-독립 세션이다.
+애플리케이션이 사용할 표시 필드를 정의하고 scope를 한 번 만든다. `onAction`, `onConfirm`과
+Confirm의 close 정책은 Core가 관리하는 예약 behavior다.
 
-Toast처럼 여러 세션을 동시에 렌더링할 때는 `defineOverlayGroup({ strategy: 'parallel' })`로
-정책을 선언하고 `overlay.open(definition, input, { group })`에서 선택한다. group을 생략한
-호출은 기존 modal queue를 유지하며 `dismissAll()`은 두 경로를 함께 정리한다. Group은
-전략만 감싼 플래그가 아니라 같은 실행 전략과 상태 공간을 공유하는 coordination boundary다.
+```tsx
+import { createOverlayScope } from '@lyrd/core'
+import type { ReactNode } from 'react'
 
-일반 호출자는 `alert`, `confirm`, `open`, `openOrUpdate`, `dismissAll` Application API를 사용한다.
-로컬 renderer와 definition 작성자는 `resolve`, `dismiss`, `requestDismiss`, `completeExit`
-Renderer API를 UI primitive에 한 번 연결한다. `requestDismiss`는 `dismissPolicy`를 확인하며,
-`completeExit`은 closing 이후 exit lifecycle이 끝났음을 런타임에 알린다.
-개발 모드에서 closing 상태가 10초 이상 지속되면 Lyrd가 누락 가능성을 경고한다. 경고를
-timeout으로 숨기지 말고 UI primitive의 실제 exit-complete 콜백 연결을 확인해야 한다.
+export const appOverlay = createOverlayScope<{
+  alert: { message: ReactNode; actionLabel?: ReactNode }
+  confirm: { heading: ReactNode; body?: ReactNode; primaryAction?: ReactNode }
+}>()
+```
+
+scope의 `OverlayProvider`에 앱이 소유한 Alert와 Confirm renderer를 전달한다. Renderer는 UI
+primitive의 open 상태와 exit 완료를 각각 `open`, `completeClose()`에 연결한다.
+
+```tsx
+<appOverlay.OverlayProvider
+  renderers={{
+    alert: AppAlertRenderer,
+    confirm: AppConfirmRenderer,
+  }}
+>
+  {children}
+</appOverlay.OverlayProvider>
+```
+
+## Overlay 열고 닫기
+
+`alert()`는 `void`, `confirm()`은 `boolean`을 반환한다. Confirm에 `onConfirm`을 전달하면 Core가
+동기·비동기 작업의 pending, error와 retry 상태를 관리한다.
+
+```tsx
+await overlay.alert({ message: '저장했습니다.' })
+
+const confirmed = await overlay.confirm({
+  heading: '삭제할까요?',
+  onConfirm: () => deleteProject(),
+})
+```
+
+Dialog, Sheet, BottomSheet 등 커스텀 UI는 JSX를 `open()`에 직접 전달한다. 전달한 JSX와 props는
+호출 시점의 snapshot이며, 열린 컴포넌트 안에서는 `useOverlaySession<Result>()`로 결과와 닫힘을
+제어한다.
+
+```tsx
+const outcome = await overlay.open<{ saved: true }>(<ProjectEditor projectId="project-1" />)
+```
+
+`overlay.close()`는 stack의 topmost 세션을, `handle.close()`는 정확한 세션을 닫는다.
+`overlay.closeAll('route-change')`은 같은 client의 모든 세션을 정리한다. 세션은
+`completeClose()`가 호출될 때까지 closing 상태로 mount를 유지한다.
 
 사용법과 인터랙티브 데모는 [Lyrd 문서](https://seunjin.github.io/lyrd/)에서 확인할 수 있다.

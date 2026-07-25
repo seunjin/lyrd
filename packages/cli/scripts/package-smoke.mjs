@@ -120,13 +120,24 @@ async function main() {
     assert.equal(await pathExists(path.join(installedCoreRoot, 'dist/index.d.ts')), true)
     assert.equal(await pathExists(path.join(installedCoreRoot, 'dist/index.d.cts')), true)
     assert.equal(await pathExists(path.join(installedCoreRoot, 'src')), false)
+    const coreDeclarations = await readFile(path.join(installedCoreRoot, 'dist/index.d.ts'), 'utf8')
+    assert.match(coreDeclarations, /createOverlayScope/)
+    assert.match(coreDeclarations, /useOverlaySession/)
+    assert.doesNotMatch(coreDeclarations, /createOverlayController/)
+    assert.doesNotMatch(coreDeclarations, /defineOverlay/)
+    assert.doesNotMatch(coreDeclarations, /openOrUpdate/)
+    assert.doesNotMatch(coreDeclarations, /dismissAll/)
+    assert.doesNotMatch(
+      coreDeclarations,
+      /OverlayController|OverlayDefinition|OverlayGroup|OverlayApi|OverlayDismissReason|DialogOptions|AlertSurfaceProps|ConfirmSurfaceProps/,
+    )
 
     const esmImport = await runCommand(
       'node',
       [
         '--input-type=module',
         '--eval',
-        "import { createOverlayController, defineOverlay, defineOverlayGroup } from '@lyrd/core'; const controller = createOverlayController(); const definition = defineOverlay(() => null); const handle = controller.overlay.open(definition, { value: 1 }); if (typeof defineOverlayGroup !== 'function' || typeof controller.overlay.openOrUpdate !== 'function' || typeof controller.overlay.upsert !== 'undefined' || typeof controller.getParallelSnapshots !== 'function' || !(handle instanceof Promise) || typeof handle.update !== 'function' || typeof handle.dismiss !== 'function' || !handle.update({ value: 2 }) || !handle.dismiss()) process.exit(1); const outcome = await handle; if (outcome.status !== 'dismissed') process.exit(1)",
+        "import { createElement } from 'react'; import * as core from '@lyrd/core'; const scope = core.createOverlayScope(); const client = scope.createClient(); const handle = client.open(createElement('div')); if (typeof core.useOverlaySession !== 'function' || typeof core.createOverlayController !== 'undefined' || typeof core.defineOverlay !== 'undefined' || typeof client.close !== 'function' || typeof client.closeAll !== 'function' || typeof client.openOrUpdate !== 'undefined' || !(handle instanceof Promise) || typeof handle.close !== 'function' || typeof handle.update !== 'undefined' || !handle.close()) process.exit(1); const outcome = await handle; if (outcome.status !== 'closed' || outcome.reason !== 'programmatic') process.exit(1)",
       ],
       fixtureDirectory,
     )
@@ -136,7 +147,7 @@ async function main() {
       'node',
       [
         '--eval',
-        "const { createOverlayController, defineOverlay, defineOverlayGroup } = require('@lyrd/core'); const controller = createOverlayController(); const definition = defineOverlay(() => null); const handle = controller.overlay.open(definition, { value: 1 }); if (typeof defineOverlayGroup !== 'function' || typeof controller.overlay.openOrUpdate !== 'function' || typeof controller.overlay.upsert !== 'undefined' || typeof controller.getParallelSnapshots !== 'function' || !(handle instanceof Promise) || typeof handle.update !== 'function' || typeof handle.dismiss !== 'function' || !handle.update({ value: 2 }) || !handle.dismiss()) process.exit(1); handle.then((outcome) => { if (outcome.status !== 'dismissed') process.exit(1) })",
+        "const { createElement } = require('react'); const core = require('@lyrd/core'); const scope = core.createOverlayScope(); const client = scope.createClient(); const handle = client.open(createElement('div')); if (typeof core.useOverlaySession !== 'function' || typeof core.createOverlayController !== 'undefined' || typeof core.defineOverlay !== 'undefined' || typeof client.close !== 'function' || typeof client.closeAll !== 'function' || typeof client.openOrUpdate !== 'undefined' || !(handle instanceof Promise) || typeof handle.close !== 'function' || typeof handle.update !== 'undefined' || !handle.close()) process.exit(1); handle.then((outcome) => { if (outcome.status !== 'closed' || outcome.reason !== 'programmatic') process.exit(1) })",
       ],
       fixtureDirectory,
     )
