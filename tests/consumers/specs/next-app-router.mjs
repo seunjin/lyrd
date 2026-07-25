@@ -2,6 +2,16 @@ import assert from 'node:assert/strict'
 
 import { assertHealthyPage, collectBrowserErrors } from './browser-errors.mjs'
 
+async function expectText(locator, expected) {
+  await locator.waitFor({ state: 'visible' })
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline) {
+    if ((await locator.innerText()) === expected) return
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+  assert.equal(await locator.innerText(), expected)
+}
+
 export async function verifyNextConsumer(page, baseUrl) {
   const errors = collectBrowserErrors(page)
 
@@ -10,12 +20,8 @@ export async function verifyNextConsumer(page, baseUrl) {
   await page.getByTestId('next-alert').click()
   await page.getByText('Next hydrated alert', { exact: true }).waitFor({ state: 'visible' })
   await page.getByRole('button', { name: '확인' }).click()
-  await page.getByTestId('next-result').waitFor({ state: 'visible' })
-  assert.equal(await page.getByTestId('next-result').innerText(), 'alert:resolved')
+  await expectText(page.getByTestId('next-result'), 'alert:action:resolved')
   await page.getByText('Next hydrated alert', { exact: true }).waitFor({ state: 'hidden' })
-
-  await page.getByTestId('next-toast').click()
-  await page.getByText('Tailwind CSS v4 toast', { exact: true }).waitFor({ state: 'visible' })
 
   await page.getByTestId('open-and-navigate').click()
   await page.getByText('Route cleanup dialog', { exact: true }).waitFor({ state: 'visible' })
@@ -25,7 +31,7 @@ export async function verifyNextConsumer(page, baseUrl) {
   await page.waitForFunction(() => sessionStorage.getItem('lyrd-route-outcome') !== null)
   assert.deepEqual(
     await page.evaluate(() => JSON.parse(sessionStorage.getItem('lyrd-route-outcome') ?? 'null')),
-    { status: 'dismissed', reason: 'route-change' },
+    { status: 'closed', reason: 'route-change' },
   )
 
   await page.getByRole('link', { name: 'Back to lab' }).click()

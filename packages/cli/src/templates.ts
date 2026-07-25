@@ -421,20 +421,13 @@ export function ${componentName}Dialog({
   title = '${title}',
 }: ${componentName}DialogProps) {
   const session = useOverlaySession<${componentName}DialogResult>()
-  const {
-    open,
-    requestClose,
-    completeClose,
-    close,
-    resolve,
-  } = session
+  const { open, requestClose, completeClose, close, resolve } = session
 
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(nextOpen, eventDetails) =>
-        !nextOpen &&
-        requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        !nextOpen && requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
       onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
     >
@@ -451,11 +444,7 @@ export function ${componentName}Dialog({
           {children ? <div className="lyrd-dialog-content">{children}</div> : null}
 
           <footer className="lyrd-dialog-actions">
-            <button
-              className="lyrd-dialog-button"
-              onClick={() => close('cancel')}
-              type="button"
-            >
+            <button className="lyrd-dialog-button" onClick={() => close('cancel')} type="button">
               취소
             </button>
             <button

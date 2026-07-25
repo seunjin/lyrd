@@ -4,7 +4,16 @@ import { assertHealthyPage, collectBrowserErrors } from './browser-errors.mjs'
 
 async function expectText(locator, expected) {
   await locator.waitFor({ state: 'visible' })
+  const deadline = Date.now() + 5_000
+  while (Date.now() < deadline) {
+    if ((await locator.innerText()) === expected) return
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
   assert.equal(await locator.innerText(), expected)
+}
+
+function dialogWithText(page, text) {
+  return page.locator('[role="dialog"], [role="alertdialog"]').filter({ hasText: text })
 }
 
 export async function verifyViteConsumer(page, baseUrl) {
@@ -13,75 +22,78 @@ export async function verifyViteConsumer(page, baseUrl) {
   await expectText(page.getByRole('heading', { name: 'Lyrd Vite consumer' }), 'Lyrd Vite consumer')
 
   await page.getByTestId('open-alert').click()
-  await page.getByText('Alert contract', { exact: true }).waitFor({ state: 'visible' })
+  await dialogWithText(page, 'Alert contract').waitFor({ state: 'visible' })
   await page.getByRole('button', { name: '확인' }).click()
-  await expectText(page.getByTestId('alert-result'), 'resolved')
-  await page.getByText('Alert contract', { exact: true }).waitFor({ state: 'hidden' })
+  await expectText(page.getByTestId('alert-result'), 'action:resolved')
+  await dialogWithText(page, 'Alert contract').waitFor({ state: 'hidden' })
 
   await page.getByTestId('open-confirm').click()
-  await page.getByText('Confirm contract', { exact: true }).waitFor({ state: 'visible' })
-  await page.getByRole('button', { name: '진행' }).click()
+  await dialogWithText(page, 'Pending confirm').waitFor({ state: 'visible' })
+  await page.getByRole('button', { name: '저장' }).click()
+  const pendingButton = page.getByRole('button', { name: '처리 중' })
+  await pendingButton.waitFor({ state: 'visible' })
+  assert.equal(await pendingButton.isDisabled(), true)
   await expectText(page.getByTestId('confirm-result'), 'true')
-  await page.getByText('Confirm contract', { exact: true }).waitFor({ state: 'hidden' })
+  await dialogWithText(page, 'Pending confirm').waitFor({ state: 'hidden' })
 
-  await page.getByTestId('open-confirm').click()
-  await page.getByText('Confirm contract', { exact: true }).waitFor({ state: 'visible' })
+  await page.getByTestId('open-cancel-confirm').click()
+  await dialogWithText(page, 'Cancel confirm').waitFor({ state: 'visible' })
   await page.getByRole('button', { name: '취소' }).click()
-  await expectText(page.getByTestId('confirm-result'), 'false')
-  await page.getByText('Confirm contract', { exact: true }).waitFor({ state: 'hidden' })
+  await expectText(page.getByTestId('cancel-result'), 'callback:true,result:false')
+  await dialogWithText(page, 'Cancel confirm').waitFor({ state: 'hidden' })
 
-  await page.getByTestId('start-queue').click()
-  const firstQueueTitle = page.getByText('Queue first', { exact: true })
-  const secondQueueTitle = page.getByText('Queue second', { exact: true })
-  await firstQueueTitle.waitFor({ state: 'visible' })
-  assert.equal(await secondQueueTitle.count(), 0, '두 번째 modal은 queue에서 기다려야 합니다.')
-  await page.getByRole('button', { name: '완료' }).click()
-  await page
-    .locator('[role="dialog"][data-ending-style]')
-    .filter({ hasText: 'Queue first' })
-    .waitFor({ state: 'attached' })
-  assert.equal(
-    await secondQueueTitle.count(),
-    0,
-    'outcome resolve 뒤 completeExit 전에는 다음 modal이 진입하면 안 됩니다.',
-  )
-  await secondQueueTitle.waitFor({ state: 'visible' })
-  await page.getByRole('button', { name: '완료' }).click()
-  await expectText(page.getByTestId('queue-result'), 'resolved:true,resolved:true')
-  await secondQueueTitle.waitFor({ state: 'hidden' })
+  await page.getByTestId('open-retry-confirm').click()
+  const retryDialog = dialogWithText(page, 'Retry confirm')
+  await retryDialog.waitFor({ state: 'visible' })
+  await retryDialog.getByRole('button', { name: '재시도' }).click()
+  await retryDialog.getByRole('alert').waitFor({ state: 'visible' })
+  assert.match(await retryDialog.getByRole('alert').innerText(), /first attempt failed/)
+  await retryDialog.getByRole('button', { name: '재시도' }).click()
+  await expectText(page.getByTestId('retry-result'), 'result:true,attempts:2')
+  await retryDialog.waitFor({ state: 'hidden' })
 
-  await page.getByTestId('start-handle').click()
-  await expectText(page.getByTestId('handle-result'), 'awaitable:true')
-  await page.getByText('Handle before update', { exact: true }).waitFor({ state: 'visible' })
-  await page.getByTestId('dialog-update-handle').click()
-  await expectText(page.getByTestId('handle-result'), 'updated:true')
-  await page.getByText('Handle after update', { exact: true }).waitFor({ state: 'visible' })
-  await page.getByTestId('dialog-dismiss-handle').click()
-  await expectText(page.getByTestId('handle-result'), 'dismissed:programmatic')
-  await page.getByText('Handle after update', { exact: true }).waitFor({ state: 'hidden' })
+  await page.getByTestId('open-custom').click()
+  const customDialog = dialogWithText(page, 'Custom result dialog')
+  await customDialog.waitFor({ state: 'visible' })
+  await customDialog.getByRole('button', { name: '완료' }).click()
+  await expectText(page.getByTestId('custom-result'), 'resolved:true')
+  await customDialog.waitFor({ state: 'hidden' })
 
-  await page.getByTestId('start-identity').click()
-  await expectText(page.getByTestId('identity-result'), 'same:true')
-  await page.getByText('Identity after update', { exact: true }).waitFor({ state: 'visible' })
-  await page.getByTestId('dialog-dismiss-identity').click()
-  await expectText(page.getByTestId('identity-result'), 'dismissed:programmatic')
-  await page.getByText('Identity after update', { exact: true }).waitFor({ state: 'hidden' })
+  await page.getByTestId('open-nested').click()
+  const parentDialog = dialogWithText(page, 'Nested parent dialog')
+  await parentDialog.waitFor({ state: 'visible' })
+  await parentDialog.getByTestId('open-nested-confirm').click()
+  const nestedConfirm = page.getByRole('alertdialog', { name: 'Nested confirm' })
+  await nestedConfirm.waitFor({ state: 'visible' })
+  await nestedConfirm.getByRole('button', { name: '중첩 확인' }).click()
+  await expectText(page.getByTestId('nested-result'), 'true')
+  await parentDialog.waitFor({ state: 'visible' })
+  await parentDialog.getByRole('button', { name: '완료' }).click()
+  await expectText(page.getByTestId('nested-outer-result'), 'resolved')
+  await parentDialog.waitFor({ state: 'hidden' })
 
-  await page.getByTestId('start-toasts').click()
-  await expectText(page.getByTestId('toast-result'), 'opened:2')
-  await page.getByText('Parallel toast one', { exact: true }).waitFor({ state: 'visible' })
-  await page.getByText('Parallel toast two', { exact: true }).waitFor({ state: 'visible' })
-  await page.getByTestId('dismiss-all').click()
-  await expectText(
-    page.getByTestId('toast-result'),
-    'dismissed:programmatic,dismissed:programmatic',
-  )
-  assert.ok(
-    (await page.locator('[data-ending-style]').filter({ hasText: 'Parallel toast' }).count()) > 0,
-    'parallel session은 outcome 뒤 exit animation이 끝날 때까지 렌더링되어야 합니다.',
-  )
-  await page.getByText('Parallel toast one', { exact: true }).waitFor({ state: 'hidden' })
-  await page.getByText('Parallel toast two', { exact: true }).waitFor({ state: 'hidden' })
+  await page.getByTestId('open-close-stack').click()
+  const handleDialog = dialogWithText(page, 'Handle close target')
+  const clientDialog = dialogWithText(page, 'Client close target')
+  await handleDialog.waitFor({ state: 'visible' })
+  await clientDialog.waitFor({ state: 'visible' })
+  await clientDialog.getByTestId('handle-close').click()
+  await expectText(page.getByTestId('handle-close-result'), 'cancel')
+  await handleDialog.waitFor({ state: 'hidden' })
+  await clientDialog.waitFor({ state: 'visible' })
+  await clientDialog.getByTestId('client-close').click()
+  await expectText(page.getByTestId('client-close-result'), 'programmatic')
+  await clientDialog.waitFor({ state: 'hidden' })
+
+  await page.getByTestId('open-close-all').click()
+  const closeAllLower = dialogWithText(page, 'Close all lower')
+  const closeAllTop = dialogWithText(page, 'Close all top')
+  await closeAllLower.waitFor({ state: 'visible' })
+  await closeAllTop.waitFor({ state: 'visible' })
+  await closeAllTop.getByTestId('client-close-all').click()
+  await expectText(page.getByTestId('close-all-result'), 'route-change,route-change')
+  await closeAllLower.waitFor({ state: 'hidden' })
+  await closeAllTop.waitFor({ state: 'hidden' })
 
   await assertHealthyPage(page, errors)
 }
