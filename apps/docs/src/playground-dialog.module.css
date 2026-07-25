@@ -1,0 +1,139 @@
+.Backdrop {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  background: rgb(23 23 21 / 48%);
+  transition: opacity 150ms ease;
+}
+
+.Backdrop[data-starting-style],
+.Backdrop[data-ending-style] {
+  opacity: 0;
+}
+
+.Viewport {
+  position: fixed;
+  z-index: 201;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  place-items: center;
+  padding: 24px;
+}
+
+.Popup {
+  display: flex;
+  width: min(460px, 100%);
+  flex-direction: column;
+  gap: 24px;
+  border: 1px solid var(--color-ink);
+  padding: 28px;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  box-shadow: 8px 8px 0 rgb(23 23 21 / 18%);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.Popup[data-starting-style],
+.Popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+.Copy {
+  display: grid;
+  gap: 8px;
+}
+
+.Kicker,
+.Title,
+.Description {
+  margin: 0;
+}
+
+.Kicker {
+  color: var(--color-accent-dark);
+  font: 700 10px / 1 var(--font-mono);
+  letter-spacing: 0.1em;
+}
+
+.Title {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.Description {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.Field {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.Field input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-ink);
+  border-radius: 0;
+  padding: 0 12px;
+  color: var(--color-ink);
+  background: #fff;
+}
+
+.Actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.PrimaryButton,
+.SecondaryButton {
+  min-height: 40px;
+  border: 1px solid var(--color-ink);
+  border-radius: 0;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.PrimaryButton {
+  color: #fff;
+  background: var(--color-ink);
+}
+
+.SecondaryButton {
+  color: var(--color-ink);
+  background: transparent;
+}
+
+.PrimaryButton:hover,
+.SecondaryButton:hover {
+  color: var(--color-ink);
+  background: var(--color-accent);
+}
+
+@media (max-width: 640px) {
+  .Viewport {
+    align-items: end;
+    padding: 16px;
+  }
+
+  .Popup {
+    padding: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Backdrop,
+  .Popup {
+    transition: none;
+  }
+}

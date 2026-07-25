@@ -3,6 +3,8 @@ import type { OverlayDefinitionComponentProps } from '@lyrd/core'
 import { defineOverlay } from '@lyrd/core'
 import { useState } from 'react'
 
+import styles from './playground-dialog.module.css'
+
 export type PlaygroundDialogResult = {
   name: string
 }
@@ -30,30 +32,30 @@ function PlaygroundDialog({ input, session }: PlaygroundDialogProps) {
       onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
     >
       <Dialog.Portal>
-        <Dialog.Backdrop className="docs-overlay-backdrop" />
-        <Dialog.Viewport className="docs-overlay-viewport">
-          <Dialog.Popup className="docs-overlay-popup docs-dialog-popup">
-            <div className="docs-overlay-copy">
-              <p className="docs-overlay-kicker">CUSTOM DIALOG · {projectId}</p>
-              <Dialog.Title className="docs-overlay-title">프로젝트 이름 변경</Dialog.Title>
-              <Dialog.Description className="docs-overlay-description">
+        <Dialog.Backdrop className={styles.Backdrop} />
+        <Dialog.Viewport className={styles.Viewport}>
+          <Dialog.Popup className={styles.Popup}>
+            <div className={styles.Copy}>
+              <p className={styles.Kicker}>CUSTOM DIALOG · {projectId}</p>
+              <Dialog.Title className={styles.Title}>프로젝트 이름 변경</Dialog.Title>
+              <Dialog.Description className={styles.Description}>
                 이 UI는 패키지가 아니라 문서 앱이 직접 소유합니다.
               </Dialog.Description>
             </div>
-            <label className="docs-dialog-field">
+            <label className={styles.Field}>
               <span>프로젝트 이름</span>
               <input value={name} onChange={(event) => setName(event.target.value)} />
             </label>
-            <div className="docs-overlay-actions">
+            <div className={styles.Actions}>
               <button
-                className="docs-overlay-button docs-overlay-button-secondary"
+                className={styles.SecondaryButton}
                 onClick={() => session.dismiss('cancel')}
                 type="button"
               >
                 취소
               </button>
               <button
-                className="docs-overlay-button docs-overlay-button-primary"
+                className={styles.PrimaryButton}
                 onClick={() => session.resolve({ name })}
                 type="button"
               >
