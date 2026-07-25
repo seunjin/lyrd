@@ -1,4 +1,24 @@
 export type {
+  AlertBehavior,
+  AlertRendererProps,
+  AlertRequest,
+  ConfirmActionStatus,
+  ConfirmBehavior,
+  ConfirmRendererProps,
+  ConfirmRequest,
+  OpenOptions,
+  OverlayClient,
+  OverlayCloseReason,
+  OverlayCloseRequestReason,
+  OverlayHandle,
+  OverlayOutcome,
+  OverlayPhase,
+  OverlayRenderers,
+  OverlayRequestMap,
+  OverlayScope,
+  OverlaySession,
+} from './contract'
+export type {
   OverlayController,
   OverlayControllerSnapshot,
   OverlayDefinitionSnapshot,
@@ -9,11 +29,9 @@ export { defineOverlayGroup } from './group'
 export type { OverlayProviderProps } from './provider'
 export { OverlayProvider, useOverlay, useOverlayDialog } from './provider'
 export type {
-  AlertRequest,
   AlertSnapshot,
   AlertStatus,
   AlertSurfaceProps,
-  ConfirmRequest,
   ConfirmSnapshot,
   ConfirmStatus,
   ConfirmSurfaceProps,
@@ -29,9 +47,5 @@ export type {
   OverlayGroup,
   OverlayGroupOptions,
   OverlayGroupStrategy,
-  OverlayHandle,
   OverlayOpenOptions,
-  OverlayOutcome,
-  OverlayRenderers,
-  OverlaySession,
 } from './types'
