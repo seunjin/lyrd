@@ -257,6 +257,23 @@ describe('overlay stack runtime', () => {
     expect(listener).toHaveBeenCalledOnce()
   })
 
+  it('dispose가 남은 Promise와 closing timer를 정리한다', async () => {
+    vi.useFakeTimers()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const runtime = createOverlayRuntime()
+    const custom = createCustom(runtime, 'custom')
+    const confirm = createConfirm(runtime, 'confirm')
+    runtime.closeSession(confirm.id)
+
+    runtime.dispose('route-change')
+
+    await expect(custom.handle).resolves.toEqual({ status: 'closed', reason: 'route-change' })
+    await expect(confirm.handle).resolves.toBe(false)
+    expect(runtime.getSnapshot()).toEqual([])
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
   it('서로 다른 runtime의 stack과 close는 격리된다', async () => {
     const firstRuntime = createOverlayRuntime()
     const secondRuntime = createOverlayRuntime()

@@ -5,7 +5,6 @@ import type {
   AlertRequest,
   ConfirmRendererProps,
   ConfirmRequest,
-  CreateOverlayScope,
   OverlayClient,
   OverlayHandle,
   OverlayOutcome,
@@ -14,6 +13,7 @@ import type {
   OverlayScope,
   OverlaySession,
 } from './contract'
+import { createOverlayScope } from './scope'
 
 type AppAlertFields = {
   message: ReactNode
@@ -42,7 +42,6 @@ type AppRequests = {
 
 type AppClient = OverlayClient<AppRequests>
 
-declare const createOverlayScope: CreateOverlayScope
 declare const element: ReactElement
 
 function assertValidCalls(client: AppClient) {

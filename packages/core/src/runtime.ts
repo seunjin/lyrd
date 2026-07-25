@@ -39,6 +39,7 @@ export type OverlayRuntime = {
   requestClose(sessionId: number, reason: OverlayCloseRequestReason): boolean
   completeClose(sessionId: number): void
   closeAll(reason?: OverlayCloseReason): void
+  dispose(reason?: OverlayCloseReason): void
 }
 
 type RuntimeEntry = OverlayRuntimeSessionSnapshot & {
@@ -247,6 +248,20 @@ export function createOverlayRuntime(): OverlayRuntime {
     if (changed) publish()
   }
 
+  function dispose(reason: OverlayCloseReason = 'programmatic'): void {
+    for (const entry of entries) {
+      if (!entry.settled) {
+        entry.settled = true
+        entry.settle(entry.closeValue(reason))
+      }
+      clearClosingWarning(entry.id)
+    }
+
+    entries = []
+    snapshot = EMPTY_SNAPSHOT
+    notify()
+  }
+
   return {
     createSession,
     subscribe,
@@ -258,5 +273,6 @@ export function createOverlayRuntime(): OverlayRuntime {
     requestClose,
     completeClose,
     closeAll,
+    dispose,
   }
 }

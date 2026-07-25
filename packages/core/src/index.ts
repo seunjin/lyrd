@@ -28,6 +28,7 @@ export { defineOverlay } from './definition'
 export { defineOverlayGroup } from './group'
 export type { OverlayProviderProps } from './provider'
 export { OverlayProvider, useOverlay, useOverlayDialog } from './provider'
+export { createOverlayScope, useOverlaySession } from './scope'
 export type {
   AlertSnapshot,
   AlertStatus,
