@@ -1,8 +1,8 @@
-import { useOverlay } from '@lyrd/core'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { playgroundDialog } from '../playground-dialog'
+import { useOverlay } from '../overlays/scope'
+import { PlaygroundDialog, type PlaygroundDialogResult } from '../playground-dialog'
 
 export function PlaygroundPage() {
   const overlay = useOverlay()
@@ -13,7 +13,7 @@ export function PlaygroundPage() {
     await overlay.alert({
       title: '배포 준비가 완료되었습니다.',
       description: '필수 품질 게이트가 모두 통과했습니다.',
-      acknowledgeLabel: '확인',
+      actionLabel: '확인',
     })
     setResult('alert · 사용자가 내용을 확인했습니다.')
   }
@@ -46,10 +46,12 @@ export function PlaygroundPage() {
   }
 
   async function showDialog() {
-    const outcome = await overlay.open(playgroundDialog, { projectId: 'lyrd-docs' })
+    const outcome = await overlay.open<PlaygroundDialogResult>(
+      <PlaygroundDialog projectId="lyrd-docs" />,
+    )
     setResult(
       outcome.status === 'resolved'
-        ? `dialog · “${outcome.value.name}”을 저장했습니다.`
+        ? `dialog · “${outcome.value.name}” 이름으로 저장했습니다.`
         : `dialog · 저장하지 않았습니다. (${outcome.reason})`,
     )
   }
@@ -62,8 +64,8 @@ export function PlaygroundPage() {
           <h1>요청부터 결과까지 직접 확인하세요.</h1>
         </div>
         <p className="playground-description">
-          모든 화면은 문서 앱이 소유한 Base UI renderer입니다. Lyrd는 뒤에서 상태, 결과와 queue를
-          관리합니다.
+          모든 화면은 문서 앱이 소유한 Base UI renderer입니다. Lyrd는 뒤에서 상태, 결과와 LIFO
+          stack을 관리합니다.
         </p>
       </header>
 
@@ -101,7 +103,7 @@ export function PlaygroundPage() {
           </p>
           <div>
             <i />
-            <span>central overlay queue</span>
+            <span>shared LIFO overlay stack</span>
             <i />
           </div>
         </div>

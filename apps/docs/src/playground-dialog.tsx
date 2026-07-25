@@ -1,6 +1,5 @@
 import { Dialog } from '@base-ui/react/dialog'
-import type { OverlayDefinitionComponentProps } from '@lyrd/core'
-import { defineOverlay } from '@lyrd/core'
+import { useOverlaySession } from '@lyrd/core'
 import { useState } from 'react'
 
 import styles from './playground-dialog.module.css'
@@ -13,13 +12,8 @@ export type PlaygroundDialogInput = {
   projectId: string
 }
 
-type PlaygroundDialogProps = OverlayDefinitionComponentProps<
-  PlaygroundDialogInput,
-  PlaygroundDialogResult
->
-
-function PlaygroundDialog({ input, session }: PlaygroundDialogProps) {
-  const { projectId } = input
+export function PlaygroundDialog({ projectId }: PlaygroundDialogInput) {
+  const session = useOverlaySession<PlaygroundDialogResult>()
   const [name, setName] = useState('Lyrd 문서')
 
   return (
@@ -27,9 +21,9 @@ function PlaygroundDialog({ input, session }: PlaygroundDialogProps) {
       open={session.open}
       onOpenChange={(nextOpen, eventDetails) =>
         !nextOpen &&
-        session.requestDismiss(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className={styles.Backdrop} />
@@ -49,7 +43,7 @@ function PlaygroundDialog({ input, session }: PlaygroundDialogProps) {
             <div className={styles.Actions}>
               <button
                 className={styles.SecondaryButton}
-                onClick={() => session.dismiss('cancel')}
+                onClick={() => session.close('cancel')}
                 type="button"
               >
                 취소
@@ -68,5 +62,3 @@ function PlaygroundDialog({ input, session }: PlaygroundDialogProps) {
     </Dialog.Root>
   )
 }
-
-export const playgroundDialog = defineOverlay(PlaygroundDialog)

@@ -4,213 +4,115 @@ export function ApplicationApiPage() {
   return (
     <DocPage
       boundary="application"
-      description="제품 코드가 사용자 의도를 요청하는 표면입니다. Renderer lifecycle method와 분리해서 사용합니다."
+      description="제품 코드는 scope가 제공하는 다섯 메서드로 modal interaction을 열고 닫습니다."
       eyebrow="API REFERENCE"
       title="Application API"
     >
       <ApiEntry
+        id="scope"
+        name="createOverlayScope"
+        returns="OverlayScope<Requests>"
+        purpose="앱의 request 타입과 Provider·Hook·client를 한 경계로 생성"
+        signature="createOverlayScope<Requests>(): OverlayScope<Requests>"
+      >
+        <CodeBlock>
+          {`const appOverlay = createOverlayScope<{
+  alert: AppAlertRequest
+  confirm: AppConfirmRequest
+}>()
+
+export const useOverlay = appOverlay.useOverlay`}
+        </CodeBlock>
+        <p>
+          Alert·Confirm의 표시 필드는 앱이 정합니다. Core 예약 behavior인 <code>onAction</code>,{' '}
+          <code>onConfirm</code>과 Confirm의 close options는 자동으로 결합됩니다.
+        </p>
+      </ApiEntry>
+
+      <ApiEntry
         id="alert"
         name="alert"
-        returns={<code>Promise&lt;void&gt;</code>}
-        purpose="내용을 인지하고 닫는 단일 확인 흐름"
-        signature="overlay.alert(request: AlertRequest): Promise<void>"
+        returns={<code>OverlayHandle&lt;void&gt;</code>}
+        purpose="내용을 인지하고 닫는 단일 action"
+        signature="overlay.alert(request: AlertRequest): OverlayHandle<void>"
       >
+        <CodeBlock>{`await overlay.alert({
+  title: '저장했습니다.',
+  actionLabel: '확인',
+  onAction: () => trackNotice(),
+})`}</CodeBlock>
         <p>
-          정보 전달이나 완료 알림처럼 선택지가 하나인 경우 사용합니다. <code>request</code>에는
-          title, description, acknowledgeLabel과 선택적 dedupeKey를 전달합니다.
+          Renderer는 <code>action()</code>을 호출합니다. Core는 호출부의 <code>onAction</code>을
+          실행하고 즉시 닫습니다. Alert action은 비동기 pending UX를 제공하지 않습니다.
         </p>
-        <p>
-          같은 종류와 <code>dedupeKey</code>를 가진 활성·대기 요청이 있으면 새 항목을 만들지 않고
-          기존 Promise를 반환합니다.
-        </p>
-        <CodeBlock>
-          {`await overlay.alert({
-  title: '배포 준비가 완료되었습니다.',
-  description: '품질 게이트가 모두 통과했습니다.',
-  acknowledgeLabel: '확인',
-})`}
-        </CodeBlock>
       </ApiEntry>
 
       <ApiEntry
         id="confirm"
         name="confirm"
-        returns={<code>Promise&lt;boolean&gt;</code>}
-        purpose="취소와 진행 중 하나를 선택하는 확인 흐름"
-        signature="overlay.confirm(request: ConfirmRequest): Promise<boolean>"
+        returns={<code>OverlayHandle&lt;boolean&gt;</code>}
+        purpose="취소와 진행을 선택하고 확인 작업을 관리"
+        signature="overlay.confirm(request: ConfirmRequest): OverlayHandle<boolean>"
       >
-        <p>
-          confirmLabel은 필수이며 cancelLabel, tone, dismissPolicy, dedupeKey와 비동기 onConfirm을
-          선택적으로 지정합니다. 확인이 완료되면 true, 취소되면 false입니다.
-        </p>
-        <p>
-          비동기 <code>onConfirm</code>이 실패하면 요청은 error 상태로 열린 채 유지되어 다시 시도할
-          수 있습니다. Promise는 작업이 성공한 뒤에만 true로 완료됩니다.
-        </p>
-        <CodeBlock>
-          {`const confirmed = await overlay.confirm({
+        <CodeBlock>{`const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
-  confirmLabel: '삭제',
-  cancelLabel: '취소',
   tone: 'danger',
-  dismissPolicy: 'block',
-  onConfirm: () => deleteProject(projectId),
-})`}
-        </CodeBlock>
-      </ApiEntry>
-
-      <ApiEntry
-        id="dialog"
-        name="dialog"
-        returns={<code>Promise&lt;Result | undefined&gt;</code>}
-        purpose="단발성 React element와 기존 Dialog를 위한 escape hatch"
-        signature="overlay.dialog<Result>(element, options?): Promise<Result | undefined>"
-      >
+  onConfirm: () => deleteProject(),
+  closeOnEscape: false,
+})`}</CodeBlock>
         <p>
-          기존 Dialog를 점진적으로 옮기거나 일회성 JSX를 열 때 사용합니다. 열린 element 안에서는{' '}
-          <code>useOverlayDialog&lt;Result&gt;()</code>로 open, status, resolve, dismiss,
-          requestDismiss와 completeExit을 연결합니다. 반복 사용하는 흐름은{' '}
-          <code>defineOverlay()</code>를 권장합니다.
+          Renderer의 <code>confirm()</code>이 호출부의 <code>onConfirm</code>을 실행합니다.
+          Promise가 진행되는 동안 중복 확인·취소·ESC·outside를 막고, 실패하면 error 상태로 열린 채
+          유지해 같은 action을 다시 시도할 수 있습니다. 성공은 true, 취소와 외부 닫기는 false입니다.
         </p>
-        <CodeBlock>
-          {`function LegacyDialog() {
-  const dialog = useOverlayDialog<{ saved: true }>()
-
-  return (
-    <Dialog.Root
-      open={dialog.open}
-      onOpenChange={(open) => !open && dialog.requestDismiss()}
-      onOpenChangeComplete={(open) => !open && dialog.completeExit()}
-    >
-      <button onClick={() => dialog.resolve({ saved: true })}>저장</button>
-    </Dialog.Root>
-  )
-}
-
-const result = await overlay.dialog(<LegacyDialog />)`}
-        </CodeBlock>
+        <Callout title="onCancel은 앱 request 필드로 확장합니다">
+          Core는 취소 후 실행할 작업을 예약하지 않습니다. 필요하면 scope의 Confirm request에{' '}
+          <code>onCancel</code>을 추가하고 Renderer가 이를 호출한 뒤 <code>cancel()</code>을
+          호출합니다.
+        </Callout>
       </ApiEntry>
 
       <ApiEntry
         id="open"
         name="open"
-        returns={<code>OverlayHandle&lt;Input, Result&gt;</code>}
-        purpose="typed definition으로 항상 새 세션을 생성"
-        signature="overlay.open(definition, input, options?): OverlayHandle<Input, Result>"
+        returns={<code>OverlayHandle&lt;OverlayOutcome&lt;Result&gt;&gt;</code>}
+        purpose="임의 JSX로 항상 새 custom overlay를 생성"
+        signature="overlay.open<Result = void>(element: ReactElement, options?): OverlayHandle<OverlayOutcome<Result>>"
       >
+        <CodeBlock>{`const outcome = await overlay.open<ProjectResult>(
+  <ProjectEditor projectId={projectId} />,
+  { closeOnEscape: true, closeOnOutsidePress: false },
+)`}</CodeBlock>
         <p>
-          definition이 선언한 Input과 Result 타입을 추론합니다. options에는 dismissPolicy와 선택적
-          group을 지정합니다. 호출할 때마다 identity와 무관한 새 세션을 만듭니다.
+          Dialog, Sheet, BottomSheet, Drawer와 fullscreen modal을 모두 이 메서드로 엽니다. 전달한
+          JSX와 props는 호출 시점 snapshot입니다. 결과 타입은 컴포넌트 안의{' '}
+          <code>useOverlaySession&lt;Result&gt;()</code>과 맞춥니다.
         </p>
-        <CodeBlock>
-          {`const outcome = await overlay.open(
-  projectSettings,
-  { projectId },
-  { dismissPolicy: 'block' },
-)`}
-        </CodeBlock>
-        <Callout title="Handle을 보관할 수 있습니다">
-          결과만 필요하면 바로 await합니다. 같은 활성 세션의 input을 갱신해야 하면 직접 반환된
-          Handle을 보관하고 <code>handle.update(nextInput)</code>을 호출합니다.
-        </Callout>
       </ApiEntry>
 
       <ApiEntry
-        id="open-or-update"
-        name="openOrUpdate"
-        returns={<code>OverlayHandle&lt;Input, Result&gt;</code>}
-        purpose="definition과 업무 identity로 활성 세션을 찾거나 생성"
-        signature="overlay.openOrUpdate(definition, identity, input, options?): OverlayHandle<Input, Result>"
+        id="close"
+        name="close"
+        returns={<code>boolean</code>}
+        purpose="현재 client에서 가장 나중에 열린 세션 종료"
+        signature="overlay.close(reason?: OverlayCloseReason): boolean"
       >
         <p>
-          서로 떨어진 호출부가 uploadId 같은 안정적인 업무 identity로 같은 작업을 찾아야 할 때
-          사용합니다. 한 로컬 흐름만 세션을 갱신한다면 반환된 Handle의 update가 더 직접적입니다.
+          LIFO stack의 topmost 세션을 닫습니다. reason 기본값은 <code>programmatic</code>입니다.
+          특정 호출이 연 세션을 닫으려면 <code>handle.close()</code>를 사용합니다.
         </p>
-        <CodeBlock>
-          {`const upload = overlay.openOrUpdate(
-  uploadProgress,
-  uploadId,
-  initialInput,
-  { dismissPolicy: 'block' },
-)
-
-upload.update(nextInput)
-const outcome = await upload`}
-        </CodeBlock>
-        <ContractList>
-          <li>
-            같은 definition과 identity의 활성 세션은 Handle과 컴포넌트 인스턴스를 재사용합니다.
-          </li>
-          <li>활성 세션이 없으면 새 세션을 생성합니다.</li>
-          <li>활성 세션의 group은 변경할 수 없습니다.</li>
-          <li>후속 호출에서 options를 생략하면 활성 세션의 기존 options를 유지합니다.</li>
-          <li>종료된 identity를 다시 호출하면 새 세션을 만듭니다.</li>
-        </ContractList>
       </ApiEntry>
 
       <ApiEntry
-        id="dismiss-all"
-        name="dismissAll"
+        id="close-all"
+        name="closeAll"
         returns={<code>void</code>}
-        purpose="기본 queue와 모든 parallel group을 함께 정리"
-        signature="overlay.dismissAll(reason?: 'route-change' | 'programmatic'): void"
+        purpose="현재 client의 모든 세션 종료"
+        signature="overlay.closeAll(reason?: OverlayCloseReason): void"
       >
-        <p>
-          route 전환이나 애플리케이션 단위 정리처럼 모든 활성·대기 세션을 함께 종료해야 할 때
-          사용합니다. reason을 생략하면 programmatic으로 처리합니다.
-        </p>
-        <CodeBlock>{`overlay.dismissAll('route-change')`}</CodeBlock>
+        <CodeBlock>{`overlay.closeAll('route-change')`}</CodeBlock>
+        <p>로그아웃이나 route 전환처럼 열린 modal interaction을 한꺼번에 정리할 때 사용합니다.</p>
       </ApiEntry>
-
-      <section id="types-and-definitions">
-        <h2>Types와 definitions</h2>
-        <div className="api-type-grid">
-          <article>
-            <h3>OverlayHandle</h3>
-            <p>
-              실제 Promise에 <code>update(input)</code>과 <code>dismiss(reason?)</code>을 더한 활성
-              세션 제어 객체입니다. 종료 후 두 메서드는 false를 반환합니다.
-            </p>
-          </article>
-          <article>
-            <h3>OverlayOutcome</h3>
-            <p>
-              <code>resolved</code>의 value와 <code>dismissed</code>의 reason을 판별 가능한
-              union으로 구분합니다.
-            </p>
-          </article>
-          <article>
-            <h3>defineOverlay</h3>
-            <p>
-              Renderer component의 Input과 Result 타입을 하나의 재사용 가능한 definition으로
-              연결합니다.
-            </p>
-          </article>
-          <article>
-            <h3>defineOverlayGroup</h3>
-            <p>
-              <code>{`{ strategy: 'parallel' }`}</code>로 독립 coordination boundary를 선언합니다.
-            </p>
-          </article>
-          <article>
-            <h3>useOverlay</h3>
-            <p>가장 가까운 OverlayProvider의 Application API를 제품 코드에 제공합니다.</p>
-          </article>
-          <article>
-            <h3>useOverlayDialog</h3>
-            <p>
-              overlay.dialog()로 열린 element 내부에서만 사용하는 migration용 Renderer API입니다.
-            </p>
-          </article>
-        </div>
-        <CodeBlock label="DEFINITIONS">
-          {`const projectSettings = defineOverlay(ProjectSettingsOverlay)
-
-const toastGroup = defineOverlayGroup({
-  strategy: 'parallel',
-})`}
-        </CodeBlock>
-      </section>
     </DocPage>
   )
 }
@@ -219,151 +121,110 @@ export function RendererApiPage() {
   return (
     <DocPage
       boundary="renderer"
-      description="앱 소유 Renderer가 Base UI나 Radix 같은 primitive의 이벤트를 Lyrd 세션에 연결하는 표면입니다. 일반 제품 호출부에서 사용하지 않습니다."
+      description="앱 소유 Renderer는 Core가 제공한 action과 session lifecycle을 UI primitive에 연결합니다."
       eyebrow="API REFERENCE"
       title="Renderer API"
     >
-      <Callout title="Application API와 분리하세요">
-        제품 코드는 <code>overlay.open()</code> 같은 Application API를 호출합니다. Renderer
-        component만 <code>session.resolve()</code>와 lifecycle method를 UI primitive에 연결합니다.
-      </Callout>
-
       <ApiEntry
-        id="runtime-wiring"
-        name="OverlayProvider"
-        returns="React runtime boundary"
-        purpose="Application API와 앱 소유 Renderer를 하나의 controller에 연결"
-        signature="<OverlayProvider renderers={{ alert, confirm }} controller?={controller}>"
+        id="managed-renderers"
+        name="AlertRendererProps · ConfirmRendererProps"
+        returns="관리형 recipe renderer 계약"
+        purpose="Alert·Confirm의 공통 UX를 앱 UI에 연결"
+        signature="<appOverlay.OverlayProvider renderers={{ alert, confirm }}>"
       >
-        <p>
-          Provider는 앱 루트에 한 번 배치합니다. 일반 제품 코드는 <code>useOverlay()</code>로 API를
-          읽고, 생성된 로컬 Provider는 <code>AlertSurface</code>와 <code>ConfirmSurface</code>를
-          renderers prop에 전달합니다. 선택적 controller 주입과{' '}
-          <code>createOverlayController()</code>는 테스트나 고급 runtime 구성이 필요할 때 사용할 수
-          있습니다.
-        </p>
-      </ApiEntry>
-
-      <ApiEntry
-        id="built-in-renderers"
-        name="AlertSurfaceProps · ConfirmSurfaceProps"
-        returns="기본 alert와 confirm의 Renderer 계약"
-        purpose="생성된 Base UI surface와 중앙 queue를 연결"
-        signature="AlertSurfaceProps | ConfirmSurfaceProps"
-      >
-        <p>
-          Alert surface는 request, open, status와 acknowledge를 받고 Confirm surface는 confirm,
-          cancel, pending·error를 포함한 status와 error를 추가로 받습니다. 두 surface 모두
-          primitive의 닫기 시도와 exit 완료를 <code>requestDismiss()</code>,{' '}
-          <code>completeExit()</code>에 연결합니다.
-        </p>
-        <Callout title="두 status 계약을 구분하세요">
-          ConfirmSurfaceProps의 status에는 pending과 error가 포함되지만, defineOverlay component의
-          session.status에는 포함되지 않습니다.
-        </Callout>
+        <ContractList>
+          <li>
+            Alert Renderer의 <code>action()</code>은 호출부 <code>onAction</code> 뒤 닫습니다.
+          </li>
+          <li>
+            Confirm Renderer의 <code>confirm()</code>은 <code>onConfirm</code>과
+            pending·error·retry를 관리합니다.
+          </li>
+          <li>
+            <code>cancel()</code>은 false로 완료하고 닫습니다.
+          </li>
+          <li>
+            호출부 callback에는 <code>on</code>, Renderer가 실행할 Core action에는 <code>on</code>을
+            붙이지 않습니다.
+          </li>
+        </ContractList>
       </ApiEntry>
 
       <ApiEntry
         id="session-values"
-        name="open · status"
-        returns="현재 세션 상태"
-        purpose="primitive의 controlled state와 시각 상태를 동기화"
-        signature="session.open: boolean\nsession.status: 'mounting' | 'open' | 'closing'"
+        name="useOverlaySession"
+        returns={<code>OverlaySession&lt;Result&gt;</code>}
+        purpose="현재 custom JSX와 그 session을 연결"
+        signature="useOverlaySession<Result>(): OverlaySession<Result>"
       >
+        <CodeBlock>{`function ProjectEditor({ projectId }: Props) {
+  const session = useOverlaySession<ProjectResult>()
+  return <Dialog.Root open={session.open}>…</Dialog.Root>
+}`}</CodeBlock>
         <p>
-          <code>open</code>은 Dialog.Root 같은 controlled primitive에 전달합니다. custom
-          definition의 <code>session.status</code>는 mounting·open·closing의 세 상태입니다. 기본
-          Confirm renderer의 pending·error는 별도 <code>ConfirmSurfaceProps.status</code>로
-          전달됩니다.
+          <code>phase</code>는 opening·open·closing 중 하나입니다. Hook은{' '}
+          <code>overlay.open()</code>으로 열린 element 안에서만 사용합니다.
         </p>
-        <CodeBlock>{`<Dialog.Root open={session.open}>…</Dialog.Root>`}</CodeBlock>
       </ApiEntry>
 
       <ApiEntry
         id="resolve"
         name="resolve"
-        returns={<code>void</code>}
-        purpose="값을 반환하며 종료를 확정"
-        signature="session.resolve(value: Result): void"
+        returns={<code>boolean</code>}
+        purpose="값을 반환하며 종료 결정"
+        signature="session.resolve(value: Result): boolean"
       >
-        <p>
-          저장이나 선택이 성공해 호출부에 typed 결과를 돌려줄 때 사용합니다. 최종 outcome은{' '}
-          <code>{`{ status: 'resolved', value }`}</code>입니다.
-        </p>
         <CodeBlock>{`onSaved={(name) => session.resolve({ name })}`}</CodeBlock>
+        <p>
+          호출부에는 <code>{`{ status: 'resolved', value }`}</code>가 반환됩니다.
+        </p>
       </ApiEntry>
 
       <ApiEntry
-        id="dismiss"
-        name="dismiss"
-        returns={<code>void</code>}
-        purpose="결과 값 없이 종료를 확정"
-        signature="session.dismiss(reason: OverlayDismissReason): void"
+        id="close"
+        name="close"
+        returns={<code>boolean</code>}
+        purpose="결과 없이 명시적으로 종료 결정"
+        signature="session.close(reason?: OverlayCloseReason): boolean"
       >
-        <p>
-          취소 버튼처럼 Renderer가 이미 종료하기로 결정한 명시적 action에 사용합니다. 이는 외부
-          dismiss 시도인 requestDismiss와 대체 관계가 아닙니다.
-        </p>
-        <CodeBlock>{`onCancel={() => session.dismiss('cancel')}`}</CodeBlock>
+        <CodeBlock>{`onCancel={() => session.close('cancel')}`}</CodeBlock>
+        <p>취소 버튼처럼 Renderer가 이미 닫기로 결정한 action에 사용합니다.</p>
       </ApiEntry>
 
       <ApiEntry
-        id="request-dismiss"
-        name="requestDismiss"
-        returns={<code>void</code>}
-        purpose="ESC·outside 같은 외부 dismiss 시도를 policy에 전달"
-        signature="session.requestDismiss(reason: OverlayDismissReason): void"
+        id="request-close"
+        name="requestClose"
+        returns={<code>boolean</code>}
+        purpose="ESC·outside 시도를 정책과 topmost 판정에 전달"
+        signature="session.requestClose(reason: 'escape' | 'outside'): boolean"
       >
-        <p>
-          UI primitive가 닫기를 시도할 때 사용합니다. 런타임은 현재 dismissPolicy를 확인해 요청을
-          허용하거나 거절합니다.
-        </p>
-        <CodeBlock>
-          {`onOpenChange={(open, details) => {
+        <CodeBlock>{`onOpenChange={(open, details) => {
   if (!open) {
-    session.requestDismiss(
+    session.requestClose(
       details.reason === 'escape-key' ? 'escape' : 'outside',
     )
   }
-}}`}
-        </CodeBlock>
+}}`}</CodeBlock>
+        <p>
+          명시적 버튼 action에는 사용하지 않습니다. Core가 topmost 여부와 close option을 확인합니다.
+        </p>
       </ApiEntry>
 
       <ApiEntry
-        id="complete-exit"
-        name="completeExit"
+        id="complete-close"
+        name="completeClose"
         returns={<code>void</code>}
-        purpose="exit lifecycle이 끝났음을 런타임에 알림"
-        signature="session.completeExit(): void"
+        purpose="exit가 끝난 session을 stack에서 제거"
+        signature="session.completeClose(): void"
       >
-        <p>
-          closing transition이 끝난 뒤 호출합니다. 런타임은 이 신호를 받은 후 세션을 최종 제거하고
-          다음 queue 항목을 진행할 수 있습니다.
-        </p>
-        <CodeBlock>
-          {`onOpenChangeComplete={(open) => {
-  if (!open) session.completeExit()
-}}`}
-        </CodeBlock>
+        <CodeBlock>{`onOpenChangeComplete={(open) => {
+  if (!open) session.completeClose()
+}}`}</CodeBlock>
+        <Callout title="닫힘 결정과 제거는 다릅니다">
+          resolve·close·requestClose가 Promise 결과와 closing을 결정하고, completeClose는
+          animation이 끝난 뒤 mount를 제거합니다.
+        </Callout>
       </ApiEntry>
-
-      <section className="renderer-summary">
-        <h2>의미를 한 줄로 구분하기</h2>
-        <div className="meaning-table">
-          <div>
-            <strong>dismiss</strong>
-            <span>종료하기로 확정</span>
-          </div>
-          <div>
-            <strong>requestDismiss</strong>
-            <span>외부 dismiss 시도를 정책에 전달</span>
-          </div>
-          <div>
-            <strong>completeExit</strong>
-            <span>exit lifecycle 완료를 알림</span>
-          </div>
-        </div>
-      </section>
     </DocPage>
   )
 }

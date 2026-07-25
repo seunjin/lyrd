@@ -62,13 +62,6 @@ export const router = createBrowserRouter(
               },
             },
             {
-              path: 'concepts/groups-and-scheduling',
-              lazy: async () => {
-                const { GroupsAndSchedulingPage } = await import('./pages/concept-pages')
-                return { Component: GroupsAndSchedulingPage }
-              },
-            },
-            {
               path: 'api/application',
               lazy: async () => {
                 const { ApplicationApiPage } = await import('./pages/api-pages')
@@ -83,31 +76,24 @@ export const router = createBrowserRouter(
               },
             },
             {
-              path: 'recipes/toast',
+              path: 'recipes/custom-overlay',
               lazy: async () => {
-                const { ToastRecipePage } = await import('./pages/recipe-pages')
-                return { Component: ToastRecipePage }
+                const { CustomOverlayRecipePage } = await import('./pages/recipe-pages')
+                return { Component: CustomOverlayRecipePage }
               },
             },
             {
-              path: 'recipes/progress',
+              path: 'recipes/nested-confirm',
               lazy: async () => {
-                const { ProgressRecipePage } = await import('./pages/recipe-pages')
-                return { Component: ProgressRecipePage }
+                const { NestedConfirmRecipePage } = await import('./pages/recipe-pages')
+                return { Component: NestedConfirmRecipePage }
               },
             },
             {
-              path: 'migrations/lifecycle-api',
+              path: 'migrations/overlay-api',
               lazy: async () => {
-                const { LifecycleMigrationPage } = await import('./pages/migration-pages')
-                return { Component: LifecycleMigrationPage }
-              },
-            },
-            {
-              path: 'migrations/overlay-handle',
-              lazy: async () => {
-                const { OverlayHandleMigrationPage } = await import('./pages/migration-pages')
-                return { Component: OverlayHandleMigrationPage }
+                const { OverlayApiMigrationPage } = await import('./pages/migration-pages')
+                return { Component: OverlayApiMigrationPage }
               },
             },
           ],

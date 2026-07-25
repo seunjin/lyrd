@@ -3,58 +3,40 @@ import { Callout, CodeBlock, DocPage } from '../components/doc-page'
 export function GettingStartedPage() {
   return (
     <DocPage
-      description="CLI로 앱이 직접 소유하는 Base UI renderer를 만들고 Provider를 연결한 다음, 기본 API와 typed overlay를 호출합니다."
+      description="CLI로 앱 소유 scope와 Base UI renderer를 만들고 Alert, Confirm, custom overlay를 엽니다."
       eyebrow="GETTING STARTED"
       title="첫 오버레이 열기"
     >
       <section id="install">
-        <h2>1. Core와 CLI 사용 준비</h2>
-        <p>
-          권장 경로는 CLI를 한 번 실행하는 것입니다. CLI가 <code>@lyrd/core</code>와{' '}
-          <code>@base-ui/react</code>를 설치하고 로컬 renderer 파일을 생성합니다.
-        </p>
+        <h2>1. 설치</h2>
         <CodeBlock label="TERMINAL">{`pnpm dlx @lyrd/cli init
 pnpm dlx @lyrd/cli add overlay`}</CodeBlock>
         <p>
-          <code>init</code>은 프로젝트의 package manager와 Vite React 또는 Next App Router를
-          감지하고, CSS Modules와 Tailwind CSS v4 중 사용할 스타일 방식을 기록한{' '}
-          <code>lyrd.json</code>을 만듭니다.
+          CLI는 <code>@lyrd/core</code>와 <code>@base-ui/react</code>를 설치합니다. Core만 직접
+          구성하려면 <code>pnpm add @lyrd/core</code>를 사용합니다.
         </p>
-        <p>Renderer 없이 Core 런타임만 직접 사용할 때는 별도로 설치할 수 있습니다.</p>
-        <CodeBlock label="TERMINAL">pnpm add @lyrd/core</CodeBlock>
       </section>
 
       <section id="generate-renderer">
         <h2>2. 앱 소유 Renderer 확인</h2>
-        <p>CLI는 기존 진입 파일을 덮어쓰지 않고 다음 주요 파일을 애플리케이션 안에 생성합니다.</p>
         <CodeBlock label="GENERATED FILES">
-          {`lyrd.json
-src/overlays/
+          {`src/overlays/
+├─ scope.ts
 ├─ OverlayProvider.tsx
 ├─ index.ts
-├─ alert/
-│  ├─ AlertSurface.tsx
-│  ├─ index.ts
-│  └─ Alert.module.css  # CSS Modules 선택 시
-└─ confirm/
-   ├─ ConfirmSurface.tsx
-   ├─ index.ts
-   └─ Confirm.module.css  # CSS Modules 선택 시`}
+├─ alert/AlertSurface.tsx
+└─ confirm/ConfirmSurface.tsx`}
         </CodeBlock>
-        <Callout title="App-owned UI">
-          이 파일들은 패키지 내부 구현이 아닙니다. 제품의 디자인 시스템, 버튼, 오류 문구와
-          animation에 맞춰 직접 수정하는 애플리케이션 코드입니다.
-        </Callout>
+        <p>
+          <code>scope.ts</code>의 request 타입에 title, tone처럼 제품에 필요한 표시 필드를
+          정의합니다. 생성 파일은 패키지 내부가 아니라 수정 가능한 애플리케이션 코드입니다.
+        </p>
       </section>
 
       <section id="connect-provider">
         <h2>3. Provider 연결</h2>
-        <p>
-          생성된 Provider를 앱 루트에서 한 번 연결합니다. CLI는 기존 진입 파일을 수정하지 않고
-          프로젝트에 맞는 연결 위치와 코드를 출력합니다.
-        </p>
-        <CodeBlock label="VITE · SRC/MAIN.TSX">
-          {`import { OverlayProvider } from './overlays/OverlayProvider'
+        <CodeBlock label="APPLICATION ROOT">
+          {`import { OverlayProvider } from './overlays'
 
 root.render(
   <OverlayProvider>
@@ -62,109 +44,63 @@ root.render(
   </OverlayProvider>,
 )`}
         </CodeBlock>
-        <CodeBlock label="NEXT APP ROUTER · APP/LAYOUT.TSX">
-          {`import { LyrdOverlayProvider } from './lyrd-overlay-provider'
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="ko">
-      <body>
-        <LyrdOverlayProvider>{children}</LyrdOverlayProvider>
-      </body>
-    </html>
-  )
-}`}
-        </CodeBlock>
-        <Callout title="Next.js client bridge">
-          Next App Router에서는 CLI가 <code>app/lyrd-overlay-provider.tsx</code> 또는{' '}
-          <code>src/app/lyrd-overlay-provider.tsx</code>를 생성합니다. Server Component인 layout은
-          유지하고 이 client bridge를 연결합니다.
+        <Callout title="Scope와 Hook은 한 쌍입니다">
+          호출부는 Core의 전역 Hook이 아니라 생성된 <code>useOverlay</code>를 import합니다. 이
+          Hook의 request 타입은 같은 scope에서 추론됩니다.
         </Callout>
       </section>
 
       <section id="first-overlay">
-        <h2>4. alert와 confirm 호출</h2>
+        <h2>4. Alert와 Confirm</h2>
         <CodeBlock label="APPLICATION">
           {`const overlay = useOverlay()
 
 await overlay.alert({
   title: '저장했습니다.',
-  acknowledgeLabel: '확인',
+  actionLabel: '확인',
+  onAction: () => trackSavedNotice(),
 })
 
 const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
-  description: '삭제한 프로젝트는 복구할 수 없습니다.',
-  confirmLabel: '삭제',
-  cancelLabel: '취소',
   tone: 'danger',
-})
-
-if (confirmed) deleteProject()`}
+  onConfirm: () => deleteProject(),
+})`}
         </CodeBlock>
         <p>
-          <code>alert()</code>는 사용자가 확인하면 완료되고, <code>confirm()</code>은 선택 결과를{' '}
-          <code>boolean</code>으로 반환합니다.
+          Alert의 <code>onAction</code>은 동기 side effect를 실행하고 바로 닫습니다. Confirm의{' '}
+          <code>onConfirm</code>은 동기·비동기 작업을 지원하며, Core가 pending과 실패 후 retry를
+          관리합니다.
         </p>
       </section>
 
       <section id="custom-overlay">
-        <h2>5. defineOverlay와 open 사용</h2>
-        <CodeBlock label="DEFINITION">
-          {`type EditorInput = { documentId: string }
-type EditorResult = { saved: true; title: string }
-
-function DocumentEditor({ input, session }:
-  OverlayDefinitionComponentProps<EditorInput, EditorResult>) {
-  return (
-    <Dialog.Root
-      open={session.open}
-      onOpenChange={(open) => {
-        if (!open) session.requestDismiss('outside')
-      }}
-      onOpenChangeComplete={(open) => {
-        if (!open) session.completeExit()
-      }}
-    >
-      <Editor
-        documentId={input.documentId}
-        onCancel={() => session.dismiss('cancel')}
-        onSaved={(title) => session.resolve({ saved: true, title })}
-      />
-    </Dialog.Root>
-  )
-}
-
-const documentEditor = defineOverlay(DocumentEditor)`}
-        </CodeBlock>
+        <h2>5. Custom overlay</h2>
         <CodeBlock label="APPLICATION">
-          {`const outcome = await overlay.open(documentEditor, {
-  documentId: 'rfc-0003',
-})
+          {`const outcome = await overlay.open<ProjectResult>(
+  <ProjectEditor projectId={projectId} />,
+)
 
 if (outcome.status === 'resolved') {
-  console.log(outcome.value.title)
+  console.log(outcome.value)
 } else {
   console.log(outcome.reason)
 }`}
         </CodeBlock>
         <p>
-          <code>OverlayOutcome</code>은 값을 반환한 종료와 이유가 있는 dismiss를 구분합니다. 같은
-          반환값을 보관하면 awaitable <code>OverlayHandle</code>로 세션을 갱신할 수도 있습니다.
+          Dialog, Sheet, BottomSheet, Drawer와 fullscreen modal 모두 JSX를 직접 전달합니다. 컴포넌트
+          내부에서는 <code>useOverlaySession&lt;ProjectResult&gt;()</code>을 사용합니다.
         </p>
       </section>
 
-      <section id="additional-generators">
-        <h2>6. Dialog와 Toast starter 추가</h2>
+      <section id="next-choice">
+        <h2>6. 다음 선택</h2>
+        <CodeBlock label="OPTIONAL DIALOG STARTER">
+          pnpm dlx @lyrd/cli add dialog project-settings
+        </CodeBlock>
         <p>
-          반복 사용하는 범용 Dialog는 typed definition starter로 만들고, 동시에 표시되는 Toast는
-          독립 Provider와 parallel group이 포함된 starter로 만듭니다.
-        </p>
-        <CodeBlock label="TERMINAL">{`pnpm dlx @lyrd/cli add dialog project-settings
-pnpm dlx @lyrd/cli add toast`}</CodeBlock>
-        <p>
-          Dialog 이름은 kebab-case를 사용합니다. 생성된 파일은 앱 소유 코드이며, 같은 명령을 다시
-          실행해도 기존 사용자 수정은 덮어쓰지 않습니다.
+          CLI의 Dialog 명령은 <code>useOverlaySession()</code>이 연결된 JSX 시작점을 만듭니다.
+          Toast는 Core와 CLI 범위에 포함되지 않으므로 앱의 기존 알림 시스템을 사용합니다.
         </p>
       </section>
     </DocPage>
