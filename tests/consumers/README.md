@@ -19,7 +19,7 @@ registry 모드는 실제 배포물 확인용이며 미배포 변경의 PR 게�
 `@lyrd/core`, `@lyrd/cli`만 지정해 새 Lyrd 배포물을 즉시 검증한다. 조회한 dist-tag 버전과 Vite,
 Next.js fixture에 실제 설치된 버전이 다르면 build 전에 실패한다.
 
-두 모드 모두 깨끗한 `pnpm install`, 실제 CLI의 overlay/dialog/toast 생성, TypeScript 검사,
+두 모드 모두 깨끗한 `pnpm install`, 실제 CLI의 overlay/dialog 생성, 체크인된 생성물과의 비교, TypeScript 검사,
 production build와 Chromium 상호작용을 순서대로 실행하고 임시 디렉터리를 정리한다.
 
 ## 스타일 출력 직접 확인

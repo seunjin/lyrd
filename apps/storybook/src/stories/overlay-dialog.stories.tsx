@@ -1,9 +1,15 @@
-import { useOverlay } from '@lyrd/core'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 
-import { documentEditorDialog } from '../overlays/dialogs/document-editor/DocumentEditorDialog'
-import { projectSettingsDialog } from '../overlays/dialogs/project-settings/ProjectSettingsDialog'
+import {
+  DocumentEditorDialog,
+  type DocumentEditorResult,
+} from '../overlays/dialogs/document-editor/DocumentEditorDialog'
+import {
+  ProjectSettingsDialog,
+  type ProjectSettingsResult,
+} from '../overlays/dialogs/project-settings/ProjectSettingsDialog'
+import { useOverlay } from '../overlays/scope'
 
 const meta = {
   title: 'VNext/Overlay Dialog',
@@ -17,7 +23,9 @@ function OverlayDialogStory() {
   const [result, setResult] = useState('-')
 
   async function runModal() {
-    const outcome = await overlay.open(projectSettingsDialog, { projectId: 'lyrd' })
+    const outcome = await overlay.open<ProjectSettingsResult>(
+      <ProjectSettingsDialog projectId="lyrd" />,
+    )
     setResult(
       outcome.status === 'resolved'
         ? `프로젝트 이름 저장: ${outcome.value.projectName}`
@@ -26,19 +34,14 @@ function OverlayDialogStory() {
   }
 
   async function runFullscreen() {
-    const outcome = await overlay.open(documentEditorDialog, { documentId: 'rfc-0003' })
+    const outcome = await overlay.open<DocumentEditorResult>(
+      <DocumentEditorDialog documentId="rfc-0004" />,
+    )
     setResult(
       outcome.status === 'resolved'
         ? `문서 저장: ${outcome.value.title}`
         : `문서 편집 취소: ${outcome.reason}`,
     )
-  }
-
-  async function runQueue() {
-    const first = overlay.open(projectSettingsDialog, { projectId: 'project-a' })
-    const second = overlay.open(projectSettingsDialog, { projectId: 'project-b' })
-    const [firstResult, secondResult] = await Promise.all([first, second])
-    setResult(`독립 호출 대기열 완료 · ${firstResult.status} / ${secondResult.status}`)
   }
 
   return (
@@ -48,13 +51,10 @@ function OverlayDialogStory() {
       </p>
       <div className="lyrd-story-actions">
         <button onClick={() => void runModal()} type="button">
-          기본 모달
+          모달 + 중첩 Confirm
         </button>
         <button onClick={() => void runFullscreen()} type="button">
           풀페이지 편집기
-        </button>
-        <button onClick={() => void runQueue()} type="button">
-          같은 정의 2회 호출
         </button>
       </div>
     </div>

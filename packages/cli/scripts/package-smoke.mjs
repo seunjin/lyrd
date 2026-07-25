@@ -107,6 +107,8 @@ async function main() {
     )
     assert.deepEqual(installedPackage.bin, { lyrd: './dist/bin.js' })
     assert.equal(await pathExists(path.join(installedCliRoot, 'dist/bin.js')), true)
+    assert.equal(await pathExists(path.join(installedCliRoot, 'dist/index.cjs')), true)
+    assert.equal(await pathExists(path.join(installedCliRoot, 'dist/index.d.cts')), true)
     assert.equal(await pathExists(path.join(installedCliRoot, 'LICENSE')), true)
     assert.equal(
       await pathExists(path.join(installedCliRoot, 'src')),
@@ -120,13 +122,24 @@ async function main() {
     assert.equal(await pathExists(path.join(installedCoreRoot, 'dist/index.d.ts')), true)
     assert.equal(await pathExists(path.join(installedCoreRoot, 'dist/index.d.cts')), true)
     assert.equal(await pathExists(path.join(installedCoreRoot, 'src')), false)
+    const coreDeclarations = await readFile(path.join(installedCoreRoot, 'dist/index.d.ts'), 'utf8')
+    assert.match(coreDeclarations, /createOverlayScope/)
+    assert.match(coreDeclarations, /useOverlaySession/)
+    assert.doesNotMatch(coreDeclarations, /createOverlayController/)
+    assert.doesNotMatch(coreDeclarations, /defineOverlay/)
+    assert.doesNotMatch(coreDeclarations, /openOrUpdate/)
+    assert.doesNotMatch(coreDeclarations, /dismissAll/)
+    assert.doesNotMatch(
+      coreDeclarations,
+      /OverlayController|OverlayDefinition|OverlayGroup|OverlayApi|OverlayDismissReason|DialogOptions|AlertSurfaceProps|ConfirmSurfaceProps/,
+    )
 
     const esmImport = await runCommand(
       'node',
       [
         '--input-type=module',
         '--eval',
-        "import { createOverlayController, defineOverlay, defineOverlayGroup } from '@lyrd/core'; const controller = createOverlayController(); const definition = defineOverlay(() => null); const handle = controller.overlay.open(definition, { value: 1 }); if (typeof defineOverlayGroup !== 'function' || typeof controller.overlay.openOrUpdate !== 'function' || typeof controller.overlay.upsert !== 'undefined' || typeof controller.getParallelSnapshots !== 'function' || !(handle instanceof Promise) || typeof handle.update !== 'function' || typeof handle.dismiss !== 'function' || !handle.update({ value: 2 }) || !handle.dismiss()) process.exit(1); const outcome = await handle; if (outcome.status !== 'dismissed') process.exit(1)",
+        "import { createElement } from 'react'; import * as core from '@lyrd/core'; const scope = core.createOverlayScope(); const client = scope.createClient(); const handle = client.open(createElement('div')); if (typeof core.useOverlaySession !== 'function' || typeof core.createOverlayController !== 'undefined' || typeof core.defineOverlay !== 'undefined' || typeof client.close !== 'function' || typeof client.closeAll !== 'function' || typeof client.openOrUpdate !== 'undefined' || !(handle instanceof Promise) || typeof handle.close !== 'function' || typeof handle.update !== 'undefined' || !handle.close()) process.exit(1); const outcome = await handle; if (outcome.status !== 'closed' || outcome.reason !== 'programmatic') process.exit(1)",
       ],
       fixtureDirectory,
     )
@@ -136,7 +149,7 @@ async function main() {
       'node',
       [
         '--eval',
-        "const { createOverlayController, defineOverlay, defineOverlayGroup } = require('@lyrd/core'); const controller = createOverlayController(); const definition = defineOverlay(() => null); const handle = controller.overlay.open(definition, { value: 1 }); if (typeof defineOverlayGroup !== 'function' || typeof controller.overlay.openOrUpdate !== 'function' || typeof controller.overlay.upsert !== 'undefined' || typeof controller.getParallelSnapshots !== 'function' || !(handle instanceof Promise) || typeof handle.update !== 'function' || typeof handle.dismiss !== 'function' || !handle.update({ value: 2 }) || !handle.dismiss()) process.exit(1); handle.then((outcome) => { if (outcome.status !== 'dismissed') process.exit(1) })",
+        "const { createElement } = require('react'); const core = require('@lyrd/core'); const scope = core.createOverlayScope(); const client = scope.createClient(); const handle = client.open(createElement('div')); if (typeof core.useOverlaySession !== 'function' || typeof core.createOverlayController !== 'undefined' || typeof core.defineOverlay !== 'undefined' || typeof client.close !== 'function' || typeof client.closeAll !== 'function' || typeof client.openOrUpdate !== 'undefined' || !(handle instanceof Promise) || typeof handle.close !== 'function' || typeof handle.update !== 'undefined' || !handle.close()) process.exit(1); handle.then((outcome) => { if (outcome.status !== 'closed' || outcome.reason !== 'programmatic') process.exit(1) })",
       ],
       fixtureDirectory,
     )
@@ -145,7 +158,28 @@ async function main() {
     const help = await runCommand(pnpmCommand, ['exec', 'lyrd', '--help'], fixtureDirectory)
     assert.match(help.stdout, /lyrd add overlay/)
     assert.match(help.stdout, /lyrd add dialog <name>/)
-    assert.match(help.stdout, /lyrd add toast/)
+    assert.doesNotMatch(help.stdout, /lyrd add toast/)
+
+    const cliEsmImport = await runCommand(
+      'node',
+      [
+        '--input-type=module',
+        '--eval',
+        "import * as cli from '@lyrd/cli'; if (typeof cli.run !== 'function') process.exit(1)",
+      ],
+      fixtureDirectory,
+    )
+    assert.equal(cliEsmImport.stderr, '')
+
+    const cliCjsImport = await runCommand(
+      'node',
+      [
+        '--eval',
+        "const cli = require('@lyrd/cli'); if (typeof cli.run !== 'function') process.exit(1)",
+      ],
+      fixtureDirectory,
+    )
+    assert.equal(cliCjsImport.stderr, '')
 
     const add = await runCommand(
       pnpmCommand,
@@ -163,6 +197,7 @@ async function main() {
         'alert/Alert.module.css',
         'confirm/ConfirmSurface.tsx',
         'confirm/Confirm.module.css',
+        'scope.ts',
         'OverlayProvider.tsx',
         'index.ts',
       ].map((fileName) => access(path.join(overlayDirectory, fileName))),
@@ -177,14 +212,6 @@ async function main() {
     await Promise.all(
       ['ProjectSettingsDialog.tsx', 'ProjectSettingsDialog.module.css', 'index.ts'].map(
         (fileName) => access(path.join(overlayDirectory, 'dialogs', 'project-settings', fileName)),
-      ),
-    )
-
-    const toast = await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
-    assert.match(toast.stdout, /Added toast/)
-    await Promise.all(
-      ['definition.ts', 'manager.ts', 'AppToastProvider.tsx', 'notify.ts', 'Toast.module.css'].map(
-        (fileName) => access(path.join(overlayDirectory, 'toast', fileName)),
       ),
     )
 

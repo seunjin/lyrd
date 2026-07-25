@@ -252,44 +252,59 @@ async function generateRenderers(name, fixtureDirectory) {
     fixtureDirectory,
   )
   await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'dialog', 'consumer-lab'], fixtureDirectory)
-  await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
-
-  if (name === 'next-app-router') {
-    await writeFile(
-      path.join(fixtureDirectory, 'src/app/lyrd-overlay-provider.tsx'),
-      `'use client'
-
-import type { ReactNode } from 'react'
-
-import { OverlayProvider } from '../overlays/OverlayProvider'
-import { AppToastProvider } from '../overlays/toast'
-
-export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <AppToastProvider />
-      <OverlayProvider>{children}</OverlayProvider>
-    </>
-  )
-}
-`,
-    )
-  }
 
   const overlayDirectory = path.join(fixtureDirectory, 'src/overlays')
   const expectedFiles = [
+    'scope.ts',
     'alert/AlertSurface.tsx',
     'confirm/ConfirmSurface.tsx',
     'OverlayProvider.tsx',
     ...(styling === 'css-modules' ? ['alert/Alert.module.css', 'confirm/Confirm.module.css'] : []),
-    'toast/definition.ts',
-    'toast/manager.ts',
-    'toast/AppToastProvider.tsx',
-    'toast/notify.ts',
-    ...(styling === 'css-modules' ? ['toast/Toast.module.css'] : []),
     'dialogs/consumer-lab/ConsumerLabDialog.tsx',
+    ...(styling === 'css-modules' ? ['dialogs/consumer-lab/ConsumerLabDialog.module.css'] : []),
   ]
   await Promise.all(expectedFiles.map((fileName) => access(path.join(overlayDirectory, fileName))))
+}
+
+async function verifyGeneratedFilesMatchFixture(name, fixtureDirectory) {
+  const styling = name === 'next-app-router' ? 'tailwind-v4' : 'css-modules'
+  const generatedFiles = [
+    'scope.ts',
+    'OverlayProvider.tsx',
+    'index.ts',
+    'alert/AlertSurface.tsx',
+    'alert/index.ts',
+    'confirm/ConfirmSurface.tsx',
+    'confirm/index.ts',
+    'dialogs/index.ts',
+    'dialogs/consumer-lab/ConsumerLabDialog.tsx',
+    'dialogs/consumer-lab/index.ts',
+    ...(styling === 'css-modules'
+      ? [
+          'alert/Alert.module.css',
+          'confirm/Confirm.module.css',
+          'dialogs/consumer-lab/ConsumerLabDialog.module.css',
+        ]
+      : []),
+  ]
+
+  for (const fileName of generatedFiles) {
+    const expected = await readFile(path.join(fixturesRoot, name, 'src/overlays', fileName), 'utf8')
+    const actual = await readFile(path.join(fixtureDirectory, 'src/overlays', fileName), 'utf8')
+    assert.equal(actual, expected, `${name}의 ${fileName}이 현재 CLI 출력과 일치해야 합니다.`)
+  }
+
+  if (name === 'next-app-router') {
+    const expected = await readFile(
+      path.join(fixturesRoot, name, 'src/app/lyrd-overlay-provider.tsx'),
+      'utf8',
+    )
+    const actual = await readFile(
+      path.join(fixtureDirectory, 'src/app/lyrd-overlay-provider.tsx'),
+      'utf8',
+    )
+    assert.equal(actual, expected, 'Next client Provider가 현재 CLI 출력과 일치해야 합니다.')
+  }
 }
 
 async function verifyGeneratedBoundaries(name, fixtureDirectory) {
@@ -305,8 +320,8 @@ async function verifyGeneratedBoundaries(name, fixtureDirectory) {
   )
   const layout = await readFile(path.join(fixtureDirectory, 'src/app/layout.tsx'), 'utf8')
   assert.match(provider, /^'use client'/)
-  assert.match(provider, /<AppToastProvider \/>/)
   assert.match(provider, /<OverlayProvider>\{children\}<\/OverlayProvider>/)
+  assert.doesNotMatch(provider, /Toast/)
   assert.doesNotMatch(layout, /^['"]use client['"]/)
   assert.match(layout, /<LyrdOverlayProvider>\{children\}<\/LyrdOverlayProvider>/)
 }
@@ -320,6 +335,7 @@ async function prepareFixture(name, temporaryRoot, packageSpecs, expectedVersion
   verifyInstalledVersions(name, versions, expectedVersions)
 
   await generateRenderers(name, fixtureDirectory)
+  await verifyGeneratedFilesMatchFixture(name, fixtureDirectory)
   await verifyGeneratedBoundaries(name, fixtureDirectory)
   await runCommand(pnpmCommand, ['typecheck'], fixtureDirectory)
   await runCommand(pnpmCommand, ['build'], fixtureDirectory)

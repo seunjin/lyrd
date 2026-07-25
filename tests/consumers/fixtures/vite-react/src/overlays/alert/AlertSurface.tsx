@@ -1,25 +1,19 @@
 'use client'
 
 import { AlertDialog } from '@base-ui/react/alert-dialog'
-import type { AlertSurfaceProps } from '@lyrd/core'
+import type { AlertRendererProps } from '@lyrd/core'
 
+import type { AppAlertRequest } from '../scope'
 import styles from './Alert.module.css'
 
 export function AlertSurface({
-  acknowledge,
-  completeExit,
+  action,
+  completeClose,
   open,
   request,
-  requestDismiss,
-}: AlertSurfaceProps) {
-  if (!request) return null
-
+}: AlertRendererProps<AppAlertRequest>) {
   return (
-    <AlertDialog.Root
-      open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
-    >
+    <AlertDialog.Root open={open} onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className={styles.Backdrop} />
         <AlertDialog.Popup className={styles.Popup}>
@@ -32,8 +26,8 @@ export function AlertSurface({
             ) : null}
           </div>
           <div className={styles.Actions}>
-            <button className={styles.Button} onClick={acknowledge} type="button">
-              {request.acknowledgeLabel ?? '확인'}
+            <button className={styles.Button} onClick={action} type="button">
+              {request.actionLabel ?? '확인'}
             </button>
           </div>
         </AlertDialog.Popup>

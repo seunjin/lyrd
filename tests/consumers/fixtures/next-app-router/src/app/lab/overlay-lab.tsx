@@ -1,37 +1,35 @@
 'use client'
 
-import { useOverlay } from '@lyrd/core'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { consumerLabDialog } from '../../overlays/dialogs/consumer-lab/ConsumerLabDialog'
-import { notify } from '../../overlays/toast/notify'
+import { ConsumerLabDialog } from '../../overlays/dialogs/consumer-lab/ConsumerLabDialog'
+import { useOverlay } from '../../overlays/scope'
 
 export function OverlayLab() {
   const overlay = useOverlay()
   const router = useRouter()
   const [result, setResult] = useState('idle')
 
-  useEffect(() => () => overlay.dismissAll('route-change'), [overlay])
+  useEffect(() => () => overlay.closeAll('route-change'), [overlay])
 
   function openAlert() {
-    void overlay.alert({ title: 'Next hydrated alert' }).then(() => setResult('alert:resolved'))
+    setResult('alert:waiting')
+    void overlay
+      .alert({
+        title: 'Next hydrated alert',
+        onAction: () => setResult('alert:action'),
+      })
+      .then(() => setResult((current) => `${current}:resolved`))
   }
 
   function openAndNavigate() {
-    const handle = overlay.open(consumerLabDialog, { title: 'Route cleanup dialog' })
+    const handle = overlay.open(<ConsumerLabDialog title="Route cleanup dialog" />)
     void handle.then((outcome) => {
       sessionStorage.setItem('lyrd-route-outcome', JSON.stringify(outcome))
     })
     window.setTimeout(() => router.push('/other'), 250)
-  }
-
-  function openToast() {
-    notify(overlay, {
-      title: 'Tailwind CSS v4 toast',
-      description: 'Base UI 공식 hero 예제의 stack 스타일입니다.',
-    })
   }
 
   return (
@@ -41,9 +39,6 @@ export function OverlayLab() {
       </button>
       <button data-testid="open-and-navigate" onClick={openAndNavigate} type="button">
         Open and navigate
-      </button>
-      <button data-testid="next-toast" onClick={openToast} type="button">
-        Open Tailwind toast
       </button>
       <output data-testid="next-result">{result}</output>
       <nav>

@@ -103,6 +103,12 @@
   gap: 8px;
 }
 
+.NestedResult {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
 .Button {
   height: 2rem;
   border: 1px solid oklch(14.5% 0 0deg);

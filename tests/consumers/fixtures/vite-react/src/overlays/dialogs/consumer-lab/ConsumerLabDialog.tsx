@@ -1,8 +1,7 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import type { OverlayDefinitionComponentProps } from '@lyrd/core'
-import { defineOverlay } from '@lyrd/core'
+import { useOverlaySession } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
 import styles from './ConsumerLabDialog.module.css'
@@ -17,26 +16,21 @@ export type ConsumerLabDialogProps = {
   title?: ReactNode
 }
 
-type ConsumerLabDialogComponentProps = OverlayDefinitionComponentProps<
-  ConsumerLabDialogProps,
-  ConsumerLabDialogResult
->
-
-function ConsumerLabDialog({ input, session }: ConsumerLabDialogComponentProps) {
-  const {
-    children,
-    description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
-    title = 'consumer lab',
-  } = input
+export function ConsumerLabDialog({
+  children,
+  description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
+  title = 'consumer lab',
+}: ConsumerLabDialogProps) {
+  const session = useOverlaySession<ConsumerLabDialogResult>()
+  const { open, requestClose, completeClose, close, resolve } = session
 
   return (
     <Dialog.Root
-      open={session.open}
+      open={open}
       onOpenChange={(nextOpen, eventDetails) =>
-        !nextOpen &&
-        session.requestDismiss(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        !nextOpen && requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className={styles.Backdrop} />
@@ -51,16 +45,12 @@ function ConsumerLabDialog({ input, session }: ConsumerLabDialogComponentProps) 
           {children ? <div className={styles.Content}>{children}</div> : null}
 
           <footer className={styles.Actions}>
-            <button
-              className={styles.Button}
-              onClick={() => session.dismiss('cancel')}
-              type="button"
-            >
+            <button className={styles.Button} onClick={() => close('cancel')} type="button">
               취소
             </button>
             <button
               className={styles.Button}
-              onClick={() => session.resolve({ completed: true })}
+              onClick={() => resolve({ completed: true })}
               type="button"
             >
               완료
@@ -71,5 +61,3 @@ function ConsumerLabDialog({ input, session }: ConsumerLabDialogComponentProps) 
     </Dialog.Root>
   )
 }
-
-export const consumerLabDialog = defineOverlay(ConsumerLabDialog)

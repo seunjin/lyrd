@@ -1,128 +1,203 @@
-import type { OverlayHandle } from '@lyrd/core'
-import { useOverlay } from '@lyrd/core'
-import { useRef, useState } from 'react'
+import type { OverlayHandle, OverlayOutcome } from '@lyrd/core'
+import { useState } from 'react'
 
 import {
-  type ConsumerLabDialogProps,
+  ConsumerLabDialog,
   type ConsumerLabDialogResult,
-  consumerLabDialog,
 } from './overlays/dialogs/consumer-lab/ConsumerLabDialog'
-import { showToast } from './overlays/toast/notify'
+import { useOverlay } from './overlays/scope'
 
-type LabHandle = OverlayHandle<ConsumerLabDialogProps, ConsumerLabDialogResult>
+type DialogOutcome = OverlayOutcome<ConsumerLabDialogResult>
+type DialogHandle = OverlayHandle<DialogOutcome>
 
-function outcomeLabel(outcome: Awaited<LabHandle>): string {
-  return outcome.status === 'resolved'
-    ? `resolved:${String(outcome.value.completed)}`
-    : `dismissed:${outcome.reason}`
+function closeReason(outcome: DialogOutcome): string {
+  return outcome.status === 'resolved' ? 'resolved' : outcome.reason
+}
+
+function NestedConfirmButton({ onResult }: { onResult: (result: boolean) => void }) {
+  const overlay = useOverlay()
+
+  async function openNestedConfirm() {
+    const confirmed = await overlay.confirm({
+      title: 'Nested confirm',
+      confirmLabel: '중첩 확인',
+      cancelLabel: '중첩 취소',
+    })
+    onResult(confirmed)
+  }
+
+  return (
+    <button
+      data-testid="open-nested-confirm"
+      onClick={() => void openNestedConfirm()}
+      type="button"
+    >
+      Open nested confirm
+    </button>
+  )
+}
+
+function StackControls({ closeLower }: { closeLower: () => void }) {
+  const overlay = useOverlay()
+
+  return (
+    <>
+      <button data-testid="handle-close" onClick={closeLower} type="button">
+        Close lower by handle
+      </button>
+      <button
+        data-testid="client-close"
+        onClick={() => overlay.close('programmatic')}
+        type="button"
+      >
+        Close top by client
+      </button>
+    </>
+  )
+}
+
+function CloseAllControl() {
+  const overlay = useOverlay()
+
+  return (
+    <button
+      data-testid="client-close-all"
+      onClick={() => overlay.closeAll('route-change')}
+      type="button"
+    >
+      Close all overlays
+    </button>
+  )
 }
 
 export function App() {
   const overlay = useOverlay()
-  const handleRef = useRef<LabHandle | null>(null)
-  const identityHandleRef = useRef<LabHandle | null>(null)
   const [alertResult, setAlertResult] = useState('idle')
   const [confirmResult, setConfirmResult] = useState('idle')
-  const [handleResult, setHandleResult] = useState('idle')
-  const [identityResult, setIdentityResult] = useState('idle')
-  const [queueResult, setQueueResult] = useState('idle')
-  const [toastResult, setToastResult] = useState('idle')
+  const [cancelResult, setCancelResult] = useState('idle')
+  const [retryResult, setRetryResult] = useState('idle')
+  const [customResult, setCustomResult] = useState('idle')
+  const [nestedResult, setNestedResult] = useState('idle')
+  const [nestedOuterResult, setNestedOuterResult] = useState('idle')
+  const [handleCloseResult, setHandleCloseResult] = useState('idle')
+  const [clientCloseResult, setClientCloseResult] = useState('idle')
+  const [closeAllResult, setCloseAllResult] = useState('idle')
 
   function openAlert() {
+    setAlertResult('waiting')
     void overlay
-      .alert({ title: 'Alert contract', description: 'Alert renderer result' })
-      .then(() => {
-        setAlertResult('resolved')
+      .alert({
+        title: 'Alert contract',
+        description: 'Alert action과 onAction의 역할을 확인합니다.',
+        onAction: () => setAlertResult('action'),
       })
+      .then(() => setAlertResult((current) => `${current}:resolved`))
   }
 
-  function openConfirm() {
+  function openPendingConfirm() {
+    setConfirmResult('waiting')
     void overlay
-      .confirm({ title: 'Confirm contract', confirmLabel: '진행', cancelLabel: '취소' })
+      .confirm({
+        title: 'Pending confirm',
+        confirmLabel: '저장',
+        cancelLabel: '취소',
+        onConfirm: () => new Promise<void>((resolve) => window.setTimeout(resolve, 200)),
+      })
       .then((result) => setConfirmResult(String(result)))
   }
 
-  function startQueue() {
-    const first = overlay.open(consumerLabDialog, { title: 'Queue first' })
-    const second = overlay.open(consumerLabDialog, { title: 'Queue second' })
-
-    void Promise.all([first, second]).then((outcomes) => {
-      setQueueResult(outcomes.map(outcomeLabel).join(','))
-    })
-  }
-
-  function startHandle() {
-    const handle = overlay.open(consumerLabDialog, {
-      title: 'Handle before update',
-      children: (
-        <button data-testid="dialog-update-handle" onClick={updateHandle} type="button">
-          Update from dialog
-        </button>
-      ),
-    })
-    handleRef.current = handle
-    setHandleResult(`awaitable:${String(handle instanceof Promise)}`)
-    void handle.then((outcome) => setHandleResult(outcomeLabel(outcome)))
-  }
-
-  function updateHandle() {
-    const updated =
-      handleRef.current?.update({
-        title: 'Handle after update',
-        children: (
-          <button data-testid="dialog-dismiss-handle" onClick={dismissHandle} type="button">
-            Dismiss from dialog
-          </button>
-        ),
-      }) ?? false
-    setHandleResult(`updated:${String(updated)}`)
-  }
-
-  function dismissHandle() {
-    const dismissed = handleRef.current?.dismiss('programmatic') ?? false
-    setHandleResult(`dismiss-requested:${String(dismissed)}`)
-  }
-
-  function startIdentity() {
-    const first = overlay.openOrUpdate(consumerLabDialog, 'same-consumer', {
-      title: 'Identity before update',
-    })
-    const second = overlay.openOrUpdate(consumerLabDialog, 'same-consumer', {
-      title: 'Identity after update',
-      children: (
-        <button data-testid="dialog-dismiss-identity" onClick={dismissIdentity} type="button">
-          Dismiss identity from dialog
-        </button>
-      ),
-    })
-
-    identityHandleRef.current = second
-    setIdentityResult(`same:${String(first === second)}`)
-    void second.then((outcome) => setIdentityResult(outcomeLabel(outcome)))
-  }
-
-  function dismissIdentity() {
-    identityHandleRef.current?.dismiss('programmatic')
-  }
-
-  function startToasts() {
-    const first = showToast(overlay, { title: 'Parallel toast one', timeout: 0 })
-    const second = showToast(overlay, { title: 'Parallel toast two', timeout: 0 })
-    setToastResult('opened:2')
-
-    void Promise.all([first, second]).then((outcomes) => {
-      setToastResult(
-        outcomes
-          .map((outcome) =>
-            outcome.status === 'resolved' ? 'resolved' : `dismissed:${outcome.reason}`,
-          )
-          .join(','),
+  function openCancelConfirm() {
+    let canceledByButton = false
+    setCancelResult('waiting')
+    void overlay
+      .confirm({
+        title: 'Cancel confirm',
+        confirmLabel: '진행',
+        cancelLabel: '취소',
+        onCancel: () => {
+          canceledByButton = true
+        },
+      })
+      .then((result) =>
+        setCancelResult(`callback:${String(canceledByButton)},result:${String(result)}`),
       )
-    })
   }
 
-  function dismissAll() {
-    overlay.dismissAll('programmatic')
+  function openRetryConfirm() {
+    let attempts = 0
+    setRetryResult('waiting')
+    void overlay
+      .confirm({
+        title: 'Retry confirm',
+        confirmLabel: '재시도',
+        cancelLabel: '취소',
+        onConfirm: async () => {
+          attempts += 1
+          if (attempts === 1) throw new Error('first attempt failed')
+        },
+      })
+      .then((result) => setRetryResult(`result:${String(result)},attempts:${String(attempts)}`))
+  }
+
+  function openCustomDialog() {
+    setCustomResult('waiting')
+    void overlay
+      .open<ConsumerLabDialogResult>(<ConsumerLabDialog title="Custom result dialog" />)
+      .then((outcome) =>
+        setCustomResult(
+          outcome.status === 'resolved'
+            ? `resolved:${String(outcome.value.completed)}`
+            : `closed:${outcome.reason}`,
+        ),
+      )
+  }
+
+  function openNestedDialog() {
+    setNestedResult('waiting')
+    setNestedOuterResult('waiting')
+    void overlay
+      .open<ConsumerLabDialogResult>(
+        <ConsumerLabDialog title="Nested parent dialog">
+          <NestedConfirmButton onResult={(result) => setNestedResult(String(result))} />
+        </ConsumerLabDialog>,
+      )
+      .then((outcome) => setNestedOuterResult(closeReason(outcome)))
+  }
+
+  function observeHandle(handle: DialogHandle, onClose: (reason: string) => void) {
+    void handle.then((outcome) => onClose(closeReason(outcome)))
+  }
+
+  function openCloseStack() {
+    setHandleCloseResult('waiting')
+    setClientCloseResult('waiting')
+    const lower = overlay.open<ConsumerLabDialogResult>(
+      <ConsumerLabDialog title="Handle close target" />,
+    )
+    const top = overlay.open<ConsumerLabDialogResult>(
+      <ConsumerLabDialog title="Client close target">
+        <StackControls closeLower={() => lower.close('cancel')} />
+      </ConsumerLabDialog>,
+    )
+
+    observeHandle(lower, setHandleCloseResult)
+    observeHandle(top, setClientCloseResult)
+  }
+
+  function openCloseAllStack() {
+    setCloseAllResult('waiting')
+    const first = overlay.open<ConsumerLabDialogResult>(
+      <ConsumerLabDialog title="Close all lower" />,
+    )
+    const second = overlay.open<ConsumerLabDialogResult>(
+      <ConsumerLabDialog title="Close all top">
+        <CloseAllControl />
+      </ConsumerLabDialog>,
+    )
+
+    void Promise.all([first, second]).then((outcomes) =>
+      setCloseAllResult(outcomes.map(closeReason).join(',')),
+    )
   }
 
   return (
@@ -135,47 +210,48 @@ export function App() {
         <output data-testid="alert-result">{alertResult}</output>
       </section>
       <section>
-        <button data-testid="open-confirm" onClick={openConfirm} type="button">
-          Open confirm
+        <button data-testid="open-confirm" onClick={openPendingConfirm} type="button">
+          Open pending confirm
         </button>
         <output data-testid="confirm-result">{confirmResult}</output>
       </section>
       <section>
-        <button data-testid="start-queue" onClick={startQueue} type="button">
-          Start queue
+        <button data-testid="open-cancel-confirm" onClick={openCancelConfirm} type="button">
+          Open cancel confirm
         </button>
-        <output data-testid="queue-result">{queueResult}</output>
+        <output data-testid="cancel-result">{cancelResult}</output>
       </section>
       <section>
-        <button data-testid="start-handle" onClick={startHandle} type="button">
-          Start handle
+        <button data-testid="open-retry-confirm" onClick={openRetryConfirm} type="button">
+          Open retry confirm
         </button>
-        <button data-testid="update-handle" onClick={updateHandle} type="button">
-          Update handle
-        </button>
-        <button data-testid="dismiss-handle" onClick={dismissHandle} type="button">
-          Dismiss handle
-        </button>
-        <output data-testid="handle-result">{handleResult}</output>
+        <output data-testid="retry-result">{retryResult}</output>
       </section>
       <section>
-        <button data-testid="start-identity" onClick={startIdentity} type="button">
-          Start identity
+        <button data-testid="open-custom" onClick={openCustomDialog} type="button">
+          Open custom dialog
         </button>
-        <button data-testid="dismiss-identity" onClick={dismissIdentity} type="button">
-          Dismiss identity
-        </button>
-        <output data-testid="identity-result">{identityResult}</output>
+        <output data-testid="custom-result">{customResult}</output>
       </section>
       <section>
-        <p>CSS Modules · Base UI 기본 limit 3 · hover/focus 시 stack이 펼쳐집니다.</p>
-        <button data-testid="start-toasts" onClick={startToasts} type="button">
-          Start toasts
+        <button data-testid="open-nested" onClick={openNestedDialog} type="button">
+          Open nested dialog
         </button>
-        <button data-testid="dismiss-all" onClick={dismissAll} type="button">
-          Dismiss all
+        <output data-testid="nested-result">{nestedResult}</output>
+        <output data-testid="nested-outer-result">{nestedOuterResult}</output>
+      </section>
+      <section>
+        <button data-testid="open-close-stack" onClick={openCloseStack} type="button">
+          Open close stack
         </button>
-        <output data-testid="toast-result">{toastResult}</output>
+        <output data-testid="handle-close-result">{handleCloseResult}</output>
+        <output data-testid="client-close-result">{clientCloseResult}</output>
+      </section>
+      <section>
+        <button data-testid="open-close-all" onClick={openCloseAllStack} type="button">
+          Open closeAll stack
+        </button>
+        <output data-testid="close-all-result">{closeAllResult}</output>
       </section>
     </main>
   )

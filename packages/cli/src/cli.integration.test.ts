@@ -178,11 +178,12 @@ describe('overlay CLI 통합', () => {
           'confirm/ConfirmSurface.tsx',
           'confirm/Confirm.module.css',
           'confirm/index.ts',
+          'scope.ts',
           'OverlayProvider.tsx',
           'index.ts',
         ].map((fileName) => readFile(path.join(overlayDirectory, fileName), 'utf8')),
       ),
-    ).resolves.toHaveLength(8)
+    ).resolves.toHaveLength(9)
 
     const config = JSON.parse(await readFile(path.join(fixtureDirectory, 'lyrd.json'), 'utf8'))
     expect(config).toMatchObject({
@@ -210,7 +211,7 @@ describe('overlay CLI 통합', () => {
     expect(await readFile(alertPath, 'utf8')).toBe(customizedAlert)
     expect(log.mock.calls.flat().join('\n')).toContain('Existing files were not overwritten')
     const indexContent = await readFile(path.join(overlayDirectory, 'index.ts'), 'utf8')
-    expect(indexContent.match(/export \* from/g)).toHaveLength(3)
+    expect(indexContent.match(/export \* from/g)).toHaveLength(4)
 
     await run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory, '--verbose'])
 
@@ -221,9 +222,7 @@ describe('overlay CLI 통합', () => {
       readFile(path.join(dialogDirectory, 'ProjectSettingsDialog.module.css'), 'utf8'),
     ).resolves.toContain('.Popup')
     expect(compileFixture(fixtureDirectory)).toBe('')
-    expect(log.mock.calls.flat().join('\n')).toContain(
-      'overlay.dialog<ProjectSettingsDialogResult>',
-    )
+    expect(log.mock.calls.flat().join('\n')).toContain('overlay.open<ProjectSettingsDialogResult>')
 
     const customizedDialog = `${await readFile(dialogPath, 'utf8')}\n// 사용자 커스텀\n`
     await writeFile(dialogPath, customizedDialog)
@@ -231,45 +230,14 @@ describe('overlay CLI 통합', () => {
 
     expect(await readFile(dialogPath, 'utf8')).toBe(customizedDialog)
 
-    await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
-
-    const toastPath = path.join(overlayDirectory, 'toast/AppToastProvider.tsx')
-    await expect(readFile(toastPath, 'utf8')).resolves.toContain('export function AppToastProvider')
-    await expect(
-      readFile(path.join(overlayDirectory, 'toast/definition.ts'), 'utf8'),
-    ).resolves.toContain('export const appToast')
-    await expect(
-      readFile(path.join(overlayDirectory, 'toast/notify.ts'), 'utf8'),
-    ).resolves.toContain('export function notify')
-    await expect(
-      readFile(path.join(overlayDirectory, 'toast/notify.ts'), 'utf8'),
-    ).resolves.toContain("strategy: 'parallel'")
-    await expect(
-      readFile(path.join(overlayDirectory, 'toast/Toast.module.css'), 'utf8'),
-    ).resolves.toContain('.Toast[data-limited]')
-    await expect(
-      readFile(path.join(overlayDirectory, 'toast/manager.ts'), 'utf8'),
-    ).resolves.toContain('Toast.createToastManager<AppToastData>()')
-    expect(compileFixture(fixtureDirectory)).toBe('')
-    const output = log.mock.calls.flat().join('\n')
-    expect(output).toContain('Runtime snippet (src/main.tsx)')
-    expect(output).toContain("import { AppToastProvider } from './overlays/toast'")
-    expect(output).toContain("import { OverlayProvider } from './overlays/OverlayProvider'")
-    expect(output).toContain('<AppToastProvider />')
     await expect(readFile(path.join(overlayDirectory, 'index.ts'), 'utf8')).resolves.toBe(
       `export * from './alert'
 export * from './confirm'
 export * from './dialogs'
 export * from './OverlayProvider'
-export * from './toast'
+export * from './scope'
 `,
     )
-
-    const customizedToast = `${await readFile(toastPath, 'utf8')}\n// 사용자 커스텀\n`
-    await writeFile(toastPath, customizedToast)
-    await run(['add', 'toast', '--cwd', fixtureDirectory])
-
-    expect(await readFile(toastPath, 'utf8')).toBe(customizedToast)
   })
 
   it('Vite의 커스텀 overlay 경로도 app root 기준 상대 import로 안내한다', async () => {
@@ -291,12 +259,10 @@ export * from './toast'
       )}\n`,
     )
 
-    await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install'])
-    await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
+    await run(['add', 'overlay', '--cwd', fixtureDirectory, '--skip-install', '--verbose'])
 
     const output = log.mock.calls.flat().join('\n')
-    expect(output).toContain('Runtime snippet (src/main.tsx)')
-    expect(output).toContain("import { AppToastProvider } from './features/overlays/toast'")
+    expect(output).toContain('Overlay runtime (src/main.tsx)')
     expect(output).toContain(
       "import { OverlayProvider } from './features/overlays/OverlayProvider'",
     )
@@ -314,7 +280,7 @@ export * from './toast'
       run(['add', 'dialog', 'project-settings', '--cwd', fixtureDirectory]),
     ).rejects.toThrow('먼저 lyrd add overlay')
     await expect(run(['add', 'toast', '--cwd', fixtureDirectory])).rejects.toThrow(
-      '먼저 lyrd add overlay',
+      'lyrd add overlay, lyrd add dialog <name>',
     )
   })
 
@@ -345,21 +311,6 @@ export * from './toast'
     expect(output).toContain('src/app/layout.tsx')
     expect(output).toContain("import { LyrdOverlayProvider } from './lyrd-overlay-provider'")
     expect(output).toContain('verify the Provider is mounted once')
-
-    const providerBeforeToast = await readFile(providerPath, 'utf8')
-    await run(['add', 'toast', '--cwd', fixtureDirectory, '--verbose'])
-
-    expect(await readFile(providerPath, 'utf8')).toBe(providerBeforeToast)
-    expect(await readFile(layoutPath, 'utf8')).toBe('export {}\n')
-    expect(compileFixture(fixtureDirectory)).toBe('')
-
-    const toastOutput = log.mock.calls.flat().join('\n')
-    expect(toastOutput).toContain('Runtime snippet (src/app/lyrd-overlay-provider.tsx)')
-    expect(toastOutput).toContain("import { AppToastProvider } from '../overlays/toast'")
-    expect(toastOutput).toContain("import { OverlayProvider } from '../overlays/OverlayProvider'")
-    expect(toastOutput).toContain(
-      "keep LyrdOverlayProvider mounted from './lyrd-overlay-provider' in 'src/app/layout.tsx'",
-    )
 
     const customizedProvider = `${await readFile(providerPath, 'utf8')}\n// 사용자 커스텀\n`
     await writeFile(providerPath, customizedProvider)

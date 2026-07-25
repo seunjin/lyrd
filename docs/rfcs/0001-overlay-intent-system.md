@@ -1,8 +1,13 @@
 # RFC 0001: Lyrd 오버레이 의도 관리 시스템
 
-- 상태: 제안
+- 상태: 일부 결정 유지·RFC 0004로 대체됨
 - 작성일: 2026-07-14
 - 담당: Lyrd 유지보수 팀
+
+> 후속 결정: [RFC 0004: 최소 Modal Overlay Stack API](0004-minimal-modal-overlay-stack.md)는
+> 이 RFC의 alert/confirm 제품 의도와 앱 소유 renderer 원칙을 유지한다. 범용 custom overlay는
+> JSX 기반 `open(element)`로 열고, 단일 FIFO queue와 dismiss 계열 명칭은 LIFO stack 및
+> close 계열 명칭으로 대체한다.
 
 ## 요약
 

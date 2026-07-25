@@ -6,20 +6,20 @@ import { Callout, CodeBlock, DocPage } from '../components/doc-page'
 export function IntroductionPage() {
   return (
     <DocPage
-      description="Lyrd는 Dialog를 대신 그리지 않습니다. 앱이 소유한 UI와 제품 코드 사이에서 요청, 결과, 정책과 scheduling을 관리합니다."
+      description="Lyrd는 UI를 대신 그리지 않습니다. 앱이 소유한 modal UI와 제품 코드 사이에서 요청, 결과와 LIFO stack을 관리합니다."
       eyebrow="INTRODUCTION"
       title="오버레이를 제품의 의도로 다루기"
     >
       <section id="why-lyrd">
         <h2>왜 Lyrd인가</h2>
         <p>
-          확인창이 화면마다 다르게 동작하고, 비동기 상태와 중복 요청을 호출부가 반복해서 처리하기
-          시작하면 문제는 UI가 아니라 제품 정책이 됩니다. Lyrd는 이런 흐름을
-          <code>alert</code>, <code>confirm</code>, typed overlay 같은 의미 단위로 모읍니다.
+          확인창마다 비동기 상태와 닫힘 규칙을 반복하면 제품의 UX가 쉽게 달라집니다. Lyrd는 자주
+          쓰는 흐름을 <code>alert()</code>와 <code>confirm()</code>으로 통일하고, 나머지 Dialog,
+          Sheet, BottomSheet는 <code>open(&lt;Component /&gt;)</code> 하나로 엽니다.
         </p>
-        <Callout title="핵심 원칙">
-          Base UI나 Radix는 접근성 primitive를 담당하고, Lyrd는 제품이 사용할 의미와 규칙을
-          관리합니다.
+        <Callout title="제한된 Core">
+          Core는 화면을 가리는 modal interaction만 다룹니다. Toast와 non-modal notification은 각
+          앱의 알림 시스템이 소유합니다.
         </Callout>
       </section>
 
@@ -28,20 +28,26 @@ export function IntroductionPage() {
         <div className="concept-grid">
           <article>
             <span>LYRD CORE</span>
-            <h3>의도와 정책</h3>
-            <p>Promise 결과, 중앙 queue, identity, dismiss policy와 세션 수명주기를 관리합니다.</p>
+            <h3>의도와 흐름</h3>
+            <p>Promise 결과, LIFO stack, topmost 판정과 닫힘 lifecycle을 관리합니다.</p>
           </article>
           <article>
             <span>YOUR APP</span>
-            <h3>표현과 브랜드</h3>
-            <p>JSX, 스타일, 문구, 모달 형태와 오류 표현은 애플리케이션 코드에 남습니다.</p>
+            <h3>표현과 요청 타입</h3>
+            <p>JSX, 스타일, 문구, Alert·Confirm 필드와 모달 형태를 직접 정의합니다.</p>
           </article>
           <article>
             <span>UI PRIMITIVE</span>
-            <h3>상호작용 기반</h3>
-            <p>포커스, 키보드, portal과 접근 가능한 Dialog 동작은 선택한 primitive가 맡습니다.</p>
+            <h3>접근성 동작</h3>
+            <p>ESC·outside 감지, 포커스, portal과 접근 가능한 Dialog 동작을 담당합니다.</p>
           </article>
         </div>
+        <p>
+          앱 Renderer는 두 경계 사이의 adapter입니다. UI primitive가 감지한 ESC나 outside press를{' '}
+          <code>requestClose()</code>로 전달하고, Lyrd가 허용한 closing을 UI에 반영한 뒤 exit 완료를{' '}
+          <code>completeClose()</code>로 돌려줍니다. Lyrd가 키보드나 포인터 이벤트를 직접 감지하지는
+          않습니다.
+        </p>
       </section>
 
       <section id="mental-model">
@@ -49,30 +55,32 @@ export function IntroductionPage() {
         <CodeBlock label="APPLICATION">
           {`const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
-  confirmLabel: '삭제',
-  cancelLabel: '취소',
   tone: 'danger',
-})`}
+  onConfirm: () => deleteProject(),
+})
+
+const outcome = await overlay.open<Result>(
+  <ProjectEditor projectId={projectId} />,
+)`}
         </CodeBlock>
         <p>
-          제품 코드는 결과를 기다립니다. Renderer는 <code>session.resolve()</code>,{' '}
-          <code>session.dismiss()</code>, <code>session.requestDismiss()</code>,{' '}
-          <code>session.completeExit()</code>을 UI primitive에 연결합니다. 두 역할은 서로 다른
-          문서에서 설명합니다.
+          호출부의 <code>onConfirm</code>은 확인 뒤 실행할 작업입니다. Renderer가 받는{' '}
+          <code>confirm()</code>은 그 작업과 pending·error·retry를 실행하는 Core action입니다.
+          custom overlay는 <code>useOverlaySession()</code>으로 결과와 닫힘을 연결합니다.
         </p>
         <nav aria-label="추천 다음 단계" className="doc-next-steps">
           <span>NEXT STEPS</span>
           <Link to="/getting-started">
             <span>
               <strong>설치부터 시작하기</strong>
-              <small>CLI와 Provider를 연결하고 첫 오버레이를 엽니다.</small>
+              <small>Scope와 Provider를 연결합니다.</small>
             </span>
             <ArrowRight aria-hidden size={19} strokeWidth={2} />
           </Link>
           <Link to="/api/application">
             <span>
               <strong>Application API 보기</strong>
-              <small>제품 코드가 사용하는 요청과 결과 API를 확인합니다.</small>
+              <small>다섯 개의 공개 메서드를 확인합니다.</small>
             </span>
             <ArrowRight aria-hidden size={19} strokeWidth={2} />
           </Link>

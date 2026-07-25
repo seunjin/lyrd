@@ -1,6 +1,7 @@
-import { useOverlay } from '@lyrd/core'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
+
+import { useOverlay } from '../overlays/scope'
 
 const meta = {
   title: 'VNext/Overlay Confirm',

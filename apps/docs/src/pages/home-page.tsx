@@ -1,6 +1,7 @@
-import { useOverlay } from '@lyrd/core'
 import { X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+
+import { useOverlay } from '../overlays/scope'
 
 const confirmCode = `const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
@@ -9,9 +10,8 @@ const confirmCode = `const confirmed = await overlay.confirm({
   tone: 'danger',
 })`
 
-const dialogCode = `const outcome = await overlay.open(
-  documentEditor,
-  { documentId: 'rfc-0003' },
+const dialogCode = `const outcome = await overlay.open<Result>(
+  <DocumentEditor documentId="rfc-0004" />,
 )`
 
 export function HomePage() {
@@ -43,7 +43,7 @@ export function HomePage() {
             </span>
           </h1>
           <p className="hero-description">
-            Lyrd는 오버레이의 요청·결과·정책·대기열을 조율합니다. 렌더러와 UI 선택권은 앱에 그대로
+            Lyrd는 오버레이의 요청·결과·정책·stack을 조율합니다. 렌더러와 UI 선택권은 앱에 그대로
             남습니다.
           </p>
           <div className="hero-actions">
@@ -153,9 +153,9 @@ export function HomePage() {
             <h3>의도와 정책</h3>
             <ul>
               <li>Promise 결과</li>
-              <li>중앙 대기열</li>
-              <li>identity와 Handle</li>
-              <li>dismiss policy</li>
+              <li>LIFO stack</li>
+              <li>topmost 제어</li>
+              <li>닫힘 정책</li>
             </ul>
             <span className="card-mark">L</span>
           </article>
@@ -203,7 +203,7 @@ export function HomePage() {
             <Link to="/api/application">
               <span>02</span>
               <strong>Application API</strong>
-              <p>열기, 갱신, 기다리기와 전체 종료</p>
+              <p>열기, 기다리기와 stack 종료</p>
               <i aria-hidden>→</i>
             </Link>
             <Link to="/api/renderer">
@@ -267,7 +267,7 @@ export function HomePage() {
           <article>
             <div>
               <span>CUSTOM OVERLAY</span>
-              <small>OverlayHandle&lt;Input, Result&gt;</small>
+              <small>OverlayOutcome&lt;Result&gt;</small>
             </div>
             <pre>
               <code>{dialogCode}</code>
@@ -286,8 +286,8 @@ export function HomePage() {
           <div className="principle-tags">
             <span>Renderer agnostic</span>
             <span>App-owned UI</span>
-            <span>Awaitable handles</span>
-            <span>Queue by default</span>
+            <span>Awaitable outcomes</span>
+            <span>LIFO stack</span>
           </div>
         </div>
       </section>

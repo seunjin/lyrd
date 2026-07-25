@@ -16,3 +16,5 @@ CONTRIBUTING.md
 !/docs/rfcs/**
 !/docs/cookbook/
 !/docs/cookbook/**
+!/docs/migrations/
+!/docs/migrations/**

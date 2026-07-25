@@ -1,134 +1,139 @@
 import { Callout, CodeBlock, ContractList, DocPage } from '../components/doc-page'
 
-export function ProgressRecipePage() {
+export function CustomOverlayRecipePage() {
   return (
     <DocPage
-      description="진행률처럼 하나의 업무가 여러 input을 거치는 UI는 stable identity로 세션을 열고 반환된 Handle로 갱신합니다."
+      description="Dialog, Sheet, BottomSheet와 fullscreen modal은 별도 Core 메서드 없이 JSX로 직접 엽니다."
       eyebrow="RECIPE"
-      title="진행 중인 작업 표시하기"
+      title="Custom overlay 열기"
     >
-      <section id="open-progress">
-        <h2>1. 업무 identity로 열기</h2>
-        <p>
-          Storybook의 실제 upload progress 사례는 uploadId를 업무 identity로 사용합니다. 업로드가
-          진행 중일 때 외부 dismiss를 막기 위해 dismissPolicy도 함께 설정합니다.
-        </p>
+      <section id="component">
+        <h2>1. 앱 컴포넌트에서 session 연결</h2>
+        <CodeBlock label="PROJECT EDITOR">
+          {`type ProjectResult = { name: string }
+
+function ProjectEditor({ projectId }: { projectId: string }) {
+  const session = useOverlaySession<ProjectResult>()
+  const [name, setName] = useState('')
+
+  return (
+    <Dialog.Root
+      open={session.open}
+      onOpenChange={(open, details) => {
+        if (!open) session.requestClose(
+          details.reason === 'escape-key' ? 'escape' : 'outside',
+        )
+      }}
+      onOpenChangeComplete={(open) => {
+        if (!open) session.completeClose()
+      }}
+    >
+      <ProjectForm
+        name={name}
+        onNameChange={setName}
+        onCancel={() => session.close('cancel')}
+        onSave={() => session.resolve({ name })}
+      />
+    </Dialog.Root>
+  )
+}`}
+        </CodeBlock>
+      </section>
+
+      <section id="open">
+        <h2>2. JSX를 열고 결과 기다리기</h2>
         <CodeBlock label="APPLICATION">
-          {`const upload = overlay.openOrUpdate(
-  uploadProgress,
-  uploadId,
-  initialInput,
-  { dismissPolicy: 'block' },
-)`}
-        </CodeBlock>
-        <Callout title="identity는 업무 ID입니다">
-          임의의 렌더링 ID가 아니라 여러 호출부가 같은 작업이라고 합의할 수 있는 uploadId, exportId
-          같은 값을 사용합니다.
-        </Callout>
-      </section>
-
-      <section id="update-progress">
-        <h2>2. 같은 Handle 갱신</h2>
-        <CodeBlock label="LOCAL FLOW">
-          {`upload.update({
-  uploadId,
-  fileName,
-  uploadedBytes,
-  totalBytes,
-})`}
-        </CodeBlock>
-        <p>
-          Handle을 보유한 같은 로컬 흐름에서는 <code>upload.update()</code>가 가장 직접적입니다.
-          WebSocket listener처럼 다른 호출부에 Handle이 없다면 같은 definition과 identity로{' '}
-          <code>openOrUpdate()</code>를 다시 호출할 수 있습니다.
-        </p>
-      </section>
-
-      <section id="settle-progress">
-        <h2>3. 최종 outcome 기다리기</h2>
-        <CodeBlock label="COMPLETE FLOW">
-          {`const upload = overlay.openOrUpdate(
-  uploadProgress,
-  uploadId,
-  initialInput,
-  { dismissPolicy: 'block' },
+          {`const outcome = await overlay.open<ProjectResult>(
+  <ProjectEditor projectId={projectId} />,
 )
 
-upload.update(nextInput)
-
-const outcome = await upload`}
+if (outcome.status === 'resolved') {
+  updateProjectName(outcome.value.name)
+} else if (outcome.reason === 'cancel') {
+  // 사용자가 취소 버튼을 눌렀습니다.
+}`}
         </CodeBlock>
         <ContractList>
-          <li>같은 활성 작업은 Handle과 Renderer component instance를 재사용합니다.</li>
-          <li>종료된 Handle의 update는 false이며 세션을 다시 만들지 않습니다.</li>
-          <li>작업이 끝난 뒤 같은 identity로 다시 호출하면 새 세션을 만듭니다.</li>
-          <li>활성 세션이 사용하는 group은 도중에 변경할 수 없습니다.</li>
+          <li>컴포넌트 props는 JSX에서 평소처럼 타입 검사됩니다.</li>
+          <li>
+            Result 제네릭은 <code>useOverlaySession&lt;Result&gt;()</code>과 맞춥니다.
+          </li>
+          <li>호출할 때마다 독립된 새 session을 stack 위에 엽니다.</li>
         </ContractList>
+      </section>
+
+      <section id="state">
+        <h2>3. 변하는 상태는 열린 컴포넌트가 소유</h2>
+        <p>
+          전달한 JSX는 호출 시점 snapshot입니다. input, step, loading 같은 UI state는 컴포넌트
+          내부에서 관리합니다. 서버 데이터가 바뀌어야 한다면 <code>projectId</code> 같은 안정적인
+          식별자로 query나 외부 store를 구독합니다.
+        </p>
+        <Callout title="열린 props를 다시 주입하지 않습니다">
+          React의 일반 state 소유권을 유지합니다. 서로 다른 사용자 상호작용이면 새로운 overlay를
+          여세요.
+        </Callout>
       </section>
     </DocPage>
   )
 }
 
-export function ToastRecipePage() {
+export function NestedConfirmRecipePage() {
   return (
     <DocPage
-      description="Toast는 Lyrd가 그리는 내장 UI가 아니라, 애플리케이션이 소유하는 adapter와 helper의 조합입니다."
+      description="열린 editor 위에 Confirm을 올려도 아래 session은 mount와 state를 유지합니다."
       eyebrow="RECIPE"
-      title="App-owned Toast 연결하기"
+      title="Custom overlay 안에서 Confirm 열기"
     >
-      <section id="contract">
-        <h2>Recipe 계약</h2>
-        <ContractList>
-          <li>Toast definition, Base UI adapter와 CSS는 애플리케이션이 소유합니다.</li>
-          <li>Toast는 명시적인 parallel group에서 열립니다.</li>
-          <li>일반 호출부는 notify()와 notifyWithUndo() helper를 사용합니다.</li>
-          <li>일반 Toast에는 openOrUpdate()를 사용하지 않습니다.</li>
-        </ContractList>
-        <CodeBlock label="TERMINAL">pnpm dlx @lyrd/cli add toast</CodeBlock>
-      </section>
+      <section id="flow">
+        <h2>1. 중첩 흐름</h2>
+        <CodeBlock label="EDITOR">
+          {`async function requestDelete() {
+  const confirmed = await overlay.confirm({
+    title: '이 프로젝트를 삭제할까요?',
+    tone: 'danger',
+  })
 
-      <section id="group">
-        <h2>명시적인 parallel group</h2>
-        <CodeBlock label="TOAST GROUP">
-          {`const toastGroup = defineOverlayGroup({
-  strategy: 'parallel',
-})
-
-return overlay.open(appToast, input, {
-  group: toastGroup,
-})`}
+  if (confirmed) session.resolve({ action: 'delete' })
+}`}
         </CodeBlock>
         <p>
-          Toast들은 서로 기다리지 않고, 기본 modal queue의 confirm이나 dialog도 막지 않습니다.
-          Group은 단순 strategy 옵션이 아니라 같은 실행 공간을 공유하는 coordination boundary입니다.
+          Confirm은 editor 위에 push됩니다. 취소하면 Confirm만 먼저 닫히고 editor의 입력값은 그대로
+          남습니다. 이것이 LIFO stack의 기본 동작입니다.
         </p>
       </section>
 
-      <section id="helpers">
-        <h2>notify helper</h2>
-        <CodeBlock label="APPLICATION">
-          {`notify(overlay, {
-  title: '저장했습니다.',
-})
-
-const action = await notifyWithUndo(overlay, {
-  title: '문서를 삭제했습니다.',
-  description: '실행 취소할 수 있습니다.',
+      <section id="pending">
+        <h2>2. 비동기 확인 작업</h2>
+        <CodeBlock label="MANAGED CONFIRM">
+          {`const deleted = await overlay.confirm({
+  title: '삭제할까요?',
+  onConfirm: () => deleteProject(projectId),
 })`}
         </CodeBlock>
         <p>
-          Helper가 toastId, definition과 group을 숨기므로 일반 제품 코드가 adapter 세부사항을
-          반복하지 않습니다. notifyWithUndo는 <code>'undo'</code> 또는 <code>'dismissed'</code>를
-          반환하도록 앱에서 설계할 수 있습니다.
+          <code>onConfirm</code>이 pending인 동안 모든 종료 입력을 막습니다. 실패하면 Confirm이 열린
+          상태로 error를 표시하고 Renderer의 같은 <code>confirm()</code>으로 재시도합니다.
         </p>
       </section>
 
-      <section id="identity">
-        <h2>openOrUpdate는 언제 쓰나</h2>
-        <Callout title="일반 Toast에는 사용하지 않습니다">
-          “저장했습니다” 같은 알림은 각각 독립된 사건이므로 새로운 Toast로 엽니다. Progress
-          Toast처럼 동일한 업무를 계속 갱신할 때만 stable identity와 openOrUpdate를 고려합니다.
-        </Callout>
+      <section id="cancel-action">
+        <h2>3. 취소 side effect가 필요할 때</h2>
+        <CodeBlock label="APP REQUEST AND RENDERER">
+          {`type AppConfirmRequest = {
+  title: ReactNode
+  onCancel?: () => void
+}
+
+function handleCancel() {
+  request.onCancel?.()
+  cancel()
+}`}
+        </CodeBlock>
+        <p>
+          <code>onCancel</code>은 Core 예약 필드가 아닙니다. 제품에서 필요할 때 request 타입과
+          Renderer에 명시적으로 추가합니다. 단순 취소는 내장 <code>cancel()</code>만 사용합니다.
+        </p>
       </section>
     </DocPage>
   )

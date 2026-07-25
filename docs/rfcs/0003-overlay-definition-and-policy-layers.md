@@ -1,11 +1,15 @@
 # RFC 0003: 오버레이 정의와 정책 계층 분리
 
-- 상태: 승인·4차 구현
+- 상태: RFC 0004로 대체됨
 - 작성일: 2026-07-15
 - 담당: Lyrd 유지보수 팀
 - 선행 RFC:
   - [RFC 0001: Lyrd 오버레이 의도 관리 시스템](0001-overlay-intent-system.md)
   - [RFC 0002: 범용 Dialog 세션 계약](0002-registered-overlay-contract.md)
+
+> 후속 결정: [RFC 0004: 최소 Modal Overlay Stack API](0004-minimal-modal-overlay-stack.md)는
+> JSX 기반 `open(element)`와 LIFO stack을 채택하고 definition, update, openOrUpdate, group 및
+> parallel Toast orchestration을 제거했다. RFC 0001의 alert/confirm 제품 의도는 유지한다.
 
 ## 요약
 

@@ -1,22 +1,24 @@
 # Lyrd
 
-Lyrd is a React overlay intent system. It centrally manages overlay requests, typed results, lifecycle, deduplication, and scheduling policy while the application owns JSX, styling, copy, and UI primitive adapters.
+Lyrd is a React runtime for modal interaction. It manages app-defined Alert and Confirm recipes,
+custom JSX sessions, Promise results, close lifecycle, and a shared LIFO stack. The application owns
+request fields, JSX, styling, copy, and UI primitive adapters.
 
 Documentation: https://seunjin.github.io/lyrd/
 Complete agent documentation: https://seunjin.github.io/lyrd/llms-full.txt
-Ready-to-use integration test prompt: https://seunjin.github.io/lyrd/agent-test-prompt.md
+Integration test prompt: https://seunjin.github.io/lyrd/agent-test-prompt.md
 Repository: https://github.com/seunjin/lyrd
 Packages: @lyrd/core and @lyrd/cli
 
 ## Start here
 
-1. Read `llms-full.txt` before changing an application.
-2. Use `pnpm dlx @lyrd/cli add overlay --verbose` to generate app-owned Base UI renderers.
-3. Mount the generated Provider exactly once at the app root.
-4. Use `alert()` and `confirm()` for safe built-in recipes.
-5. Use `defineOverlay()` and `open()` for reusable custom overlays.
-6. Retain the awaitable handle returned by `open()` when one flow must call `update()` or `dismiss()` on that exact session.
-7. Use `openOrUpdate()` only when multiple call sites must find one active operation by a stable identity.
-8. Use an explicit parallel group for non-blocking overlays such as Toast.
+1. Run `pnpm dlx @lyrd/cli add overlay --verbose` to generate an app-owned scope, Provider, and Base UI renderers.
+2. Mount the generated Provider once and import `useOverlay` from the generated app module.
+3. Use `alert()` for one synchronous acknowledgement action.
+4. Use `confirm()` for boolean choice and optional sync or async `onConfirm` work.
+5. Use `open<Result>(<Component />)` for Dialog, Sheet, BottomSheet, Drawer, and fullscreen modal UI.
+6. Treat JSX props as a call-time snapshot; keep changing state inside the open component or an external store/query.
+7. Use `overlay.close()` for the topmost session, `handle.close()` for one exact session, and `closeAll()` for all sessions.
+8. Connect `requestClose()` to ESC/outside attempts and `completeClose()` to the end of exit animation.
 
-There is no built-in `overlay.toast()` API. Use `pnpm dlx @lyrd/cli add toast` and keep the generated adapter in the application.
+Toast and non-modal notifications are outside Lyrd Core and CLI. Use only the documented modal APIs.

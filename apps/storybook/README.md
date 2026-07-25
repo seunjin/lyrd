@@ -4,17 +4,13 @@
 
 ## 검증 범위
 
-- `overlay.alert()` 인지 및 닫힘 흐름
-- `overlay.confirm()` 확인·취소 결과
-- 비동기 `onConfirm`의 pending·error·retry 상태
-- `alert`와 `confirm`의 통합 대기열
-- `dedupeKey` 중복 요청 병합
-- `defineOverlay()`와 `overlay.open()`의 모달·풀페이지 로컬 UI
-- 같은 definition을 여러 번 호출하는 독립 세션 대기열
-- 업로드 identity별 `openOrUpdate()` Handle 재사용과 실시간 input 갱신
-- Base UI Toast와 `parallel` group의 동시 렌더링·개별 결과·modal queue 독립성
-- typed session의 결과·dismiss 이유·닫힘 완료 연결
-- 앱 로컬 Base UI 렌더러와 `@lyrd/core`의 연결
+- 앱 전용 `createOverlayScope()`와 로컬 Alert·Confirm renderer
+- Alert action과 명시적인 programmatic close
+- Confirm 확인·취소, pending·error·retry 상태
+- Alert, Confirm과 custom JSX가 공유하는 LIFO stack
+- `overlay.open(<JSX />)`의 모달·풀페이지 UI와 typed custom result
+- 중첩 Dialog·Confirm과 아래 컴포넌트 state 유지
+- `close()`, `handle.close()`, `closeAll()`과 exit 완료 lifecycle
 
 ## 구조
 
@@ -29,8 +25,7 @@ src/
     overlay-alert.stories.tsx
     overlay-confirm.stories.tsx
     overlay-dialog.stories.tsx
-    overlay-progress.stories.tsx
-    overlay-toast.stories.tsx
+    overlay-lifecycle.stories.tsx
   overlays/
     OverlayProvider.tsx
     alert/
@@ -39,16 +34,10 @@ src/
     confirm/
       ConfirmSurface.tsx
       Confirm.module.css
-    toast/
-      AppToastProvider.tsx
-      definition.ts
-      manager.ts
-      notify.ts
-      Toast.module.css
+    scope.ts
     dialogs/
       project-settings/
       document-editor/
-      upload-progress/
 ~~~
 
 `src/overlays`는 CLI가 사용자 프로젝트에 생성하는 로컬 코드의 검증 기준이다. 코어는 이 JSX나 스타일을 소유하지 않는다.

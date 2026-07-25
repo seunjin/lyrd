@@ -1,8 +1,7 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import type { OverlayDefinitionComponentProps } from '@lyrd/core'
-import { defineOverlay } from '@lyrd/core'
+import { useOverlaySession } from '@lyrd/core'
 import { useState } from 'react'
 
 import styles from './DocumentEditorDialog.module.css'
@@ -16,13 +15,8 @@ export type DocumentEditorInput = {
   documentId: string
 }
 
-type DocumentEditorDialogProps = OverlayDefinitionComponentProps<
-  DocumentEditorInput,
-  DocumentEditorResult
->
-
-function DocumentEditorDialog({ input, session }: DocumentEditorDialogProps) {
-  const { documentId } = input
+export function DocumentEditorDialog({ documentId }: DocumentEditorInput) {
+  const session = useOverlaySession<DocumentEditorResult>()
   const [title, setTitle] = useState('오버레이 UX 설계 노트')
   const [body, setBody] = useState(
     'Lyrd는 UI 프리미티브가 아니라 제품의 오버레이 의도를 중앙에서 관리합니다.',
@@ -33,9 +27,9 @@ function DocumentEditorDialog({ input, session }: DocumentEditorDialogProps) {
       open={session.open}
       onOpenChange={(nextOpen, eventDetails) =>
         !nextOpen &&
-        session.requestDismiss(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className={styles.Backdrop} />
@@ -51,7 +45,7 @@ function DocumentEditorDialog({ input, session }: DocumentEditorDialogProps) {
               <div className={styles.Actions}>
                 <button
                   className={styles.SecondaryButton}
-                  onClick={() => session.dismiss('cancel')}
+                  onClick={() => session.close('cancel')}
                   type="button"
                 >
                   나가기
@@ -82,5 +76,3 @@ function DocumentEditorDialog({ input, session }: DocumentEditorDialogProps) {
     </Dialog.Root>
   )
 }
-
-export const documentEditorDialog = defineOverlay(DocumentEditorDialog)

@@ -1,37 +1,21 @@
 export type {
-  OverlayController,
-  OverlayControllerSnapshot,
-  OverlayDefinitionSnapshot,
-} from './controller'
-export { createOverlayController } from './controller'
-export { defineOverlay } from './definition'
-export { defineOverlayGroup } from './group'
-export type { OverlayProviderProps } from './provider'
-export { OverlayProvider, useOverlay, useOverlayDialog } from './provider'
-export type {
+  AlertBehavior,
+  AlertRendererProps,
   AlertRequest,
-  AlertSnapshot,
-  AlertStatus,
-  AlertSurfaceProps,
+  ConfirmActionStatus,
+  ConfirmBehavior,
+  ConfirmRendererProps,
   ConfirmRequest,
-  ConfirmSnapshot,
-  ConfirmStatus,
-  ConfirmSurfaceProps,
-  ConfirmTone,
-  DialogOptions,
-  DialogSnapshot,
-  DialogStatus,
-  OverlayApi,
-  OverlayDefinition,
-  OverlayDefinitionComponentProps,
-  OverlayDialogApi,
-  OverlayDismissReason,
-  OverlayGroup,
-  OverlayGroupOptions,
-  OverlayGroupStrategy,
+  OpenOptions,
+  OverlayClient,
+  OverlayCloseReason,
+  OverlayCloseRequestReason,
   OverlayHandle,
-  OverlayOpenOptions,
   OverlayOutcome,
+  OverlayPhase,
   OverlayRenderers,
+  OverlayRequestMap,
+  OverlayScope,
   OverlaySession,
-} from './types'
+} from './contract'
+export { createOverlayScope, useOverlaySession } from './scope'
