@@ -15,21 +15,30 @@ export function GettingStartedPage() {
         </p>
         <CodeBlock label="TERMINAL">{`pnpm dlx @lyrd/cli init
 pnpm dlx @lyrd/cli add overlay`}</CodeBlock>
+        <p>
+          <code>init</code>은 프로젝트의 package manager와 Vite React 또는 Next App Router를
+          감지하고, CSS Modules와 Tailwind CSS v4 중 사용할 스타일 방식을 기록한{' '}
+          <code>lyrd.json</code>을 만듭니다.
+        </p>
         <p>Renderer 없이 Core 런타임만 직접 사용할 때는 별도로 설치할 수 있습니다.</p>
         <CodeBlock label="TERMINAL">pnpm add @lyrd/core</CodeBlock>
       </section>
 
       <section id="generate-renderer">
         <h2>2. 앱 소유 Renderer 확인</h2>
-        <p>CLI는 기존 진입 파일을 덮어쓰지 않고 다음 파일을 애플리케이션 안에 생성합니다.</p>
+        <p>CLI는 기존 진입 파일을 덮어쓰지 않고 다음 주요 파일을 애플리케이션 안에 생성합니다.</p>
         <CodeBlock label="GENERATED FILES">
-          {`src/overlays/
+          {`lyrd.json
+src/overlays/
 ├─ OverlayProvider.tsx
+├─ index.ts
 ├─ alert/
 │  ├─ AlertSurface.tsx
+│  ├─ index.ts
 │  └─ Alert.module.css  # CSS Modules 선택 시
 └─ confirm/
    ├─ ConfirmSurface.tsx
+   ├─ index.ts
    └─ Confirm.module.css  # CSS Modules 선택 시`}
         </CodeBlock>
         <Callout title="App-owned UI">
@@ -40,8 +49,11 @@ pnpm dlx @lyrd/cli add overlay`}</CodeBlock>
 
       <section id="connect-provider">
         <h2>3. Provider 연결</h2>
-        <p>생성된 Provider를 앱 루트에서 한 번 연결합니다.</p>
-        <CodeBlock label="APP ROOT">
+        <p>
+          생성된 Provider를 앱 루트에서 한 번 연결합니다. CLI는 기존 진입 파일을 수정하지 않고
+          프로젝트에 맞는 연결 위치와 코드를 출력합니다.
+        </p>
+        <CodeBlock label="VITE · SRC/MAIN.TSX">
           {`import { OverlayProvider } from './overlays/OverlayProvider'
 
 root.render(
@@ -50,6 +62,24 @@ root.render(
   </OverlayProvider>,
 )`}
         </CodeBlock>
+        <CodeBlock label="NEXT APP ROUTER · APP/LAYOUT.TSX">
+          {`import { LyrdOverlayProvider } from './lyrd-overlay-provider'
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="ko">
+      <body>
+        <LyrdOverlayProvider>{children}</LyrdOverlayProvider>
+      </body>
+    </html>
+  )
+}`}
+        </CodeBlock>
+        <Callout title="Next.js client bridge">
+          Next App Router에서는 CLI가 <code>app/lyrd-overlay-provider.tsx</code> 또는{' '}
+          <code>src/app/lyrd-overlay-provider.tsx</code>를 생성합니다. Server Component인 layout은
+          유지하고 이 client bridge를 연결합니다.
+        </Callout>
       </section>
 
       <section id="first-overlay">
@@ -121,6 +151,20 @@ if (outcome.status === 'resolved') {
         <p>
           <code>OverlayOutcome</code>은 값을 반환한 종료와 이유가 있는 dismiss를 구분합니다. 같은
           반환값을 보관하면 awaitable <code>OverlayHandle</code>로 세션을 갱신할 수도 있습니다.
+        </p>
+      </section>
+
+      <section id="additional-generators">
+        <h2>6. Dialog와 Toast starter 추가</h2>
+        <p>
+          반복 사용하는 범용 Dialog는 typed definition starter로 만들고, 동시에 표시되는 Toast는
+          독립 Provider와 parallel group이 포함된 starter로 만듭니다.
+        </p>
+        <CodeBlock label="TERMINAL">{`pnpm dlx @lyrd/cli add dialog project-settings
+pnpm dlx @lyrd/cli add toast`}</CodeBlock>
+        <p>
+          Dialog 이름은 kebab-case를 사용합니다. 생성된 파일은 앱 소유 코드이며, 같은 명령을 다시
+          실행해도 기존 사용자 수정은 덮어쓰지 않습니다.
         </p>
       </section>
     </DocPage>
