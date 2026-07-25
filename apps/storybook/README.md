@@ -1,6 +1,6 @@
 # Overlay Storybook
 
-`apps/storybook`은 Lyrd vNext 오버레이의 내부 행동 검증 환경이다.
+`apps/storybook`은 현재 Lyrd 오버레이 계약의 내부 행동 검증 환경이다.
 
 ## 검증 범위
 

@@ -1,29 +1,49 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { useOverlaySession } from '@lyrd/core'
-import { useState } from 'react'
-
+import { useEffect, useState } from 'react'
 import styles from './playground-dialog.module.css'
+import { emitPlaygroundEvent, type PlaygroundInstrumentation } from './playground-events'
 
 export type PlaygroundDialogResult = {
   name: string
 }
 
 export type PlaygroundDialogInput = {
+  instrumentation?: PlaygroundInstrumentation
   projectId: string
 }
 
-export function PlaygroundDialog({ projectId }: PlaygroundDialogInput) {
+export function PlaygroundDialog({ instrumentation, projectId }: PlaygroundDialogInput) {
   const session = useOverlaySession<PlaygroundDialogResult>()
   const [name, setName] = useState('Lyrd 문서')
+
+  useEffect(() => {
+    emitPlaygroundEvent(instrumentation, session.phase)
+  }, [instrumentation, session.phase])
+
+  function handleOpenChange(nextOpen: boolean, eventDetails: { reason: string }) {
+    if (nextOpen) return
+    const reason = eventDetails.reason === 'escape-key' ? 'escape' : 'outside'
+    emitPlaygroundEvent(instrumentation, 'close-reason', reason)
+    session.requestClose(reason)
+  }
+
+  function handleOpenChangeComplete(nextOpen: boolean) {
+    if (nextOpen) return
+    emitPlaygroundEvent(instrumentation, 'removed')
+    session.completeClose()
+  }
+
+  function cancel() {
+    emitPlaygroundEvent(instrumentation, 'close-reason', 'cancel')
+    session.close('cancel')
+  }
 
   return (
     <Dialog.Root
       open={session.open}
-      onOpenChange={(nextOpen, eventDetails) =>
-        !nextOpen &&
-        session.requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
-      }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeClose()}
+      onOpenChange={handleOpenChange}
+      onOpenChangeComplete={handleOpenChangeComplete}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className={styles.Backdrop} />
@@ -41,11 +61,7 @@ export function PlaygroundDialog({ projectId }: PlaygroundDialogInput) {
               <input value={name} onChange={(event) => setName(event.target.value)} />
             </label>
             <div className={styles.Actions}>
-              <button
-                className={styles.SecondaryButton}
-                onClick={() => session.close('cancel')}
-                type="button"
-              >
+              <button className={styles.SecondaryButton} onClick={cancel} type="button">
                 취소
               </button>
               <button

@@ -139,9 +139,53 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="capabilities section-shell">
+        <div className="section-heading">
+          <p className="section-index">02 / CAPABILITIES</p>
+          <h2>필요한 modal 흐름만, 작게 제공합니다.</h2>
+          <p className="section-description">
+            공통 UX는 간단한 메서드로 열고, 제품 전용 화면은 JSX 그대로 사용합니다. 모든 호출은
+            Promise 결과와 하나의 LIFO stack으로 이어집니다.
+          </p>
+        </div>
+        <div className="capability-grid">
+          <article>
+            <span>ACKNOWLEDGE</span>
+            <code>alert()</code>
+            <p>사용자가 내용을 확인하고 하나의 action으로 닫는 흐름입니다.</p>
+            <small>await → void</small>
+          </article>
+          <article>
+            <span>DECIDE</span>
+            <code>confirm()</code>
+            <p>취소와 진행을 선택하고 비동기 작업의 pending·error·retry를 관리합니다.</p>
+            <small>await → boolean</small>
+          </article>
+          <article>
+            <span>COMPOSE</span>
+            <code>open(&lt;Component /&gt;)</code>
+            <p>Dialog, Sheet, BottomSheet와 fullscreen modal을 앱 JSX로 직접 엽니다.</p>
+            <small>await → OverlayOutcome&lt;Result&gt;</small>
+          </article>
+          <article>
+            <span>CONTROL</span>
+            <code>close · handle.close · closeAll</code>
+            <p>맨 위 세션, 정확한 Handle 또는 현재 client의 전체 stack을 정리합니다.</p>
+            <small>LIFO · topmost</small>
+          </article>
+        </div>
+        <aside className="capability-boundary">
+          <strong>MODAL ONLY</strong>
+          <p>
+            Lyrd는 화면을 가리고 focus를 이동하는 modal interaction만 관리합니다. Toast, Tooltip,
+            Popover와 Dropdown은 기존 UI 시스템을 사용합니다.
+          </p>
+        </aside>
+      </section>
+
       <section className="model section-shell">
         <div className="section-heading">
-          <p className="section-index">02 / OWNERSHIP</p>
+          <p className="section-index">03 / OWNERSHIP</p>
           <h2>각자 잘하는 일만 맡습니다.</h2>
           <p className="section-description">
             Lyrd는 primitive를 포크하지 않고, 앱의 UI를 패키지 안에 가두지 않습니다.
@@ -187,7 +231,7 @@ export function HomePage() {
       <section className="home-routes">
         <div className="section-shell">
           <div className="section-heading">
-            <p className="section-index">03 / EXPLORE</p>
+            <p className="section-index">04 / EXPLORE</p>
             <h2>필요한 역할부터 찾아가세요.</h2>
             <p className="section-description">
               개념, API reference와 실제 recipe를 한 화면에 섞지 않고 독립된 경로로 나눴습니다.
@@ -196,7 +240,7 @@ export function HomePage() {
           <div className="home-route-grid">
             <Link to="/getting-started">
               <span>01</span>
-              <strong>Getting Started</strong>
+              <strong>Quickstart</strong>
               <p>설치, 로컬 renderer, Provider와 첫 호출</p>
               <i aria-hidden>→</i>
             </Link>
@@ -227,7 +271,7 @@ export function HomePage() {
 
       <section className="start section-shell">
         <div className="section-heading start-heading">
-          <p className="section-index">04 / QUICK START</p>
+          <p className="section-index">05 / QUICK START</p>
           <h2>
             UI는 생성하고,
             <br />
@@ -278,7 +322,7 @@ export function HomePage() {
 
       <section className="principles">
         <div className="section-shell principle-grid">
-          <p className="section-index">05 / PRINCIPLES</p>
+          <p className="section-index">06 / PRINCIPLES</p>
           <blockquote>
             <span>“표현은 앱이 소유하고,</span>
             <strong>Lyrd는 오버레이의 의도와 흐름을 조율합니다.”</strong>

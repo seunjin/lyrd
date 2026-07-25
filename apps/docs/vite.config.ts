@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,6 +9,12 @@ import { defineConfig } from 'vite'
 import { staticRoutePaths } from './src/docs-manifest'
 
 const outputDirectory = fileURLToPath(new URL('./dist', import.meta.url))
+const corePackage = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../../packages/core/package.json', import.meta.url)), 'utf8'),
+) as { version: string }
+const cliPackage = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../../packages/cli/package.json', import.meta.url)), 'utf8'),
+) as { version: string }
 
 function emitStaticRouteEntries(): Plugin {
   return {
@@ -33,6 +40,10 @@ function emitStaticRouteEntries(): Plugin {
 
 export default defineConfig({
   base: '/lyrd/',
+  define: {
+    __LYRD_CLI_VERSION__: JSON.stringify(cliPackage.version),
+    __LYRD_CORE_VERSION__: JSON.stringify(corePackage.version),
+  },
   plugins: [react(), emitStaticRouteEntries()],
   resolve: {
     alias: {

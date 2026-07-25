@@ -7,6 +7,11 @@
   - [RFC 0001: Lyrd 오버레이 의도 관리 시스템](0001-overlay-intent-system.md)
   - [RFC 0002: 범용 Dialog 세션 계약](0002-registered-overlay-contract.md)
 
+> [!IMPORTANT]
+> 이 문서는 설계 변천을 보존하는 역사 기록이며 현재 사용법의 기준이 아니다. 현재 계약은
+> [Lyrd 문서 앱](https://seunjin.github.io/lyrd/)을, 이전 API와의 차이는
+> [0.2 migration](../migrations/0.2-overlay-api.md)을 확인한다.
+
 > 후속 결정: [RFC 0004: 최소 Modal Overlay Stack API](0004-minimal-modal-overlay-stack.md)는
 > JSX 기반 `open(element)`와 LIFO stack을 채택하고 definition, update, openOrUpdate, group 및
 > parallel Toast orchestration을 제거했다. RFC 0001의 alert/confirm 제품 의도는 유지한다.

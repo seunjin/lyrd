@@ -2,7 +2,9 @@
 
 import { AlertDialog } from '@base-ui/react/alert-dialog'
 import type { AlertRendererProps } from '@lyrd/core'
+import { useEffect } from 'react'
 
+import { emitPlaygroundEvent } from '../../playground-events'
 import type { AppAlertRequest } from '../scope'
 import styles from './Alert.module.css'
 
@@ -10,10 +12,21 @@ export function AlertSurface({
   action,
   completeClose,
   open,
+  phase,
   request,
 }: AlertRendererProps<AppAlertRequest>) {
+  useEffect(() => {
+    emitPlaygroundEvent(request.playground, phase)
+  }, [phase, request.playground])
+
+  function handleOpenChangeComplete(nextOpen: boolean) {
+    if (nextOpen) return
+    emitPlaygroundEvent(request.playground, 'removed')
+    completeClose()
+  }
+
   return (
-    <AlertDialog.Root open={open} onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}>
+    <AlertDialog.Root open={open} onOpenChangeComplete={handleOpenChangeComplete}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className={styles.Backdrop} />
         <AlertDialog.Popup className={styles.Popup}>

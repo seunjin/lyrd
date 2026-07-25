@@ -1,10 +1,13 @@
 import { createOverlayScope } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
+import type { PlaygroundInstrumentation } from '../playground-events'
+
 export type AppAlertRequest = {
   title: ReactNode
   description?: ReactNode
   actionLabel?: ReactNode
+  playground?: PlaygroundInstrumentation
 }
 
 export type AppConfirmRequest = {
@@ -14,6 +17,7 @@ export type AppConfirmRequest = {
   cancelLabel?: ReactNode
   tone?: 'neutral' | 'danger'
   onCancel?: () => void
+  playground?: PlaygroundInstrumentation
 }
 
 export type AppOverlayRequests = {

@@ -1,8 +1,8 @@
 # Lyrd complete agent documentation
 
-Version channel: `next`
-Core package: `@lyrd/core`
-CLI package: `@lyrd/cli`
+Version channel: stable (`npm latest`)
+Core package: `@lyrd/core@0.2.0`
+CLI package: `@lyrd/cli@0.3.0`
 Documentation: https://seunjin.github.io/lyrd/
 Repository: https://github.com/seunjin/lyrd
 
@@ -278,3 +278,51 @@ overlay.closeAll(reason?)
 ```
 
 Use only these documented application methods. Toast belongs to a separate app notification system.
+
+## 11. Troubleshooting
+
+Start with the first Lyrd error in the browser console, then distinguish these common failures:
+
+- Every `useOverlay()` call fails: mount the generated `OverlayProvider` once above the application.
+- Only one subtree fails: that component is outside the Provider's React tree, or imports `useOverlay`
+  from a different app scope.
+- The Provider rejects an injected client: create the Provider, Hook, and client from the same
+  `createOverlayScope()` result.
+- `useOverlaySession()` reports an invalid location: call it only inside a component passed to
+  `overlay.open()`.
+- The Promise settles but modal DOM or scroll lock remains: call `completeClose()` when the UI
+  primitive finishes its exit transition.
+- An already-open component does not receive changed parent props: props are a call-time snapshot;
+  own changing state inside the component or subscribe by a stable ID.
+- Next.js reports Hook, context, or event-handler errors: keep the root layout server-rendered, but
+  put the generated Provider and every `useOverlay()` caller behind a `'use client'` boundary.
+
+Complete recovery guide: https://seunjin.github.io/lyrd/troubleshooting
+
+## 12. Documentation routes
+
+Start and framework setup:
+
+- Overview: https://seunjin.github.io/lyrd/introduction
+- Quickstart: https://seunjin.github.io/lyrd/getting-started
+- Vite React: https://seunjin.github.io/lyrd/getting-started/vite
+- Next.js App Router: https://seunjin.github.io/lyrd/getting-started/next-app-router
+
+Concepts and recipes:
+
+- Outcome and Handle: https://seunjin.github.io/lyrd/concepts/outcome-and-handle
+- Stack and Lifecycle: https://seunjin.github.io/lyrd/concepts/lifecycle
+- Glossary: https://seunjin.github.io/lyrd/concepts/glossary
+- Custom overlay: https://seunjin.github.io/lyrd/recipes/custom-overlay
+- Form state and snapshot: https://seunjin.github.io/lyrd/recipes/form-state
+- Async Confirm: https://seunjin.github.io/lyrd/recipes/async-confirm
+- Nested Confirm: https://seunjin.github.io/lyrd/recipes/nested-confirm
+
+Reference and operations:
+
+- Application API: https://seunjin.github.io/lyrd/api/application
+- Renderer API: https://seunjin.github.io/lyrd/api/renderer
+- Public types and defaults: https://seunjin.github.io/lyrd/api/public-types
+- Interactive Playground: https://seunjin.github.io/lyrd/playground
+- Troubleshooting: https://seunjin.github.io/lyrd/troubleshooting
+- Overlay API 0.2 migration: https://seunjin.github.io/lyrd/migrations/overlay-api

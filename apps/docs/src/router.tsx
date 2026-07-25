@@ -48,6 +48,22 @@ export const router = createBrowserRouter(
               },
             },
             {
+              path: 'getting-started/vite',
+              lazy: async () => {
+                const { ViteSetupPage } = await import('./pages/vite-setup-page')
+                return { Component: ViteSetupPage }
+              },
+            },
+            {
+              path: 'getting-started/next-app-router',
+              lazy: async () => {
+                const { NextAppRouterSetupPage } = await import(
+                  './pages/next-app-router-setup-page'
+                )
+                return { Component: NextAppRouterSetupPage }
+              },
+            },
+            {
               path: 'concepts/outcome-and-handle',
               lazy: async () => {
                 const { OutcomeAndHandlePage } = await import('./pages/concept-pages')
@@ -62,6 +78,13 @@ export const router = createBrowserRouter(
               },
             },
             {
+              path: 'concepts/glossary',
+              lazy: async () => {
+                const { GlossaryPage } = await import('./pages/glossary-page')
+                return { Component: GlossaryPage }
+              },
+            },
+            {
               path: 'api/application',
               lazy: async () => {
                 const { ApplicationApiPage } = await import('./pages/api-pages')
@@ -69,24 +92,56 @@ export const router = createBrowserRouter(
               },
             },
             {
+              path: 'api/public-types',
+              lazy: async () => {
+                const { PublicTypesPage } = await import('./pages/public-types-page')
+                return { Component: PublicTypesPage }
+              },
+            },
+            {
               path: 'api/renderer',
               lazy: async () => {
-                const { RendererApiPage } = await import('./pages/api-pages')
-                return { Component: RendererApiPage }
+                const { RendererGuidePage } = await import('./pages/renderer-guide-page')
+                return { Component: RendererGuidePage }
               },
             },
             {
               path: 'recipes/custom-overlay',
               lazy: async () => {
-                const { CustomOverlayRecipePage } = await import('./pages/recipe-pages')
+                const { CustomOverlayRecipePage } = await import(
+                  './pages/custom-overlay-recipe-page'
+                )
                 return { Component: CustomOverlayRecipePage }
+              },
+            },
+            {
+              path: 'recipes/form-state',
+              lazy: async () => {
+                const { FormStateRecipePage } = await import('./pages/form-state-recipe-page')
+                return { Component: FormStateRecipePage }
+              },
+            },
+            {
+              path: 'recipes/async-confirm',
+              lazy: async () => {
+                const { AsyncConfirmRecipePage } = await import('./pages/async-confirm-recipe-page')
+                return { Component: AsyncConfirmRecipePage }
               },
             },
             {
               path: 'recipes/nested-confirm',
               lazy: async () => {
-                const { NestedConfirmRecipePage } = await import('./pages/recipe-pages')
+                const { NestedConfirmRecipePage } = await import(
+                  './pages/nested-confirm-recipe-page'
+                )
                 return { Component: NestedConfirmRecipePage }
+              },
+            },
+            {
+              path: 'troubleshooting',
+              lazy: async () => {
+                const { TroubleshootingPage } = await import('./pages/troubleshooting-page')
+                return { Component: TroubleshootingPage }
               },
             },
             {

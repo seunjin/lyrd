@@ -27,8 +27,8 @@
 
 .docs-nav-section h2 {
   margin: 0 0 9px;
-  color: #77766f;
-  font: 700 10px / 1 var(--font-mono);
+  color: #66655e;
+  font: 700 11px / 1 var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -49,8 +49,8 @@
   align-items: center;
   border-left: 2px solid transparent;
   padding: 6px 10px;
-  color: #56554f;
-  font-size: 13px;
+  color: #4f4e48;
+  font-size: 14px;
   line-height: 1.3;
 }
 
@@ -100,8 +100,8 @@
   display: block;
   border-left: 2px solid var(--color-line);
   padding: 2px 0 2px 12px;
-  color: #6b6a63;
-  font-size: 12px;
+  color: #5d5c55;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -260,7 +260,7 @@
 
 .mobile-page-toc a {
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {

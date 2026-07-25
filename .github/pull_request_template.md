@@ -36,7 +36,7 @@ PR 제목: `<type>(<scope>): <한국어 요약>`
 ## 공개 API와 릴리스
 
 - [ ] 공개 패키지 변경이 없거나, `pnpm changeset`으로 Changeset을 추가했습니다.
-- [ ] `overlay.*` 중심의 공개 API와 기존 alert·confirm·dialog 계약을 유지했습니다.
+- [ ] `overlay.*` 중심의 공개 API와 현재 alert·confirm·open 계약을 유지했습니다.
 - [ ] 생성 파일을 변경했다면 기존 사용자 파일을 덮어쓰지 않는 동작을 확인했습니다.
 
 Changeset 판단:

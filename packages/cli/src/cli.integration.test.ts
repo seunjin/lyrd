@@ -222,7 +222,12 @@ describe('overlay CLI 통합', () => {
       readFile(path.join(dialogDirectory, 'ProjectSettingsDialog.module.css'), 'utf8'),
     ).resolves.toContain('.Popup')
     expect(compileFixture(fixtureDirectory)).toBe('')
-    expect(log.mock.calls.flat().join('\n')).toContain('overlay.open<ProjectSettingsDialogResult>')
+    const output = log.mock.calls.flat().join('\n')
+    expect(output).toContain('overlay.open<ProjectSettingsDialogResult>')
+    expect(output).toContain('https://seunjin.github.io/lyrd/getting-started')
+    expect(output).toContain('https://seunjin.github.io/lyrd/api/renderer')
+    expect(output).toContain('https://seunjin.github.io/lyrd/recipes/custom-overlay')
+    expect(output).not.toContain('/docs/rfcs/')
 
     const customizedDialog = `${await readFile(dialogPath, 'utf8')}\n// 사용자 커스텀\n`
     await writeFile(dialogPath, customizedDialog)

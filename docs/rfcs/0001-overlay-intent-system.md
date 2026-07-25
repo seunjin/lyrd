@@ -4,6 +4,11 @@
 - 작성일: 2026-07-14
 - 담당: Lyrd 유지보수 팀
 
+> [!IMPORTANT]
+> 이 문서는 설계 변천을 보존하는 역사 기록이며 현재 사용법의 기준이 아니다. 현재 계약은
+> [Lyrd 문서 앱](https://seunjin.github.io/lyrd/)을, 이전 API와의 차이는
+> [0.2 migration](../migrations/0.2-overlay-api.md)을 확인한다.
+
 > 후속 결정: [RFC 0004: 최소 Modal Overlay Stack API](0004-minimal-modal-overlay-stack.md)는
 > 이 RFC의 alert/confirm 제품 의도와 앱 소유 renderer 원칙을 유지한다. 범용 custom overlay는
 > JSX 기반 `open(element)`로 열고, 단일 FIFO queue와 dismiss 계열 명칭은 LIFO stack 및
