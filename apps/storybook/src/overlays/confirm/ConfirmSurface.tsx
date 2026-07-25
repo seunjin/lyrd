@@ -1,28 +1,35 @@
 'use client'
 
 import { AlertDialog } from '@base-ui/react/alert-dialog'
-import type { ConfirmSurfaceProps } from '@lyrd/core'
+import type { ConfirmRendererProps } from '@lyrd/core'
 
+import type { StorybookConfirmRequest } from '../scope'
 import styles from './Confirm.module.css'
 
 export function ConfirmSurface({
+  actionStatus,
   cancel,
-  completeExit,
+  completeClose,
   confirm,
+  error,
   open,
   request,
-  requestDismiss,
-  status,
-}: ConfirmSurfaceProps) {
-  if (!request) return null
+  requestClose,
+}: ConfirmRendererProps<StorybookConfirmRequest>) {
+  const pending = actionStatus === 'pending'
 
-  const pending = status === 'pending'
+  function handleCancel() {
+    request.onCancel?.()
+    cancel()
+  }
 
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen && requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className={styles.Backdrop} />
@@ -34,14 +41,20 @@ export function ConfirmSurface({
                 {request.description}
               </AlertDialog.Description>
             ) : null}
-            {status === 'error' ? (
-              <p className={styles.Description} role="alert">
+            {actionStatus === 'error' ? (
+              <p className={styles.Error} role="alert">
                 작업을 완료하지 못했습니다. 다시 시도해 주세요.
+                {error instanceof Error ? ` (${error.message})` : null}
               </p>
             ) : null}
           </div>
           <div className={styles.Actions}>
-            <button className={styles.Button} disabled={pending} onClick={cancel} type="button">
+            <button
+              className={styles.Button}
+              disabled={pending}
+              onClick={handleCancel}
+              type="button"
+            >
               {request.cancelLabel ?? '취소'}
             </button>
             <button
@@ -53,7 +66,7 @@ export function ConfirmSurface({
               onClick={confirm}
               type="button"
             >
-              {pending ? '처리 중' : request.confirmLabel}
+              {pending ? '처리 중' : (request.confirmLabel ?? '확인')}
             </button>
           </div>
         </AlertDialog.Popup>
