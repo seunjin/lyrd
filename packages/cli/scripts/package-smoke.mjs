@@ -107,6 +107,8 @@ async function main() {
     )
     assert.deepEqual(installedPackage.bin, { lyrd: './dist/bin.js' })
     assert.equal(await pathExists(path.join(installedCliRoot, 'dist/bin.js')), true)
+    assert.equal(await pathExists(path.join(installedCliRoot, 'dist/index.cjs')), true)
+    assert.equal(await pathExists(path.join(installedCliRoot, 'dist/index.d.cts')), true)
     assert.equal(await pathExists(path.join(installedCliRoot, 'LICENSE')), true)
     assert.equal(
       await pathExists(path.join(installedCliRoot, 'src')),
@@ -156,7 +158,28 @@ async function main() {
     const help = await runCommand(pnpmCommand, ['exec', 'lyrd', '--help'], fixtureDirectory)
     assert.match(help.stdout, /lyrd add overlay/)
     assert.match(help.stdout, /lyrd add dialog <name>/)
-    assert.match(help.stdout, /lyrd add toast/)
+    assert.doesNotMatch(help.stdout, /lyrd add toast/)
+
+    const cliEsmImport = await runCommand(
+      'node',
+      [
+        '--input-type=module',
+        '--eval',
+        "import * as cli from '@lyrd/cli'; if (typeof cli.run !== 'function') process.exit(1)",
+      ],
+      fixtureDirectory,
+    )
+    assert.equal(cliEsmImport.stderr, '')
+
+    const cliCjsImport = await runCommand(
+      'node',
+      [
+        '--eval',
+        "const cli = require('@lyrd/cli'); if (typeof cli.run !== 'function') process.exit(1)",
+      ],
+      fixtureDirectory,
+    )
+    assert.equal(cliCjsImport.stderr, '')
 
     const add = await runCommand(
       pnpmCommand,
@@ -174,6 +197,7 @@ async function main() {
         'alert/Alert.module.css',
         'confirm/ConfirmSurface.tsx',
         'confirm/Confirm.module.css',
+        'scope.ts',
         'OverlayProvider.tsx',
         'index.ts',
       ].map((fileName) => access(path.join(overlayDirectory, fileName))),
@@ -188,14 +212,6 @@ async function main() {
     await Promise.all(
       ['ProjectSettingsDialog.tsx', 'ProjectSettingsDialog.module.css', 'index.ts'].map(
         (fileName) => access(path.join(overlayDirectory, 'dialogs', 'project-settings', fileName)),
-      ),
-    )
-
-    const toast = await runCommand(pnpmCommand, ['exec', 'lyrd', 'add', 'toast'], fixtureDirectory)
-    assert.match(toast.stdout, /Added toast/)
-    await Promise.all(
-      ['definition.ts', 'manager.ts', 'AppToastProvider.tsx', 'notify.ts', 'Toast.module.css'].map(
-        (fileName) => access(path.join(overlayDirectory, 'toast', fileName)),
       ),
     )
 

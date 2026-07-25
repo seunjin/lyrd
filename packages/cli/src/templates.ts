@@ -4,25 +4,19 @@ function alertTemplate(): string {
   return `'use client'
 
 import { AlertDialog } from '@base-ui/react/alert-dialog'
-import type { AlertSurfaceProps } from '@lyrd/core'
+import type { AlertRendererProps } from '@lyrd/core'
 
+import type { AppAlertRequest } from '../scope'
 import './Alert.css'
 
 export function AlertSurface({
-  acknowledge,
-  completeExit,
+  action,
+  completeClose,
   open,
   request,
-  requestDismiss,
-}: AlertSurfaceProps) {
-  if (!request) return null
-
+}: AlertRendererProps<AppAlertRequest>) {
   return (
-    <AlertDialog.Root
-      open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
-    >
+    <AlertDialog.Root open={open} onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="lyrd-overlay-backdrop" />
         <AlertDialog.Popup className="lyrd-overlay-popup">
@@ -35,8 +29,8 @@ export function AlertSurface({
             ) : null}
           </div>
           <div className="lyrd-overlay-actions">
-            <button className="lyrd-overlay-button" onClick={acknowledge} type="button">
-              {request.acknowledgeLabel ?? '확인'}
+            <button className="lyrd-overlay-button" onClick={action} type="button">
+              {request.actionLabel ?? '확인'}
             </button>
           </div>
         </AlertDialog.Popup>
@@ -51,28 +45,35 @@ function confirmTemplate(): string {
   return `'use client'
 
 import { AlertDialog } from '@base-ui/react/alert-dialog'
-import type { ConfirmSurfaceProps } from '@lyrd/core'
+import type { ConfirmRendererProps } from '@lyrd/core'
 
+import type { AppConfirmRequest } from '../scope'
 import './Confirm.css'
 
 export function ConfirmSurface({
+  actionStatus,
   cancel,
-  completeExit,
+  completeClose,
   confirm,
+  error,
   open,
   request,
-  requestDismiss,
-  status,
-}: ConfirmSurfaceProps) {
-  if (!request) return null
+  requestClose,
+}: ConfirmRendererProps<AppConfirmRequest>) {
+  const pending = actionStatus === 'pending'
 
-  const pending = status === 'pending'
+  function handleCancel() {
+    request.onCancel?.()
+    cancel()
+  }
 
   return (
     <AlertDialog.Root
       open={open}
-      onOpenChange={(nextOpen) => !nextOpen && requestDismiss()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && completeExit()}
+      onOpenChange={(nextOpen, eventDetails) =>
+        !nextOpen && requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+      }
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
     >
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="lyrd-overlay-backdrop" />
@@ -84,14 +85,20 @@ export function ConfirmSurface({
                 {request.description}
               </AlertDialog.Description>
             ) : null}
-            {status === 'error' ? (
-              <p className="lyrd-overlay-description" role="alert">
+            {actionStatus === 'error' ? (
+              <p className="lyrd-overlay-error" role="alert">
                 작업을 완료하지 못했습니다. 다시 시도해 주세요.
+                {error instanceof Error ? \` (\${error.message})\` : null}
               </p>
             ) : null}
           </div>
           <div className="lyrd-overlay-actions">
-            <button className="lyrd-overlay-button" disabled={pending} onClick={cancel} type="button">
+            <button
+              className="lyrd-overlay-button"
+              disabled={pending}
+              onClick={handleCancel}
+              type="button"
+            >
               {request.cancelLabel ?? '취소'}
             </button>
             <button
@@ -103,7 +110,7 @@ export function ConfirmSurface({
               onClick={confirm}
               type="button"
             >
-              {pending ? '처리 중' : request.confirmLabel}
+              {pending ? '처리 중' : (request.confirmLabel ?? '확인')}
             </button>
           </div>
         </AlertDialog.Popup>
@@ -114,21 +121,52 @@ export function ConfirmSurface({
 `
 }
 
+function overlayScopeTemplate(): string {
+  return `import { createOverlayScope } from '@lyrd/core'
+import type { ReactNode } from 'react'
+
+export type AppAlertRequest = {
+  title: ReactNode
+  description?: ReactNode
+  actionLabel?: ReactNode
+}
+
+export type AppConfirmRequest = {
+  title: ReactNode
+  description?: ReactNode
+  confirmLabel?: ReactNode
+  cancelLabel?: ReactNode
+  tone?: 'neutral' | 'danger'
+  onCancel?: () => void
+}
+
+export type AppOverlayRequests = {
+  alert: AppAlertRequest
+  confirm: AppConfirmRequest
+}
+
+export const appOverlay = createOverlayScope<AppOverlayRequests>()
+export const useOverlay = appOverlay.useOverlay
+`
+}
+
 function overlayProviderTemplate(): string {
   return `'use client'
 
-import { OverlayProvider as CoreOverlayProvider } from '@lyrd/core'
+import type { OverlayRenderers } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
 import { AlertSurface } from './alert/AlertSurface'
 import { ConfirmSurface } from './confirm/ConfirmSurface'
+import { type AppOverlayRequests, appOverlay } from './scope'
+
+const renderers = {
+  alert: AlertSurface,
+  confirm: ConfirmSurface,
+} satisfies OverlayRenderers<AppOverlayRequests>
 
 export function OverlayProvider({ children }: { children: ReactNode }) {
-  return (
-    <CoreOverlayProvider renderers={{ alert: AlertSurface, confirm: ConfirmSurface }}>
-      {children}
-    </CoreOverlayProvider>
-  )
+  return <appOverlay.OverlayProvider renderers={renderers}>{children}</appOverlay.OverlayProvider>
 }
 `
 }
@@ -187,6 +225,7 @@ function overlayCssTemplate(): string {
   background-color: black;
   opacity: 0.2;
   transition: opacity 150ms;
+  z-index: 3000;
 }
 
 .lyrd-overlay-backdrop[data-starting-style],
@@ -220,6 +259,7 @@ function overlayCssTemplate(): string {
   transition:
     transform 100ms ease-out,
     opacity 100ms ease-out;
+  z-index: 3001;
 }
 
 .lyrd-overlay-popup[data-starting-style],
@@ -237,6 +277,13 @@ function overlayCssTemplate(): string {
 .lyrd-overlay-title,
 .lyrd-overlay-description {
   margin: 0;
+}
+
+.lyrd-overlay-error {
+  margin: 0.5rem 0 0;
+  color: oklch(50.5% 0.213 27.518deg);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .lyrd-overlay-title {
@@ -306,6 +353,7 @@ export function getOverlayScaffoldFiles(
   styling: Styling,
 ): Array<{ name: string; content: string }> {
   const files = [
+    { name: 'scope.ts', content: overlayScopeTemplate() },
     {
       name: 'alert/AlertSurface.tsx',
       content: styleComponent(alertTemplate(), styling, overlayClasses, 'Alert'),
@@ -342,425 +390,17 @@ export function LyrdOverlayProvider({ children }: { children: ReactNode }) {
 `
 }
 
-function toastDefinitionTemplate(): string {
-  return `import type { OverlayDefinitionComponentProps } from '@lyrd/core'
-import { defineOverlay } from '@lyrd/core'
-import { useEffect, useRef } from 'react'
-
-import { appToastManager } from './manager'
-
-export type AppToastInput = {
-  actionLabel?: string
-  description?: string
-  timeout?: number
-  title: string
-  toastId: string
-}
-
-export type AppToastResult = { action: 'undo' }
-
-type AppToastProps = OverlayDefinitionComponentProps<AppToastInput, AppToastResult>
-
-function AppToast({ input, session }: AppToastProps) {
-  const inputRef = useRef(input)
-  const sessionRef = useRef(session)
-  const addedRef = useRef(false)
-
-  inputRef.current = input
-  sessionRef.current = session
-
-  useEffect(() => {
-    if (!session.open) {
-      if (addedRef.current) {
-        appToastManager.close(input.toastId)
-      }
-      return
-    }
-
-    if (addedRef.current) return
-
-    addedRef.current = true
-    const currentInput = inputRef.current
-
-    appToastManager.add({
-      id: currentInput.toastId,
-      title: currentInput.title,
-      description: currentInput.description,
-      timeout: currentInput.timeout,
-      data: currentInput.actionLabel
-        ? {
-            undo: () => sessionRef.current.resolve({ action: 'undo' }),
-            undoLabel: currentInput.actionLabel,
-            dismiss: () => sessionRef.current.dismiss('cancel'),
-          }
-        : {
-            dismiss: () => sessionRef.current.dismiss('cancel'),
-          },
-      onClose: () => sessionRef.current.dismiss('programmatic'),
-      onRemove: () => sessionRef.current.completeExit(),
-    })
-  }, [input.toastId, session.open])
-
-  return null
-}
-
-export const appToast = defineOverlay(AppToast)
-`
-}
-
-function toastTemplate(): string {
-  return `'use client'
-
-import { Toast } from '@base-ui/react/toast'
-import { type AppToastData, appToastManager } from './manager'
-import './Toast.css'
-
-function ToastRegion() {
-  const { toasts } = Toast.useToastManager<AppToastData>()
-
-  return (
-    <Toast.Portal>
-      <Toast.Viewport aria-label="알림" className="lyrd-toast-viewport">
-        {toasts.map((toast) => (
-          <Toast.Root className="lyrd-toast" key={toast.id} toast={toast}>
-            <Toast.Content className="lyrd-toast-content">
-              <div className="lyrd-toast-text">
-                <Toast.Title className="lyrd-toast-title" />
-                <Toast.Description className="lyrd-toast-description" />
-              </div>
-              {toast.data?.undo ? (
-                <Toast.Action className="lyrd-toast-close" onClick={toast.data.undo}>
-                  {toast.data.undoLabel}
-                </Toast.Action>
-              ) : null}
-              <Toast.Close className="lyrd-toast-close" onClickCapture={toast.data?.dismiss}>
-                닫기
-              </Toast.Close>
-            </Toast.Content>
-          </Toast.Root>
-        ))}
-      </Toast.Viewport>
-    </Toast.Portal>
-  )
-}
-
-export function AppToastProvider() {
-  return (
-    <Toast.Provider toastManager={appToastManager} timeout={5000}>
-      <ToastRegion />
-    </Toast.Provider>
-  )
-}
-`
-}
-
-function toastManagerTemplate(): string {
-  return `import { Toast } from '@base-ui/react/toast'
-
-export type AppToastData = {
-  dismiss: () => void
-  undo?: () => void
-  undoLabel?: string
-}
-
-export const appToastManager = Toast.createToastManager<AppToastData>()
-`
-}
-
-function toastNotifyTemplate(): string {
-  return `import type { OverlayApi } from '@lyrd/core'
-import { defineOverlayGroup } from '@lyrd/core'
-
-import type { AppToastInput } from './definition'
-import { appToast } from './definition'
-
-export const toastGroup = defineOverlayGroup({ strategy: 'parallel' })
-
-type ToastMessage = Omit<AppToastInput, 'actionLabel' | 'toastId'>
-
-export function showToast(overlay: OverlayApi, input: ToastMessage) {
-  return overlay.open(
-    appToast,
-    {
-      ...input,
-      toastId: crypto.randomUUID(),
-    },
-    { group: toastGroup },
-  )
-}
-
-export function notify(overlay: OverlayApi, input: ToastMessage): void {
-  void showToast(overlay, input)
-}
-
-export async function notifyWithUndo(
-  overlay: OverlayApi,
-  input: ToastMessage,
-): Promise<'dismissed' | 'undo'> {
-  const outcome = await overlay.open(
-    appToast,
-    {
-      ...input,
-      actionLabel: '실행 취소',
-      toastId: crypto.randomUUID(),
-    },
-    { group: toastGroup },
-  )
-
-  return outcome.status === 'resolved' ? outcome.value.action : 'dismissed'
-}
-`
-}
-
-function toastCssTemplate(): string {
-  return `.lyrd-toast-viewport {
-  position: fixed;
-  z-index: 1;
-  width: calc(100vw - 2rem);
-  margin: 0 auto;
-  bottom: 1rem;
-  right: 1rem;
-  left: auto;
-  top: auto;
-}
-
-@media (min-width: 500px) {
-  .lyrd-toast-viewport {
-    bottom: 2rem;
-    right: 2rem;
-    width: 22.5rem;
-  }
-}
-
-.lyrd-toast {
-  --gap: 0.75rem;
-  --peek: 0.75rem;
-  --scale: calc(max(0, 1 - (var(--toast-index) * 0.1)));
-  --shrink: calc(1 - var(--scale));
-  --height: var(--toast-frontmost-height, var(--toast-height));
-  --offset-y: calc(
-    var(--toast-offset-y) *
-    -1 +
-    (var(--toast-index) * var(--gap) * -1) +
-    var(--toast-swipe-movement-y)
-  );
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: auto;
-  z-index: calc(1000 - var(--toast-index));
-  box-sizing: border-box;
-  width: 100%;
-  height: var(--height);
-  margin: 0 auto;
-  margin-right: 0;
-  border: 1px solid oklch(14.5% 0 0deg);
-  background-color: white;
-  color: oklch(14.5% 0 0deg);
-  box-shadow: 0.25rem 0.25rem 0 rgb(0 0 0 / 12%);
-  transform-origin: bottom center;
-  -webkit-user-select: none;
-  user-select: none;
-  transition:
-    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.5s,
-    height 0.15s;
-  cursor: default;
-  transform: translateX(var(--toast-swipe-movement-x))
-    translateY(
-      calc(
-        var(--toast-swipe-movement-y) -
-        (var(--toast-index) * var(--peek)) -
-        (var(--shrink) * var(--height))
-      )
-    )
-    scale(var(--scale));
-}
-
-.lyrd-toast[data-expanded] {
-  height: var(--toast-height);
-  transform: translateX(var(--toast-swipe-movement-x)) translateY(var(--offset-y));
-}
-
-.lyrd-toast[data-starting-style],
-.lyrd-toast[data-ending-style] {
-  transform: translateY(150%);
-}
-
-.lyrd-toast[data-limited] {
-  opacity: 0;
-}
-
-.lyrd-toast[data-ending-style] {
-  opacity: 0;
-}
-
-.lyrd-toast[data-ending-style][data-swipe-direction="up"] {
-  transform: translateY(calc(var(--toast-swipe-movement-y) - 150%));
-}
-
-.lyrd-toast[data-ending-style][data-swipe-direction="down"] {
-  transform: translateY(calc(var(--toast-swipe-movement-y) + 150%));
-}
-
-.lyrd-toast[data-ending-style][data-swipe-direction="left"] {
-  transform: translateX(calc(var(--toast-swipe-movement-x) - 150%)) translateY(var(--offset-y));
-}
-
-.lyrd-toast[data-ending-style][data-swipe-direction="right"] {
-  transform: translateX(calc(var(--toast-swipe-movement-x) + 150%)) translateY(var(--offset-y));
-}
-
-.lyrd-toast::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  height: calc(var(--gap) + 1px);
-}
-
-.lyrd-toast:focus-visible {
-  outline: 2px solid oklch(14.5% 0 0deg);
-  outline-offset: -1px;
-}
-
-.lyrd-toast-content {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  height: 100%;
-  padding: 0.75rem;
-  overflow: hidden;
-  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.lyrd-toast-content[data-behind] {
-  opacity: 0;
-}
-
-.lyrd-toast-content[data-expanded] {
-  opacity: 1;
-}
-
-.lyrd-toast-text {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.lyrd-toast-title {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.25rem;
-}
-
-.lyrd-toast-description {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-
-.lyrd-toast-close {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  height: 2rem;
-  padding: 0 0.75rem;
-  border: 1px solid oklch(14.5% 0 0deg);
-  border-radius: 0;
-  background-color: white;
-  color: oklch(14.5% 0 0deg);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-@media (hover: hover) {
-  .lyrd-toast-close:hover:not([data-disabled]) {
-    background-color: oklch(97% 0 0deg);
-  }
-}
-
-.lyrd-toast-close:active:not([data-disabled]) {
-  background-color: oklch(92.2% 0 0deg);
-}
-
-.lyrd-toast-close:focus-visible {
-  outline: 2px solid oklch(14.5% 0 0deg);
-  outline-offset: -1px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .lyrd-toast {
-    border-color: white;
-    background-color: oklch(14.5% 0 0deg);
-    color: white;
-    box-shadow: none;
-  }
-
-  .lyrd-toast-close {
-    border-color: white;
-    background-color: oklch(14.5% 0 0deg);
-    color: white;
-  }
-
-  .lyrd-toast:focus-visible,
-  .lyrd-toast-close:focus-visible {
-    outline-color: white;
-  }
-
-  .lyrd-toast-close:hover:not([data-disabled]) {
-    background-color: oklch(26.9% 0 0deg);
-  }
-
-  .lyrd-toast-close:active:not([data-disabled]) {
-    background-color: oklch(37.1% 0 0deg);
-  }
-}
-`
-}
-
-export function getToastScaffoldFiles(styling: Styling): Array<{ name: string; content: string }> {
-  const files = [
-    { name: 'toast/definition.ts', content: toastDefinitionTemplate() },
-    { name: 'toast/manager.ts', content: toastManagerTemplate() },
-    {
-      name: 'toast/AppToastProvider.tsx',
-      content: styleComponent(toastTemplate(), styling, toastClasses, 'Toast'),
-    },
-    { name: 'toast/notify.ts', content: toastNotifyTemplate() },
-  ]
-  if (styling === 'css-modules') {
-    files.push({
-      name: 'toast/Toast.module.css',
-      content: cssModule(toastCssTemplate(), toastClasses),
-    })
-  }
-  return files
-}
-
 function dialogComponentTemplate(dialogName: string): string {
   const componentName = dialogName
     .split('-')
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join('')
-  const definitionName = `${componentName.charAt(0).toLowerCase()}${componentName.slice(1)}Dialog`
   const title = dialogName.replaceAll('-', ' ')
 
   return `'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
-import type { OverlayDefinitionComponentProps } from '@lyrd/core'
-import { defineOverlay } from '@lyrd/core'
+import { useOverlaySession } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
 import './${componentName}Dialog.css'
@@ -775,26 +415,28 @@ export type ${componentName}DialogProps = {
   title?: ReactNode
 }
 
-type ${componentName}DialogComponentProps = OverlayDefinitionComponentProps<
-  ${componentName}DialogProps,
-  ${componentName}DialogResult
->
-
-function ${componentName}Dialog({ input, session }: ${componentName}DialogComponentProps) {
+export function ${componentName}Dialog({
+  children,
+  description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
+  title = '${title}',
+}: ${componentName}DialogProps) {
+  const session = useOverlaySession<${componentName}DialogResult>()
   const {
-    children,
-    description = '이 설명과 화면 내용을 제품 흐름에 맞게 수정하세요.',
-    title = '${title}',
-  } = input
+    open,
+    requestClose,
+    completeClose,
+    close,
+    resolve,
+  } = session
 
   return (
     <Dialog.Root
-      open={session.open}
+      open={open}
       onOpenChange={(nextOpen, eventDetails) =>
         !nextOpen &&
-        session.requestDismiss(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
+        requestClose(eventDetails.reason === 'escape-key' ? 'escape' : 'outside')
       }
-      onOpenChangeComplete={(nextOpen) => !nextOpen && session.completeExit()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="lyrd-dialog-backdrop" />
@@ -811,14 +453,14 @@ function ${componentName}Dialog({ input, session }: ${componentName}DialogCompon
           <footer className="lyrd-dialog-actions">
             <button
               className="lyrd-dialog-button"
-              onClick={() => session.dismiss('cancel')}
+              onClick={() => close('cancel')}
               type="button"
             >
               취소
             </button>
             <button
               className="lyrd-dialog-button"
-              onClick={() => session.resolve({ completed: true })}
+              onClick={() => resolve({ completed: true })}
               type="button"
             >
               완료
@@ -829,8 +471,6 @@ function ${componentName}Dialog({ input, session }: ${componentName}DialogCompon
     </Dialog.Root>
   )
 }
-
-export const ${definitionName} = defineOverlay(${componentName}Dialog)
 `
 }
 
@@ -992,12 +632,12 @@ const overlayClasses: ClassMap = {
   'lyrd-overlay-backdrop': {
     module: 'Backdrop',
     tailwind:
-      'fixed inset-0 min-h-dvh bg-black opacity-20 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 dark:opacity-50 supports-[-webkit-touch-callout:none]:absolute',
+      'fixed inset-0 z-[3000] min-h-dvh bg-black opacity-20 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 dark:opacity-50 supports-[-webkit-touch-callout:none]:absolute',
   },
   'lyrd-overlay-popup': {
     module: 'Popup',
     tailwind:
-      'fixed top-1/2 left-1/2 -mt-8 flex w-96 max-w-[calc(100vw-3rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 border border-neutral-950 bg-white p-4 text-neutral-950 shadow-[0.25rem_0.25rem_0] shadow-black/12 transition-[scale,opacity] duration-100 ease-out data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 dark:border-white dark:bg-neutral-950 dark:text-white dark:shadow-none',
+      'fixed top-1/2 left-1/2 z-[3001] -mt-8 flex w-96 max-w-[calc(100vw-3rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 border border-neutral-950 bg-white p-4 text-neutral-950 shadow-[0.25rem_0.25rem_0] shadow-black/12 transition-[scale,opacity] duration-100 ease-out data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 dark:border-white dark:bg-neutral-950 dark:text-white dark:shadow-none',
   },
   'lyrd-overlay-intro': { module: 'Intro', tailwind: 'flex flex-col gap-1' },
   'lyrd-overlay-title': { module: 'Title', tailwind: 'm-0 text-base font-bold' },
@@ -1005,40 +645,15 @@ const overlayClasses: ClassMap = {
     module: 'Description',
     tailwind: 'm-0 text-sm text-neutral-600 dark:text-neutral-400',
   },
+  'lyrd-overlay-error': {
+    module: 'Error',
+    tailwind: 'mt-2 mb-0 text-sm text-red-700 dark:text-red-400',
+  },
   'lyrd-overlay-actions': { module: 'Actions', tailwind: 'flex justify-end gap-3' },
   'lyrd-overlay-button': {
     module: 'Button',
     tailwind:
       'flex h-8 items-center justify-center gap-2 border border-neutral-950 bg-white px-3 text-sm leading-none whitespace-nowrap font-normal text-neutral-950 select-none hover:not-data-disabled:bg-neutral-100 active:not-data-disabled:bg-neutral-200 dark:border-white dark:bg-neutral-950 dark:text-white dark:hover:not-data-disabled:bg-neutral-800 dark:active:not-data-disabled:bg-neutral-700 data-[color=red]:text-red-700 dark:data-[color=red]:text-red-400 disabled:border-neutral-500 disabled:text-neutral-500 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white',
-  },
-}
-
-const toastClasses: ClassMap = {
-  'lyrd-toast-viewport': {
-    module: 'Viewport',
-    tailwind:
-      'fixed top-auto right-[1rem] bottom-[1rem] z-1 mx-auto w-[calc(100vw-2rem)] sm:right-[2rem] sm:bottom-[2rem] sm:w-[22.5rem]',
-  },
-  'lyrd-toast': {
-    module: 'Toast',
-    tailwind:
-      "[--gap:0.75rem] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] absolute right-0 bottom-0 left-auto z-[calc(1000-var(--toast-index))] mr-0 w-full origin-bottom [transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] border border-neutral-950 bg-white text-neutral-950 shadow-[0.25rem_0.25rem_0] shadow-black/12 select-none dark:border-white dark:bg-neutral-950 dark:text-white dark:shadow-none after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-[''] data-ending-style:opacity-0 data-expanded:[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--offset-y)))] data-limited:opacity-0 data-starting-style:[transform:translateY(150%)] h-[var(--height)] data-expanded:h-[var(--toast-height)] [transition:transform_0.5s_cubic-bezier(0.22,1,0.36,1),opacity_0.5s,height_0.15s]",
-  },
-  'lyrd-toast-content': {
-    module: 'Content',
-    tailwind:
-      'flex h-full items-center gap-4 overflow-hidden p-3 transition-opacity duration-[250ms] data-behind:opacity-0 data-expanded:opacity-100',
-  },
-  'lyrd-toast-text': { module: 'Text', tailwind: 'flex min-w-0 flex-1 flex-col gap-1' },
-  'lyrd-toast-title': { module: 'Title', tailwind: 'm-0 text-sm font-bold' },
-  'lyrd-toast-description': {
-    module: 'Description',
-    tailwind: 'm-0 text-sm',
-  },
-  'lyrd-toast-close': {
-    module: 'Close',
-    tailwind:
-      'flex h-8 shrink-0 items-center justify-center gap-2 border border-neutral-950 bg-white px-3 text-sm leading-none whitespace-nowrap font-normal text-neutral-950 hover:not-data-disabled:bg-neutral-100 active:not-data-disabled:bg-neutral-200 dark:border-white dark:bg-neutral-950 dark:text-white dark:hover:not-data-disabled:bg-neutral-800 dark:active:not-data-disabled:bg-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-neutral-950 dark:focus-visible:outline-white',
   },
 }
 

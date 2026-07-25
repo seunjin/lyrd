@@ -105,6 +105,13 @@
   margin: 0;
 }
 
+.Error {
+  margin: 0.5rem 0 0;
+  color: oklch(50.5% 0.213 27.518deg);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
 .Title {
   font-size: 1rem;
   line-height: 1.5rem;

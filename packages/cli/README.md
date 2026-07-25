@@ -16,6 +16,7 @@ pnpm dlx @lyrd/cli add overlay
 - stable `@lyrd/core`와 지원 범위의 `@base-ui/react`를 애플리케이션 의존성으로 설치한다.
 - CSS Modules 선택 시 `src/overlays`에 기능별 컴포넌트와 CSS Module을 생성한다.
 - Tailwind CSS v4 선택 시 같은 컴포넌트에 utility class를 직접 생성한다.
+- `scope.ts`에 앱이 소유하는 Alert·Confirm request 타입과 `createOverlayScope()` 결과를 생성한다.
 - 기존 파일은 덮어쓰지 않는다.
 - Vite에서는 실제 `src/main.tsx` 또는 `src/main.jsx` 파일에 `OverlayProvider`를 연결하는 코드를 안내한다.
 - Next App Router에서는 `app/lyrd-overlay-provider.tsx`(또는 `src/app/...`) 클라이언트 연결 파일을 만들고, `layout.tsx`에 추가할 코드를 안내한다.
@@ -54,45 +55,4 @@ src/overlays/dialogs/project-settings/
   index.ts
 ```
 
-이름은 kebab-case만 허용한다. 생성 파일은 Base UI Dialog와 `defineOverlay<Input, Result>()`의 typed session 계약을 연결한 시작점이며, 모달·Drawer·풀페이지 등 앱이 원하는 형태로 자유롭게 수정할 수 있다. 호출부에서는 `overlay.open(definition, input)`을 사용한다. 기존 definition과 기능 전용 스타일은 덮어쓰지 않는다.
-
-## Toast starter 생성
-
-Toast는 코어의 고정 recipe가 아니라, Base UI Toast와 Lyrd의 병렬 그룹을 연결한 앱 소유 adapter로 제공한다.
-
-```bash
-pnpm dlx @lyrd/cli add toast
-```
-
-먼저 `lyrd add overlay`를 실행해야 한다. 아래 파일을 생성하며, 이미 존재하는 파일은 덮어쓰지 않는다.
-
-```text
-src/overlays/toast/
-  AppToastProvider.tsx
-  definition.ts
-  manager.ts
-  notify.ts
-  Toast.module.css # CSS Modules 선택 시
-  index.ts
-```
-
-생성된 `AppToastProvider`는 Base UI `Toast.Provider`와 기본 stacked renderer를 결합한다. Lyrd definition은 전역 `appToastManager`로 이 renderer와 연결되므로 `OverlayProvider`와 부모·자식 관계를 만들 필요가 없다. 생성 명령은 기존 Provider나 진입 파일을 자동 수정하지 않는다. 표시 개수·timeout·스타일·Undo 동작은 생성된 로컬 파일에서 제품 UX에 맞게 바꾼다.
-
-```tsx
-<>
-  <AppToastProvider />
-  <OverlayProvider>{children}</OverlayProvider>
-</>
-```
-
-일반 호출부는 생성된 앱 소유 helper를 사용한다. helper가 ID 생성과 병렬 그룹 선택을 감춘다.
-
-```ts
-notify(overlay, { title: '저장했습니다.' })
-
-const action = await notifyWithUndo(overlay, {
-  title: '항목을 삭제했습니다.',
-})
-```
-
-저수준 호출이 필요한 경우에는 `overlay.open(appToast, input, { group: toastGroup })`을 그대로 사용할 수 있다. Undo는 resolved action이며 timeout·swipe·일반 닫힘은 dismissed outcome으로 처리한다.
+이름은 kebab-case만 허용한다. 생성 파일은 Base UI Dialog와 `useOverlaySession<Result>()`를 연결한 JSX 컴포넌트 시작점이며, 모달·Drawer·풀페이지 등 앱이 원하는 형태로 자유롭게 수정할 수 있다. 호출부에서는 `overlay.open<Result>(<Dialog />)`를 사용한다. 기존 컴포넌트와 기능 전용 스타일은 덮어쓰지 않는다.

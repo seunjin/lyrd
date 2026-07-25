@@ -1,13 +1,13 @@
 import { createOverlayScope } from '@lyrd/core'
 import type { ReactNode } from 'react'
 
-export type StorybookAlertRequest = {
+export type AppAlertRequest = {
   title: ReactNode
   description?: ReactNode
   actionLabel?: ReactNode
 }
 
-export type StorybookConfirmRequest = {
+export type AppConfirmRequest = {
   title: ReactNode
   description?: ReactNode
   confirmLabel?: ReactNode
@@ -16,10 +16,10 @@ export type StorybookConfirmRequest = {
   onCancel?: () => void
 }
 
-export type StorybookOverlayRequests = {
-  alert: StorybookAlertRequest
-  confirm: StorybookConfirmRequest
+export type AppOverlayRequests = {
+  alert: AppAlertRequest
+  confirm: AppConfirmRequest
 }
 
-export const storybookOverlay = createOverlayScope<StorybookOverlayRequests>()
-export const useOverlay = storybookOverlay.useOverlay
+export const appOverlay = createOverlayScope<AppOverlayRequests>()
+export const useOverlay = appOverlay.useOverlay

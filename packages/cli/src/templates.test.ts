@@ -1,23 +1,16 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
+
 import {
   getDialogScaffoldFiles,
   getNextAppRouterProviderTemplate,
   getOverlayScaffoldFiles,
-  getToastScaffoldFiles,
 } from './templates'
 
 const storybookOverlayDirectory = new URL('../../../apps/storybook/src/overlays/', import.meta.url)
 const storybookPreview = new URL('../../../apps/storybook/.storybook/preview.tsx', import.meta.url)
-const nextOverlayDirectory = new URL(
-  '../../../tests/consumers/fixtures/next-app-router/src/overlays/',
-  import.meta.url,
-)
-const viteOverlayDirectory = new URL(
-  '../../../tests/consumers/fixtures/vite-react/src/overlays/',
-  import.meta.url,
-)
 
 const scaffoldFiles = new Map(
   getOverlayScaffoldFiles('css-modules').map((file) => [file.name, file.content] as const),
@@ -25,6 +18,7 @@ const scaffoldFiles = new Map(
 
 describe('overlay 생성 템플릿', () => {
   it.each([
+    'scope.ts',
     'alert/AlertSurface.tsx',
     'alert/Alert.module.css',
     'confirm/ConfirmSurface.tsx',
@@ -37,35 +31,53 @@ describe('overlay 생성 템플릿', () => {
     expect(storybookContent).toBe(scaffoldFiles.get(name))
   })
 
-  it('생성 Provider와 Storybook이 동일한 렌더러 등록 계약을 사용한다', async () => {
-    const registration = 'renderers={{ alert: AlertSurface, confirm: ConfirmSurface }}'
-    const providerTemplate = scaffoldFiles.get('OverlayProvider.tsx')
-    const previewContent = await readFile(fileURLToPath(storybookPreview), 'utf8')
+  it('앱 소유 scope와 렌더러 request 계약을 생성한다', async () => {
+    const scope = scaffoldFiles.get('scope.ts')
+    const provider = scaffoldFiles.get('OverlayProvider.tsx')
+    const alert = scaffoldFiles.get('alert/AlertSurface.tsx')
+    const confirm = scaffoldFiles.get('confirm/ConfirmSurface.tsx')
+    const preview = await readFile(fileURLToPath(storybookPreview), 'utf8')
 
-    expect(providerTemplate).toContain(registration)
-    expect(providerTemplate).toContain('export function OverlayProvider')
-    expect(providerTemplate).not.toContain('AppOverlayProvider')
-    expect(previewContent).toContain('<OverlayProvider>')
+    expect(scope).toContain('createOverlayScope<AppOverlayRequests>()')
+    expect(scope).toContain('export const useOverlay = appOverlay.useOverlay')
+    expect(provider).toContain('satisfies OverlayRenderers<AppOverlayRequests>')
+    expect(provider).toContain('<appOverlay.OverlayProvider renderers={renderers}>')
+    expect(alert).toContain('AlertRendererProps<AppAlertRequest>')
+    expect(alert).toContain('onClick={action}')
+    expect(alert).not.toContain('requestClose')
+    expect(confirm).toContain('ConfirmRendererProps<AppConfirmRequest>')
+    expect(confirm).toContain("actionStatus === 'pending'")
+    expect(confirm).toContain("actionStatus === 'error'")
+    expect(confirm).toContain('onClick={confirm}')
+    expect(confirm).toContain('onClick={handleCancel}')
+    expect(confirm).toContain('requestClose(')
+    expect(preview).toContain('<OverlayProvider>')
   })
 
   it('Next App Router 연결 파일은 로컬 오버레이 Provider만 감싼다', () => {
-    const providerTemplate = getNextAppRouterProviderTemplate('../overlays/OverlayProvider')
+    const provider = getNextAppRouterProviderTemplate('../overlays/OverlayProvider')
 
-    expect(providerTemplate).toContain("'use client'")
-    expect(providerTemplate).toContain(
-      "import { OverlayProvider } from '../overlays/OverlayProvider'",
+    expect(provider).toContain("'use client'")
+    expect(provider).toContain("import { OverlayProvider } from '../overlays/OverlayProvider'")
+    expect(provider).toContain('<OverlayProvider>{children}</OverlayProvider>')
+  })
+
+  it('Tailwind v4 출력도 같은 scope 계약과 관리 동작을 유지한다', () => {
+    const files = new Map(
+      getOverlayScaffoldFiles('tailwind-v4').map((file) => [file.name, file.content]),
     )
-    expect(providerTemplate).toContain('<OverlayProvider>{children}</OverlayProvider>')
+
+    expect(files.has('alert/Alert.module.css')).toBe(false)
+    expect(files.has('confirm/Confirm.module.css')).toBe(false)
+    expect(files.get('scope.ts')).toBe(scaffoldFiles.get('scope.ts'))
+    expect(files.get('OverlayProvider.tsx')).toBe(scaffoldFiles.get('OverlayProvider.tsx'))
+    expect(files.get('alert/AlertSurface.tsx')).toContain('onClick={action}')
+    expect(files.get('confirm/ConfirmSurface.tsx')).toContain('onClick={confirm}')
+    expect(files.get('confirm/ConfirmSurface.tsx')).toContain('z-[3001]')
+    expect(files.get('confirm/ConfirmSurface.tsx')).not.toContain("import './Confirm.css'")
   })
 
-  it('Tailwind v4 Overlay 출력이 Next fixture 검증본과 일치한다', async () => {
-    for (const file of getOverlayScaffoldFiles('tailwind-v4')) {
-      const fixtureFile = fileURLToPath(new URL(file.name, nextOverlayDirectory))
-      await expect(readFile(fixtureFile, 'utf8')).resolves.toBe(file.content)
-    }
-  })
-
-  it('이름에 맞는 앱 소유 Dialog 컴포넌트와 전용 스타일을 생성한다', () => {
+  it('Dialog는 JSX props와 useOverlaySession 결과 계약을 생성한다', () => {
     const dialogFiles = new Map(
       getDialogScaffoldFiles('project-settings', 'css-modules').map((file) => [
         file.name,
@@ -75,64 +87,13 @@ describe('overlay 생성 템플릿', () => {
     const component = dialogFiles.get('ProjectSettingsDialog.tsx')
 
     expect(dialogFiles.has('ProjectSettingsDialog.module.css')).toBe(true)
-    expect(component).toContain('function ProjectSettingsDialog')
-    expect(component).toContain('OverlayDefinitionComponentProps<')
-    expect(component).toContain(
-      'export const projectSettingsDialog = defineOverlay(ProjectSettingsDialog)',
-    )
-    expect(component).toContain('onOpenChangeComplete')
-    expect(component).toContain("session.dismiss('cancel')")
-    expect(component).toContain('session.resolve({ completed: true })')
-  })
-
-  it.each([
-    ['css-modules', viteOverlayDirectory],
-    ['tailwind-v4', nextOverlayDirectory],
-  ] as const)('%s Dialog 출력이 consumer fixture 검증본과 일치한다', async (styling, root) => {
-    for (const file of getDialogScaffoldFiles('consumer-lab', styling)) {
-      const fixtureFile = fileURLToPath(new URL(`dialogs/consumer-lab/${file.name}`, root))
-      await expect(readFile(fixtureFile, 'utf8')).resolves.toBe(file.content)
-    }
-  })
-
-  it('병렬 그룹과 앱 소유 helper를 사용하는 Toast adapter를 생성한다', async () => {
-    const toastFiles = new Map(
-      getToastScaffoldFiles('css-modules').map((file) => [file.name, file.content]),
-    )
-    const definition = toastFiles.get('toast/definition.ts')
-    const component = toastFiles.get('toast/AppToastProvider.tsx')
-    const manager = toastFiles.get('toast/manager.ts')
-    const notify = toastFiles.get('toast/notify.ts')
-
-    expect(notify).toContain("strategy: 'parallel'")
-    expect(toastFiles.get('toast/Toast.module.css')).toContain('.Toast[data-limited]')
-    expect(component).toContain('toastManager={appToastManager}')
-    expect(component).toContain('export function AppToastProvider()')
-    expect(component).not.toContain('{children}')
-    expect(component).not.toContain('limit=')
-    expect(component).toContain('toast.data?.undo ?')
-    expect(component).not.toContain('export const appToast')
-    expect(definition).toContain('export const appToast = defineOverlay(AppToast)')
-    expect(definition).not.toContain('Toast.useToastManager')
-    expect(definition).toContain('appToastManager.add')
-    expect(manager).toContain('Toast.createToastManager<AppToastData>()')
-    expect(definition).toContain("sessionRef.current.resolve({ action: 'undo' })")
-    expect(definition).toContain("sessionRef.current.dismiss('programmatic')")
-    expect(definition).not.toContain("action: 'dismissed'")
-    expect(notify).toContain('export function notify(')
-    expect(notify).toContain('export async function notifyWithUndo(')
-    expect(notify).toContain('toastId: crypto.randomUUID()')
-
-    for (const [name, content] of toastFiles) {
-      const storybookFile = fileURLToPath(new URL(name, storybookOverlayDirectory))
-      await expect(readFile(storybookFile, 'utf8')).resolves.toBe(content)
-    }
-  })
-
-  it('Tailwind v4 Toast 출력이 Next fixture 검증본과 일치한다', async () => {
-    for (const file of getToastScaffoldFiles('tailwind-v4')) {
-      const fixtureFile = fileURLToPath(new URL(file.name, nextOverlayDirectory))
-      await expect(readFile(fixtureFile, 'utf8')).resolves.toBe(file.content)
-    }
+    expect(component).toContain('export function ProjectSettingsDialog({')
+    expect(component).toContain('useOverlaySession<ProjectSettingsDialogResult>()')
+    expect(component).toContain('requestClose(')
+    expect(component).toContain('completeClose()')
+    expect(component).toContain("close('cancel')")
+    expect(component).toContain('resolve({ completed: true })')
+    expect(component).not.toContain('defineOverlay')
+    expect(component).not.toContain('OverlayDefinitionComponentProps')
   })
 })

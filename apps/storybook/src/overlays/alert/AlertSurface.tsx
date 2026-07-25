@@ -3,7 +3,7 @@
 import { AlertDialog } from '@base-ui/react/alert-dialog'
 import type { AlertRendererProps } from '@lyrd/core'
 
-import type { StorybookAlertRequest } from '../scope'
+import type { AppAlertRequest } from '../scope'
 import styles from './Alert.module.css'
 
 export function AlertSurface({
@@ -11,7 +11,7 @@ export function AlertSurface({
   completeClose,
   open,
   request,
-}: AlertRendererProps<StorybookAlertRequest>) {
+}: AlertRendererProps<AppAlertRequest>) {
   return (
     <AlertDialog.Root open={open} onOpenChangeComplete={(nextOpen) => !nextOpen && completeClose()}>
       <AlertDialog.Portal>

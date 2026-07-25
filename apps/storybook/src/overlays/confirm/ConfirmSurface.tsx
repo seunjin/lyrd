@@ -3,7 +3,7 @@
 import { AlertDialog } from '@base-ui/react/alert-dialog'
 import type { ConfirmRendererProps } from '@lyrd/core'
 
-import type { StorybookConfirmRequest } from '../scope'
+import type { AppConfirmRequest } from '../scope'
 import styles from './Confirm.module.css'
 
 export function ConfirmSurface({
@@ -15,7 +15,7 @@ export function ConfirmSurface({
   open,
   request,
   requestClose,
-}: ConfirmRendererProps<StorybookConfirmRequest>) {
+}: ConfirmRendererProps<AppConfirmRequest>) {
   const pending = actionStatus === 'pending'
 
   function handleCancel() {
