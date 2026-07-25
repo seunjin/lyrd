@@ -1,6 +1,6 @@
 # RFC 0002: 범용 Dialog 세션 계약
 
-- 상태: RFC 0003으로 일부 대체됨
+- 상태: RFC 0004로 대체됨
 - 작성일: 2026-07-14
 - 담당: Lyrd 유지보수 팀
 - 선행 RFC: [RFC 0001: 오버레이 의도 관리 시스템](0001-overlay-intent-system.md)
@@ -8,6 +8,10 @@
 > 후속 결정: 반복 사용하는 커스텀 오버레이의 권장 경로는 RFC 0003의
 > `defineOverlay()`와 `overlay.open()`으로 변경되었다. `dialog(element)`는 단발성 JSX와
 > 마이그레이션용 escape hatch로 유지하며, `element.type + key` 자동 dedupe는 제거했다.
+>
+> 최종 후속 결정: [RFC 0004](0004-minimal-modal-overlay-stack.md)는 JSX 기반
+> `overlay.open(element)`를 유일한 커스텀 modal API로 채택하고 `dialog`, definition,
+> update 및 queue 계약을 제거했다.
 
 ## 요약
 

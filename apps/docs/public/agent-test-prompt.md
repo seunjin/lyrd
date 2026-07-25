@@ -1,5 +1,8 @@
 # Lyrd integration test prompt
 
+> Warning: this prompt targets the currently published 0.1 API. Do not use it as the implementation
+> contract for RFC 0004. It will be rewritten after the new Core and CLI contracts are complete.
+
 Use this prompt in the target React application repository.
 
 ---
