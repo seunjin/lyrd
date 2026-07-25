@@ -1,6 +1,6 @@
 import { useOverlay } from '@lyrd/core'
 import { X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 const confirmCode = `const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
@@ -16,14 +16,17 @@ const dialogCode = `const outcome = await overlay.open(
 
 export function HomePage() {
   const overlay = useOverlay()
+  const navigate = useNavigate()
 
   async function showConfirm() {
-    await overlay.confirm({
+    const confirmed = await overlay.confirm({
       title: '문서 구조를 직접 살펴볼까요?',
       description: '이 데모는 문서 앱이 직접 소유한 renderer를 사용합니다.',
       confirmLabel: 'Playground 보기',
       cancelLabel: '계속 둘러보기',
     })
+
+    if (confirmed) navigate('/playground')
   }
 
   return (

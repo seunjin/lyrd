@@ -165,7 +165,8 @@ export function LifecyclePage() {
         </p>
         <Callout title="completeExit을 빠뜨리지 마세요">
           closing 이후 transition이 끝났음을 알리지 않으면 세션이 렌더 트리에서 제거되지 않고 다음
-          queue 항목도 열리지 않을 수 있습니다.
+          queue 항목도 열리지 않을 수 있습니다. 개발 모드에서 closing이 10초 이상 지속되면 Lyrd가
+          연결 누락 가능성을 경고합니다.
         </Callout>
       </section>
     </DocPage>
@@ -182,8 +183,9 @@ export function GroupsAndSchedulingPage() {
       <section id="default-queue">
         <h2>기본 modal queue</h2>
         <p>
-          group을 생략한 <code>alert</code>, <code>confirm</code>, <code>open</code>은 안전한 기본
-          queue를 사용합니다. 한 세션의 exit이 완료되면 다음 항목이 열립니다.
+          group을 생략한 <code>alert</code>, <code>confirm</code>, <code>dialog</code>,{' '}
+          <code>open</code>은 안전한 기본 queue를 사용합니다. 한 세션의 exit이 완료되면 다음 항목이
+          열립니다.
         </p>
       </section>
 

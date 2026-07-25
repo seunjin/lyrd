@@ -12,7 +12,7 @@ export function PlaygroundPage() {
   async function showAlert() {
     await overlay.alert({
       title: '배포 준비가 완료되었습니다.',
-      description: '품질 게이트 6개가 모두 통과했습니다.',
+      description: '필수 품질 게이트가 모두 통과했습니다.',
       acknowledgeLabel: '확인',
     })
     setResult('alert · 사용자가 내용을 확인했습니다.')

@@ -19,6 +19,10 @@ export function ApplicationApiPage() {
           정보 전달이나 완료 알림처럼 선택지가 하나인 경우 사용합니다. <code>request</code>에는
           title, description, acknowledgeLabel과 선택적 dedupeKey를 전달합니다.
         </p>
+        <p>
+          같은 종류와 <code>dedupeKey</code>를 가진 활성·대기 요청이 있으면 새 항목을 만들지 않고
+          기존 Promise를 반환합니다.
+        </p>
         <CodeBlock>
           {`await overlay.alert({
   title: '배포 준비가 완료되었습니다.',
@@ -39,6 +43,10 @@ export function ApplicationApiPage() {
           confirmLabel은 필수이며 cancelLabel, tone, dismissPolicy, dedupeKey와 비동기 onConfirm을
           선택적으로 지정합니다. 확인이 완료되면 true, 취소되면 false입니다.
         </p>
+        <p>
+          비동기 <code>onConfirm</code>이 실패하면 요청은 error 상태로 열린 채 유지되어 다시 시도할
+          수 있습니다. Promise는 작업이 성공한 뒤에만 true로 완료됩니다.
+        </p>
         <CodeBlock>
           {`const confirmed = await overlay.confirm({
   title: '프로젝트를 삭제할까요?',
@@ -48,6 +56,38 @@ export function ApplicationApiPage() {
   dismissPolicy: 'block',
   onConfirm: () => deleteProject(projectId),
 })`}
+        </CodeBlock>
+      </ApiEntry>
+
+      <ApiEntry
+        id="dialog"
+        name="dialog"
+        returns={<code>Promise&lt;Result | undefined&gt;</code>}
+        purpose="단발성 React element와 기존 Dialog를 위한 escape hatch"
+        signature="overlay.dialog<Result>(element, options?): Promise<Result | undefined>"
+      >
+        <p>
+          기존 Dialog를 점진적으로 옮기거나 일회성 JSX를 열 때 사용합니다. 열린 element 안에서는{' '}
+          <code>useOverlayDialog&lt;Result&gt;()</code>로 open, status, resolve, dismiss,
+          requestDismiss와 completeExit을 연결합니다. 반복 사용하는 흐름은{' '}
+          <code>defineOverlay()</code>를 권장합니다.
+        </p>
+        <CodeBlock>
+          {`function LegacyDialog() {
+  const dialog = useOverlayDialog<{ saved: true }>()
+
+  return (
+    <Dialog.Root
+      open={dialog.open}
+      onOpenChange={(open) => !open && dialog.requestDismiss()}
+      onOpenChangeComplete={(open) => !open && dialog.completeExit()}
+    >
+      <button onClick={() => dialog.resolve({ saved: true })}>저장</button>
+    </Dialog.Root>
+  )
+}
+
+const result = await overlay.dialog(<LegacyDialog />)`}
         </CodeBlock>
       </ApiEntry>
 
@@ -103,6 +143,7 @@ const outcome = await upload`}
           </li>
           <li>활성 세션이 없으면 새 세션을 생성합니다.</li>
           <li>활성 세션의 group은 변경할 수 없습니다.</li>
+          <li>후속 호출에서 options를 생략하면 활성 세션의 기존 options를 유지합니다.</li>
           <li>종료된 identity를 다시 호출하면 새 세션을 만듭니다.</li>
         </ContractList>
       </ApiEntry>
@@ -151,6 +192,16 @@ const outcome = await upload`}
               <code>{`{ strategy: 'parallel' }`}</code>로 독립 coordination boundary를 선언합니다.
             </p>
           </article>
+          <article>
+            <h3>useOverlay</h3>
+            <p>가장 가까운 OverlayProvider의 Application API를 제품 코드에 제공합니다.</p>
+          </article>
+          <article>
+            <h3>useOverlayDialog</h3>
+            <p>
+              overlay.dialog()로 열린 element 내부에서만 사용하는 migration용 Renderer API입니다.
+            </p>
+          </article>
         </div>
         <CodeBlock label="DEFINITIONS">
           {`const projectSettings = defineOverlay(ProjectSettingsOverlay)
@@ -178,15 +229,52 @@ export function RendererApiPage() {
       </Callout>
 
       <ApiEntry
+        id="runtime-wiring"
+        name="OverlayProvider"
+        returns="React runtime boundary"
+        purpose="Application API와 앱 소유 Renderer를 하나의 controller에 연결"
+        signature="<OverlayProvider renderers={{ alert, confirm }} controller?={controller}>"
+      >
+        <p>
+          Provider는 앱 루트에 한 번 배치합니다. 일반 제품 코드는 <code>useOverlay()</code>로 API를
+          읽고, 생성된 로컬 Provider는 <code>AlertSurface</code>와 <code>ConfirmSurface</code>를
+          renderers prop에 전달합니다. 선택적 controller 주입과{' '}
+          <code>createOverlayController()</code>는 테스트나 고급 runtime 구성이 필요할 때 사용할 수
+          있습니다.
+        </p>
+      </ApiEntry>
+
+      <ApiEntry
+        id="built-in-renderers"
+        name="AlertSurfaceProps · ConfirmSurfaceProps"
+        returns="기본 alert와 confirm의 Renderer 계약"
+        purpose="생성된 Base UI surface와 중앙 queue를 연결"
+        signature="AlertSurfaceProps | ConfirmSurfaceProps"
+      >
+        <p>
+          Alert surface는 request, open, status와 acknowledge를 받고 Confirm surface는 confirm,
+          cancel, pending·error를 포함한 status와 error를 추가로 받습니다. 두 surface 모두
+          primitive의 닫기 시도와 exit 완료를 <code>requestDismiss()</code>,{' '}
+          <code>completeExit()</code>에 연결합니다.
+        </p>
+        <Callout title="두 status 계약을 구분하세요">
+          ConfirmSurfaceProps의 status에는 pending과 error가 포함되지만, defineOverlay component의
+          session.status에는 포함되지 않습니다.
+        </Callout>
+      </ApiEntry>
+
+      <ApiEntry
         id="session-values"
         name="open · status"
         returns="현재 세션 상태"
         purpose="primitive의 controlled state와 시각 상태를 동기화"
-        signature="session.open: boolean\nsession.status: 'mounting' | 'open' | 'pending' | 'error' | 'closing'"
+        signature="session.open: boolean\nsession.status: 'mounting' | 'open' | 'closing'"
       >
         <p>
-          <code>open</code>은 Dialog.Root 같은 controlled primitive에 전달합니다.{' '}
-          <code>status</code>는 mounting·open·closing과 confirm의 pending·error 표현에 사용합니다.
+          <code>open</code>은 Dialog.Root 같은 controlled primitive에 전달합니다. custom
+          definition의 <code>session.status</code>는 mounting·open·closing의 세 상태입니다. 기본
+          Confirm renderer의 pending·error는 별도 <code>ConfirmSurfaceProps.status</code>로
+          전달됩니다.
         </p>
         <CodeBlock>{`<Dialog.Root open={session.open}>…</Dialog.Root>`}</CodeBlock>
       </ApiEntry>

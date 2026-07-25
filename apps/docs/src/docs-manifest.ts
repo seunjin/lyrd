@@ -39,6 +39,7 @@ export const docsSections: DocsSection[] = [
           { id: 'connect-provider', label: 'Provider 연결' },
           { id: 'first-overlay', label: '첫 오버레이' },
           { id: 'custom-overlay', label: '커스텀 오버레이' },
+          { id: 'additional-generators', label: '추가 starter' },
         ],
       },
     ],
@@ -89,6 +90,7 @@ export const docsSections: DocsSection[] = [
         toc: [
           { id: 'alert', label: 'alert' },
           { id: 'confirm', label: 'confirm' },
+          { id: 'dialog', label: 'dialog' },
           { id: 'open', label: 'open' },
           { id: 'open-or-update', label: 'openOrUpdate' },
           { id: 'dismiss-all', label: 'dismissAll' },
@@ -100,6 +102,8 @@ export const docsSections: DocsSection[] = [
         title: 'Renderer API',
         description: '앱 소유 UI와 primitive가 세션 수명주기를 연결하는 API입니다.',
         toc: [
+          { id: 'runtime-wiring', label: 'Runtime 연결' },
+          { id: 'built-in-renderers', label: '기본 Renderer' },
           { id: 'session-values', label: 'open과 status' },
           { id: 'resolve', label: 'resolve' },
           { id: 'dismiss', label: 'dismiss' },
