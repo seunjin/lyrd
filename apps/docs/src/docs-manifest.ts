@@ -13,7 +13,7 @@ export type DocsSection = { items: DocsRoute[]; title: string }
 
 export const docsSections: DocsSection[] = [
   {
-    title: '시작',
+    title: 'Getting Started',
     items: [
       {
         path: '/introduction',
@@ -73,13 +73,13 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: '이해',
+    title: 'Concepts',
     items: [
       {
         path: '/concepts/outcome-and-handle',
         sourcePath: 'apps/docs/src/pages/concept-pages.tsx',
         keywords: ['OverlayOutcome', 'OverlayHandle', 'close', 'closeAll', 'props snapshot'],
-        title: 'Outcome과 Handle',
+        title: 'Outcome & Handle',
         description: '결과를 기다리고 정확한 세션을 닫는 awaitable Handle을 이해합니다.',
         toc: [
           { id: 'outcome', label: 'OverlayOutcome' },
@@ -103,7 +103,7 @@ export const docsSections: DocsSection[] = [
           'ESC',
           'outside',
         ],
-        title: 'Stack과 Lifecycle',
+        title: 'Stack & Lifecycle',
         description: 'LIFO 순서와 닫힘 결정, exit 완료가 이어지는 흐름입니다.',
         toc: [
           { id: 'states', label: '상태 흐름' },
@@ -117,7 +117,7 @@ export const docsSections: DocsSection[] = [
         path: '/concepts/glossary',
         sourcePath: 'apps/docs/src/pages/glossary-page.tsx',
         keywords: ['Scope', 'Client', 'Provider', 'Renderer', 'Session', 'Handle', 'snapshot'],
-        title: '용어집',
+        title: 'Glossary',
         description: 'Scope, Session, Handle, topmost와 snapshot의 뜻을 빠르게 찾습니다.',
         toc: [
           { id: 'structure', label: '구조와 소유권' },
@@ -128,13 +128,13 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: '만들기',
+    title: 'Recipes',
     items: [
       {
         path: '/recipes/custom-overlay',
         sourcePath: 'apps/docs/src/pages/custom-overlay-recipe-page.tsx',
         keywords: ['open', 'Dialog', 'Sheet', 'BottomSheet', 'Drawer', 'fullscreen'],
-        title: 'Custom overlay',
+        title: 'Custom Overlay',
         description: 'Dialog, Sheet, BottomSheet와 fullscreen을 같은 open() 계약으로 엽니다.',
         toc: [
           { id: 'choose-surface', label: '형태 선택' },
@@ -148,7 +148,7 @@ export const docsSections: DocsSection[] = [
         path: '/recipes/form-state',
         sourcePath: 'apps/docs/src/pages/form-state-recipe-page.tsx',
         keywords: ['form', 'input', 'validation', 'query', 'store', 'props update', 'closeAll'],
-        title: 'Form state와 snapshot',
+        title: 'Form State & Snapshot',
         description: '서버 최신값, 입력 draft와 route cleanup의 소유권을 구분합니다.',
         toc: [
           { id: 'snapshot-rule', label: 'Snapshot 규칙' },
@@ -190,7 +190,7 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: '참조',
+    title: 'API Reference',
     items: [
       {
         path: '/api/application',
@@ -232,7 +232,7 @@ export const docsSections: DocsSection[] = [
           'OverlayCloseReason',
           'OpenOptions',
         ],
-        title: 'Public types·defaults',
+        title: 'Public Types & Defaults',
         description: '@lyrd/core의 모든 공개 export와 request·result·lifecycle 타입, 기본값입니다.',
         toc: [
           { id: 'export-index', label: '공개 export 목록' },
@@ -270,7 +270,7 @@ export const docsSections: DocsSection[] = [
     ],
   },
   {
-    title: '운영',
+    title: 'Resources',
     items: [
       {
         path: '/troubleshooting',

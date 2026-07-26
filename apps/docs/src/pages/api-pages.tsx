@@ -165,12 +165,12 @@ const applicationRelatedDocs = [
   },
   {
     path: '/recipes/custom-overlay',
-    title: 'Custom overlay',
+    title: 'Custom Overlay',
     description: 'open<Result>()와 useOverlaySession<Result>()를 완전한 예제로 연결합니다.',
   },
   {
     path: '/concepts/lifecycle',
-    title: 'Stack과 Lifecycle',
+    title: 'Stack & Lifecycle',
     description: 'close, closeAll과 completeClose의 실행 시점을 이해합니다.',
   },
   {
@@ -182,12 +182,7 @@ const applicationRelatedDocs = [
 
 export function ApplicationApiPage() {
   return (
-    <DocPage
-      boundary="application"
-      description="제품 코드는 scope가 제공하는 다섯 메서드로 modal interaction을 열고 닫습니다."
-      eyebrow="API REFERENCE"
-      title="Application API"
-    >
+    <DocPage boundary="application" eyebrow="API REFERENCE">
       <ApiEntry
         id="scope"
         name="createOverlayScope"

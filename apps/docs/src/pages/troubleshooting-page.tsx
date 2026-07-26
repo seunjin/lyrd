@@ -15,7 +15,7 @@ const troubleshootingRelatedDocs = [
   },
   {
     path: '/concepts/lifecycle',
-    title: 'Stack과 Lifecycle',
+    title: 'Stack & Lifecycle',
     description: '닫힘 결정과 DOM 제거가 분리되는 이유를 확인합니다.',
   },
   {
@@ -59,11 +59,7 @@ function TroubleshootingCase({
 
 export function TroubleshootingPage() {
   return (
-    <DocPage
-      description="오류 메시지나 화면 증상에서 시작해 Provider, scope, session lifecycle과 프레임워크 경계를 점검합니다."
-      eyebrow="OPERATE / RECOVER"
-      title="Troubleshooting"
-    >
+    <DocPage eyebrow="TROUBLESHOOTING">
       <section id="diagnose">
         <SectionHeading id="diagnose">먼저 확인할 것</SectionHeading>
         <p>

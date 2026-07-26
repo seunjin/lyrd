@@ -7,10 +7,12 @@ import {
   PagePagination,
   PageTableOfContents,
 } from '../navigation/page-navigation'
+import { useActiveTableOfContents } from '../navigation/use-active-table-of-contents'
 
 export function DocsLayout() {
   const location = useLocation()
   const route = findDocsRoute(location.pathname)
+  const { activeId, setActiveId } = useActiveTableOfContents(route?.toc ?? [])
 
   return (
     <div className="docs-shell">
@@ -21,11 +23,11 @@ export function DocsLayout() {
           <span aria-hidden>/</span>
           <strong>{route?.title}</strong>
         </nav>
-        <MobilePageTableOfContents />
+        <MobilePageTableOfContents activeId={activeId} onNavigate={setActiveId} />
         <Outlet />
         <PagePagination />
       </main>
-      <PageTableOfContents />
+      <PageTableOfContents activeId={activeId} onNavigate={setActiveId} />
     </div>
   )
 }

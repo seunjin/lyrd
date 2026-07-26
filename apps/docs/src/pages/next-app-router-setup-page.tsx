@@ -31,18 +31,14 @@ const nextRelatedDocs = [
   },
   {
     path: '/concepts/lifecycle',
-    title: 'Stack과 Lifecycle',
+    title: 'Stack & Lifecycle',
     description: 'route change에서 stack을 정리하는 원리를 이해합니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function NextAppRouterSetupPage() {
   return (
-    <DocPage
-      description="Server Component인 RootLayout을 유지하면서 생성된 client wrapper로 OverlayProvider를 연결합니다."
-      eyebrow="FRAMEWORK SETUP"
-      title="Next.js App Router 설정"
-    >
+    <DocPage eyebrow="FRAMEWORK SETUP" packages="core-cli">
       <section id="generate">
         <SectionHeading id="generate">1. Tailwind v4 Renderer 생성</SectionHeading>
         <CodeBlock label="TERMINAL">

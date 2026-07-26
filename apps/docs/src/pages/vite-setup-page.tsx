@@ -38,11 +38,7 @@ const viteRelatedDocs = [
 
 export function ViteSetupPage() {
   return (
-    <DocPage
-      description="Vite React entry에 생성된 OverlayProvider를 한 번 연결하고 client 컴포넌트에서 첫 Alert를 엽니다."
-      eyebrow="FRAMEWORK SETUP"
-      title="Vite React 설정"
-    >
+    <DocPage eyebrow="FRAMEWORK SETUP" packages="core-cli">
       <section id="generate">
         <SectionHeading id="generate">1. CSS Modules Renderer 생성</SectionHeading>
         <CodeBlock label="TERMINAL">

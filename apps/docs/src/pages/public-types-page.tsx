@@ -186,18 +186,14 @@ const typeRelatedDocs = [
   },
   {
     path: '/concepts/glossary',
-    title: '용어집',
+    title: 'Glossary',
     description: '타입 이름에 사용된 Scope, Session, Outcome의 뜻을 확인합니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function PublicTypesPage() {
   return (
-    <DocPage
-      description="@lyrd/core가 export하는 모든 함수와 타입을 현재 계약, 역할과 기본값 기준으로 찾습니다."
-      eyebrow="API REFERENCE"
-      title="Public types와 defaults"
-    >
+    <DocPage eyebrow="API REFERENCE">
       <section id="export-index">
         <SectionHeading id="export-index">공개 export 목록</SectionHeading>
         <p>
