@@ -2,7 +2,12 @@ import { Link, useLocation } from 'react-router-dom'
 
 import { docsRoutes, findDocsRoute } from '../docs-manifest'
 
-export function PageTableOfContents() {
+type PageTableOfContentsProps = {
+  activeId: string | undefined
+  onNavigate: (id: string) => void
+}
+
+export function PageTableOfContents({ activeId, onNavigate }: PageTableOfContentsProps) {
   const location = useLocation()
   const route = findDocsRoute(location.pathname)
 
@@ -14,7 +19,14 @@ export function PageTableOfContents() {
       <ul>
         {route.toc.map((item) => (
           <li key={item.id}>
-            <a href={`#${item.id}`}>{item.label}</a>
+            <a
+              aria-current={activeId === item.id ? 'location' : undefined}
+              className={activeId === item.id ? 'active' : undefined}
+              href={`#${item.id}`}
+              onClick={() => onNavigate(item.id)}
+            >
+              {item.label}
+            </a>
           </li>
         ))}
       </ul>
@@ -22,7 +34,7 @@ export function PageTableOfContents() {
   )
 }
 
-export function MobilePageTableOfContents() {
+export function MobilePageTableOfContents({ activeId, onNavigate }: PageTableOfContentsProps) {
   const location = useLocation()
   const route = findDocsRoute(location.pathname)
 
@@ -34,7 +46,14 @@ export function MobilePageTableOfContents() {
       <ul>
         {route.toc.map((item) => (
           <li key={item.id}>
-            <a href={`#${item.id}`}>{item.label}</a>
+            <a
+              aria-current={activeId === item.id ? 'location' : undefined}
+              className={activeId === item.id ? 'active' : undefined}
+              href={`#${item.id}`}
+              onClick={() => onNavigate(item.id)}
+            >
+              {item.label}
+            </a>
           </li>
         ))}
       </ul>

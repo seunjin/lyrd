@@ -7,23 +7,19 @@ import { SectionHeading } from '../components/section-heading'
 const frameworkSetupDocs = [
   {
     path: '/getting-started/vite',
-    title: 'Vite React 설정',
+    title: 'Vite React',
     description: 'main.tsx에 Provider를 연결하고 첫 Alert를 엽니다.',
   },
   {
     path: '/getting-started/next-app-router',
-    title: 'Next.js App Router 설정',
+    title: 'Next.js App Router',
     description: 'Server layout과 생성된 client Provider 경계를 연결합니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function GettingStartedPage() {
   return (
-    <DocPage
-      description="프로젝트를 감지하고 앱이 소유할 Base UI Renderer를 생성한 뒤 프레임워크 root에 연결합니다."
-      eyebrow="QUICKSTART"
-      title="첫 오버레이를 준비하기"
-    >
+    <DocPage eyebrow="QUICKSTART" packages="core-cli">
       <section id="requirements">
         <SectionHeading id="requirements">1. 시작하기 전에</SectionHeading>
         <ContractList>

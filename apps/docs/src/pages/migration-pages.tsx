@@ -11,7 +11,7 @@ const migrationRelatedDocs = [
   },
   {
     path: '/recipes/form-state',
-    title: 'Form state와 snapshot',
+    title: 'Form State & Snapshot',
     description: '제거된 update API 대신 state를 소유하는 방법을 확인합니다.',
   },
   {
@@ -23,11 +23,7 @@ const migrationRelatedDocs = [
 
 export function OverlayApiMigrationPage() {
   return (
-    <DocPage
-      description="정식 버전 이전 API를 호환 계층 없이 제거하고 modal interaction에 집중한 새 계약으로 이동합니다."
-      eyebrow="MIGRATION · 0.2"
-      title="최소 modal stack으로 전환"
-    >
+    <DocPage eyebrow="MIGRATION · 0.2">
       <section id="removed">
         <SectionHeading id="removed">제거된 API</SectionHeading>
         <ContractList>

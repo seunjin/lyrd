@@ -7,7 +7,7 @@
   padding: 0 8px 0 11px;
   color: #55544e;
   background: rgb(255 255 255 / 35%);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -61,15 +61,15 @@
 
 .docs-search-heading h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing: -0.035em;
 }
 
 .docs-search-heading p {
   margin: 8px 0 0;
   color: var(--color-muted);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .docs-search-close {
@@ -122,7 +122,7 @@
   min-height: 42px;
   padding: 12px 22px 10px;
   color: #66655e;
-  font: 600 11px / 1.5 var(--font-mono);
+  font: 600 12px / 1.5 var(--font-mono);
 }
 
 .docs-search-results {
@@ -158,18 +158,18 @@
 }
 
 .docs-search-results strong {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .docs-search-results small {
   color: var(--color-muted);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .docs-search-results em {
   color: var(--color-accent-dark);
-  font: 650 10px / 1.4 var(--font-mono);
+  font: 650 11px / 1.4 var(--font-mono);
   font-style: normal;
 }
 
@@ -184,7 +184,7 @@
 .docs-search-empty p {
   margin: 0;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -195,7 +195,7 @@
   margin-top: 4px;
   border-bottom: 2px solid var(--color-accent-dark);
   padding-block: 5px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
 }
 

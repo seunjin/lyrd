@@ -6,14 +6,15 @@ import { MobileNavigation } from '../navigation/docs-navigation'
 
 export function SiteLayout() {
   const location = useLocation()
+  const docsRoute = findDocsRoute(location.pathname)
+  const isDocsPage = Boolean(docsRoute)
 
   useEffect(() => {
-    const docsRoute = findDocsRoute(location.pathname)
     const pageTitle =
       docsRoute?.title ??
       (location.pathname === '/playground' ? 'Playground' : 'Overlay intent system')
     document.title = `${pageTitle} — Lyrd`
-  }, [location.pathname])
+  }, [docsRoute, location.pathname])
 
   return (
     <>
@@ -30,7 +31,13 @@ export function SiteLayout() {
           </span>
         </div>
         <nav aria-label="주요 내비게이션" className="site-primary-nav">
-          <NavLink to="/introduction">문서</NavLink>
+          <Link
+            aria-current={isDocsPage ? 'page' : undefined}
+            className={isDocsPage ? 'active' : undefined}
+            to="/introduction"
+          >
+            Docs
+          </Link>
           <NavLink to="/playground">Playground</NavLink>
         </nav>
         <div className="site-header-actions">
@@ -54,7 +61,7 @@ export function SiteLayout() {
           <a href={`${import.meta.env.BASE_URL}llms.txt`}>LLM guide</a>
           <a href="https://github.com/seunjin/lyrd">GitHub ↗</a>
           <span>
-            문서 기준 · core v{__LYRD_CORE_VERSION__} · CLI v{__LYRD_CLI_VERSION__} · npm latest
+            Documentation · core v{__LYRD_CORE_VERSION__} · CLI v{__LYRD_CLI_VERSION__}
           </span>
           <span>MIT License · 2026</span>
         </div>

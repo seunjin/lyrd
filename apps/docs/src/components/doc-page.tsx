@@ -8,15 +8,13 @@ import { SectionHeading } from './section-heading'
 export function DocPage({
   boundary,
   children,
-  description,
   eyebrow,
-  title,
+  packages = 'core',
 }: {
   boundary?: 'application' | 'renderer'
   children: ReactNode
-  description: string
   eyebrow: string
-  title: string
+  packages?: 'core' | 'core-cli'
 }) {
   const location = useLocation()
   const route = findDocsRoute(location.pathname)
@@ -31,17 +29,17 @@ export function DocPage({
           <span>{eyebrow}</span>
           {boundary ? <span data-boundary={boundary}>{boundary} boundary</span> : null}
         </div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-        <div className="doc-page-meta">
-          <span>
-            문서 기준 · @lyrd/core v{__LYRD_CORE_VERSION__} · @lyrd/cli v{__LYRD_CLI_VERSION__} ·
-            npm latest
-          </span>
-          <a href={editUrl}>GitHub에서 이 페이지 수정 ↗</a>
-        </div>
+        <h1>{route?.title}</h1>
+        <p>{route?.description}</p>
       </header>
       <div className="doc-content">{children}</div>
+      <footer className="doc-page-footer">
+        <span>
+          문서 기준 · @lyrd/core v{__LYRD_CORE_VERSION__}
+          {packages === 'core-cli' ? ` · @lyrd/cli v${__LYRD_CLI_VERSION__}` : null}
+        </span>
+        <a href={editUrl}>GitHub에서 이 페이지 수정 ↗</a>
+      </footer>
     </article>
   )
 }

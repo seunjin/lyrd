@@ -42,10 +42,45 @@ export function DocsSearch() {
     if (!nextOpen) setQuery('')
   }
 
-  function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'ArrowDown' || results.length === 0) return
+  function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLElement>) {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+
+    const resultLinks = Array.from(
+      resultsRef.current?.querySelectorAll<HTMLAnchorElement>('a') ?? [],
+    )
+    if (resultLinks.length === 0) return
+
+    const activeElement = document.activeElement
+    const activeIndex =
+      activeElement instanceof HTMLAnchorElement ? resultLinks.indexOf(activeElement) : -1
+    const isResultFocused = activeIndex >= 0
+    const isInputFocused = activeElement === inputRef.current
+
+    if (!isInputFocused && !isResultFocused) return
+
+    if ((event.key === 'Home' || event.key === 'End') && !isResultFocused) return
+
     event.preventDefault()
-    resultsRef.current?.querySelector<HTMLAnchorElement>('a')?.focus()
+
+    if (event.key === 'Home') {
+      resultLinks[0]?.focus()
+      return
+    }
+
+    if (event.key === 'End') {
+      resultLinks.at(-1)?.focus()
+      return
+    }
+
+    if (event.key === 'ArrowDown') {
+      resultLinks[(activeIndex + 1) % resultLinks.length]?.focus()
+      return
+    }
+
+    const previousIndex = isResultFocused
+      ? (activeIndex - 1 + resultLinks.length) % resultLinks.length
+      : resultLinks.length - 1
+    resultLinks[previousIndex]?.focus()
   }
 
   return (
@@ -58,7 +93,11 @@ export function DocsSearch() {
       <Dialog.Portal>
         <Dialog.Backdrop className="docs-search-backdrop" />
         <Dialog.Viewport className="docs-search-viewport">
-          <Dialog.Popup className="docs-search-popup" initialFocus={inputRef}>
+          <Dialog.Popup
+            className="docs-search-popup"
+            initialFocus={inputRef}
+            onKeyDown={handleSearchKeyDown}
+          >
             <div className="docs-search-heading">
               <div>
                 <Dialog.Title>문서 검색</Dialog.Title>
@@ -76,7 +115,6 @@ export function DocsSearch() {
               <span className="sr-only">검색어</span>
               <input
                 onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={handleSearchKeyDown}
                 placeholder="예: confirm, Provider 오류, 안 닫힘"
                 ref={inputRef}
                 type="search"

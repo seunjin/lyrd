@@ -57,7 +57,7 @@ export function MobileNavigation() {
         <Dialog.Viewport className="mobile-nav-viewport">
           <Dialog.Popup className="mobile-nav-popup">
             <div className="mobile-nav-heading">
-              <Dialog.Title>문서 탐색</Dialog.Title>
+              <Dialog.Title>Documentation</Dialog.Title>
               <Dialog.Close aria-label="문서 메뉴 닫기" className="mobile-nav-close">
                 <X aria-hidden size={22} strokeWidth={2} />
               </Dialog.Close>

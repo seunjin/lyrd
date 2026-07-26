@@ -2,99 +2,12 @@ import { Callout } from '../components/callout'
 import { CodeBlock } from '../components/code-block'
 import { ContractList, DocPage } from '../components/doc-page'
 import { type DocStepItem, DocSteps } from '../components/doc-steps'
-import { DocTable, type DocTableRow } from '../components/doc-table'
 import { type RelatedDoc, RelatedDocs } from '../components/related-docs'
 import { SectionHeading } from '../components/section-heading'
 
 function inlineCode(value: string) {
   return <code>{value}</code>
 }
-
-const closeMethodRows = [
-  {
-    id: 'close',
-    cells: [
-      inlineCode('overlay.close()'),
-      '현재 client의 topmost 세션',
-      '마지막에 열린 modal 하나를 닫을 때',
-      inlineCode('boolean'),
-    ],
-  },
-  {
-    id: 'handle-close',
-    cells: [
-      inlineCode('handle.close()'),
-      'Handle이 가리키는 정확한 세션',
-      '비동기 흐름이 자신이 연 modal을 정리할 때',
-      inlineCode('boolean'),
-    ],
-  },
-  {
-    id: 'close-all',
-    cells: [
-      inlineCode('overlay.closeAll()'),
-      '현재 client의 모든 세션',
-      'route 전환·로그아웃처럼 경계를 정리할 때',
-      inlineCode('void'),
-    ],
-  },
-] satisfies DocTableRow[]
-
-const closeReasonRows = [
-  {
-    id: 'cancel',
-    cells: [inlineCode('cancel'), 'custom UI의 취소 버튼처럼 사용자가 명시적으로 취소함'],
-  },
-  {
-    id: 'escape',
-    cells: [inlineCode('escape'), "UI가 감지한 ESC를 requestClose('escape')로 허용받음"],
-  },
-  {
-    id: 'outside',
-    cells: [
-      inlineCode('outside'),
-      "UI가 감지한 outside press를 requestClose('outside')로 허용받음",
-    ],
-  },
-  {
-    id: 'route-change',
-    cells: [inlineCode('route-change'), 'route 이동 경계에서 앱이 close 또는 closeAll에 지정함'],
-  },
-  {
-    id: 'programmatic',
-    cells: [inlineCode('programmatic'), 'reason을 생략한 명시적 close 또는 Provider 정리'],
-  },
-] satisfies DocTableRow[]
-
-const closePolicyRows = [
-  {
-    id: 'alert',
-    cells: [
-      inlineCode('alert()'),
-      inlineCode('false'),
-      inlineCode('false'),
-      '사용자 입력은 action()만 허용',
-    ],
-  },
-  {
-    id: 'confirm',
-    cells: [
-      inlineCode('confirm()'),
-      inlineCode('true'),
-      inlineCode('true'),
-      'request의 예약 필드로 호출별 변경',
-    ],
-  },
-  {
-    id: 'custom',
-    cells: [
-      inlineCode('open()'),
-      inlineCode('true'),
-      inlineCode('true'),
-      '두 번째 options 인자로 호출별 변경',
-    ],
-  },
-] satisfies DocTableRow[]
 
 const nestedCloseSteps = [
   {
@@ -124,7 +37,35 @@ const nestedCloseSteps = [
   },
 ] satisfies DocStepItem[]
 
+const lifecycleSteps = [
+  {
+    id: 'opening',
+    title: 'opening',
+    description: '세션과 Renderer가 생성되고 Provider가 open 전환을 준비합니다.',
+  },
+  {
+    id: 'open',
+    title: 'open',
+    description: 'open=true이며 사용자가 UI와 상호작용합니다.',
+  },
+  {
+    id: 'closing',
+    title: 'closing',
+    description: '결과는 정해졌지만 exit를 위해 Renderer는 아직 mount되어 있습니다.',
+  },
+  {
+    id: 'removed',
+    title: 'removed',
+    description: 'completeClose 뒤 stack에서 제거되고 unmount됩니다.',
+  },
+] satisfies DocStepItem[]
+
 const outcomeRelatedDocs = [
+  {
+    path: '/api/public-types',
+    title: 'Public Types & Defaults',
+    description: 'Outcome, close reason과 Handle의 전체 타입을 확인합니다.',
+  },
   {
     path: '/api/application',
     title: 'Application API',
@@ -132,12 +73,17 @@ const outcomeRelatedDocs = [
   },
   {
     path: '/concepts/lifecycle',
-    title: 'Stack과 Lifecycle',
+    title: 'Stack & Lifecycle',
     description: '결과 결정과 실제 제거가 분리되는 과정을 이어서 봅니다.',
   },
 ] satisfies RelatedDoc[]
 
 const lifecycleRelatedDocs = [
+  {
+    path: '/api/public-types',
+    title: 'Public Types & Defaults',
+    description: 'ESC·outside 정책의 정확한 기본값을 확인합니다.',
+  },
   {
     path: '/api/renderer',
     title: 'Renderer API',
@@ -145,37 +91,21 @@ const lifecycleRelatedDocs = [
   },
   {
     path: '/concepts/glossary',
-    title: '용어집',
+    title: 'Glossary',
     description: 'Scope, Session, topmost와 snapshot의 뜻을 빠르게 찾습니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function OutcomeAndHandlePage() {
   return (
-    <DocPage
-      description="open()은 결과를 기다릴 수 있는 Promise이면서 정확한 세션을 닫을 수 있는 Handle을 반환합니다."
-      eyebrow="CONCEPTS"
-      title="Outcome과 awaitable Handle"
-    >
+    <DocPage eyebrow="CONCEPTS">
       <section id="outcome">
         <SectionHeading id="outcome">OverlayOutcome</SectionHeading>
         <CodeBlock label="TYPE">
           {`type OverlayOutcome<Result> =
   | { status: 'resolved'; value: Result }
-  | { status: 'closed'; reason: OverlayCloseReason }
-
-type OverlayCloseReason =
-  | 'cancel'
-  | 'escape'
-  | 'outside'
-  | 'route-change'
-  | 'programmatic'`}
+  | { status: 'closed'; reason: OverlayCloseReason }`}
         </CodeBlock>
-        <DocTable
-          caption="OverlayCloseReason 의미"
-          columns={['reason', '사용 의미']}
-          rows={closeReasonRows}
-        />
         <p>
           custom overlay가 값을 확정하면 <code>resolved</code>, 값 없이 닫히면 <code>closed</code>가
           됩니다. 이 구분 덕분에 유효한 값과 ESC·취소·route 전환을 하나의 결과 타입에서 안전하게
@@ -228,11 +158,17 @@ window.clearTimeout(timeoutId)`}
 
       <section id="close-methods">
         <SectionHeading id="close-methods">세 가지 close의 대상</SectionHeading>
-        <DocTable
-          caption="close 메서드 선택"
-          columns={['메서드', '대상', '사용 시점', '호출 결과']}
-          rows={closeMethodRows}
-        />
+        <ul>
+          <li>
+            <code>overlay.close()</code>는 현재 client의 topmost 세션을 닫습니다.
+          </li>
+          <li>
+            <code>handle.close()</code>는 Handle이 가리키는 정확한 세션을 닫습니다.
+          </li>
+          <li>
+            <code>overlay.closeAll()</code>은 route 전환처럼 현재 경계를 정리할 때 사용합니다.
+          </li>
+        </ul>
         <CodeBlock label="ROUTE CLEANUP">
           {`useEffect(() => {
   return () => overlay.closeAll('route-change')
@@ -292,35 +228,10 @@ window.clearTimeout(timeoutId)`}
 
 export function LifecyclePage() {
   return (
-    <DocPage
-      description="새 modal은 stack의 위에 놓이고, 닫힘을 결정한 뒤 exit가 끝날 때까지 mount를 유지합니다."
-      eyebrow="CONCEPTS"
-      title="Stack과 overlay lifecycle"
-    >
+    <DocPage eyebrow="CONCEPTS">
       <section id="states">
         <SectionHeading id="states">상태 흐름</SectionHeading>
-        <ol className="lifecycle-flow">
-          <li>
-            <span>01</span>
-            <strong>opening</strong>
-            <small>세션과 Renderer가 생성되고 Provider가 open 전환을 준비합니다.</small>
-          </li>
-          <li>
-            <span>02</span>
-            <strong>open</strong>
-            <small>open=true이며 사용자가 UI와 상호작용합니다.</small>
-          </li>
-          <li>
-            <span>03</span>
-            <strong>closing</strong>
-            <small>결과는 정해졌지만 exit를 위해 Renderer는 아직 mount되어 있습니다.</small>
-          </li>
-          <li>
-            <span>04</span>
-            <strong>removed</strong>
-            <small>completeClose 뒤 stack에서 제거되고 unmount됩니다.</small>
-          </li>
-        </ol>
+        <DocSteps items={lifecycleSteps} />
         <p>
           공개 <code>OverlayPhase</code>는 opening·open·closing 세 값입니다. removed는 세션이 더
           이상 snapshot에 존재하지 않는 상태를 설명하기 위한 문서 용어입니다.
@@ -380,11 +291,11 @@ export function LifecyclePage() {
 
       <section id="close-policy">
         <SectionHeading id="close-policy">닫힘 정책과 기본값</SectionHeading>
-        <DocTable
-          caption="ESC와 outside press 기본 정책"
-          columns={['호출', 'ESC', 'Outside press', '변경 위치']}
-          rows={closePolicyRows}
-        />
+        <p>
+          Alert는 명시적인 action으로만 닫습니다. Confirm과 custom overlay는 ESC와 outside press를
+          기본 허용하며, 각 호출에서 정책을 바꿀 수 있습니다. 정확한 기본값과 타입은 Public Types &
+          Defaults에서 관리합니다.
+        </p>
         <CodeBlock label="PER-CALL OVERRIDE">
           {`const confirmed = await overlay.confirm({
   title: '작성 중인 내용을 버릴까요?',

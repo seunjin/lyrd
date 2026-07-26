@@ -31,12 +31,12 @@ const asyncConfirmSteps = [
 const asyncConfirmRelatedDocs = [
   {
     path: '/api/renderer',
-    title: 'Renderer 상태 계약',
+    title: 'Renderer API',
     description: 'actionStatus·error·confirm command를 UI에 연결합니다.',
   },
   {
     path: '/playground',
-    title: 'Async Confirm 데모',
+    title: 'Playground',
     description: '첫 시도 실패와 두 번째 성공을 직접 재현합니다.',
   },
   {
@@ -48,11 +48,7 @@ const asyncConfirmRelatedDocs = [
 
 export function AsyncConfirmRecipePage() {
   return (
-    <DocPage
-      description="확인 뒤 서버 작업을 기다리고 실패를 같은 Confirm 안에서 보여 주고 재시도합니다."
-      eyebrow="RECIPE"
-      title="Async Confirm과 재시도"
-    >
+    <DocPage eyebrow="RECIPE">
       <section id="when-to-use">
         <SectionHeading id="when-to-use">언제 사용하는가</SectionHeading>
         <p>

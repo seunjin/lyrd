@@ -27,28 +27,24 @@ const surfaceRows = [
 const customOverlayRelatedDocs = [
   {
     path: '/recipes/form-state',
-    title: 'Form state와 props snapshot',
+    title: 'Form State & Snapshot',
     description: '입력 draft와 서버 최신값을 열린 컴포넌트에서 소유합니다.',
   },
   {
     path: '/concepts/outcome-and-handle',
-    title: 'Outcome과 Handle',
+    title: 'Outcome & Handle',
     description: 'resolve와 close가 돌려주는 결과 계약을 확인합니다.',
   },
   {
     path: '/api/renderer',
-    title: 'Renderer adapter',
+    title: 'Renderer API',
     description: 'primitive와 Core의 lifecycle 책임을 확인합니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function CustomOverlayRecipePage() {
   return (
-    <DocPage
-      description="Dialog, Sheet, BottomSheet와 fullscreen은 같은 open() 계약 위에서 앱이 형태와 접근성을 결정합니다."
-      eyebrow="RECIPE"
-      title="Custom surface를 JSX로 열기"
-    >
+    <DocPage eyebrow="RECIPE">
       <section id="choose-surface">
         <SectionHeading id="choose-surface">언제 어떤 형태를 쓰는가</SectionHeading>
         <DocTable

@@ -31,7 +31,7 @@ const nestedSteps = [
 const nestedRelatedDocs = [
   {
     path: '/concepts/lifecycle',
-    title: 'Stack과 Lifecycle',
+    title: 'Stack & Lifecycle',
     description: 'topmost와 LIFO 종료 규칙을 확인합니다.',
   },
   {
@@ -48,11 +48,7 @@ const nestedRelatedDocs = [
 
 export function NestedConfirmRecipePage() {
   return (
-    <DocPage
-      description="입력 중인 custom overlay 위에 Confirm을 push하고 아래 state와 focus를 유지합니다."
-      eyebrow="RECIPE"
-      title="Custom overlay 안에서 Confirm 열기"
-    >
+    <DocPage eyebrow="RECIPE">
       <section id="when-to-use">
         <SectionHeading id="when-to-use">언제 사용하는가</SectionHeading>
         <p>

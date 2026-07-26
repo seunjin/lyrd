@@ -7,28 +7,24 @@ import { SectionHeading } from '../components/section-heading'
 const formStateRelatedDocs = [
   {
     path: '/recipes/custom-overlay',
-    title: 'Custom surface',
+    title: 'Custom Overlay',
     description: '폼을 담을 Dialog·Sheet의 controlled lifecycle을 연결합니다.',
   },
   {
     path: '/concepts/outcome-and-handle',
-    title: 'Props snapshot',
+    title: 'Outcome & Handle',
     description: '호출 시점 JSX와 Handle의 의미를 확인합니다.',
   },
   {
     path: '/api/application',
-    title: 'closeAll',
+    title: 'Application API',
     description: 'route teardown에서 모든 session을 닫는 계약을 확인합니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function FormStateRecipePage() {
   return (
-    <DocPage
-      description="호출부는 안정적인 ID만 넘기고, 서버 데이터와 입력 draft·validation은 열린 컴포넌트가 소유합니다."
-      eyebrow="RECIPE"
-      title="Form state와 props snapshot"
-    >
+    <DocPage eyebrow="RECIPE">
       <section id="snapshot-rule">
         <SectionHeading id="snapshot-rule">언제 사용하는가</SectionHeading>
         <p>

@@ -153,7 +153,7 @@ const rendererRelatedDocs = [
   },
   {
     path: '/api/public-types',
-    title: 'Public types·defaults',
+    title: 'Public Types & Defaults',
     description: 'Renderer props와 lifecycle 타입의 원형을 확인합니다.',
   },
   {
@@ -165,12 +165,7 @@ const rendererRelatedDocs = [
 
 export function RendererGuidePage() {
   return (
-    <DocPage
-      boundary="renderer"
-      description="앱 Renderer가 Core session을 Base UI, Radix 또는 자체 modal의 controlled lifecycle에 연결합니다."
-      eyebrow="API REFERENCE"
-      title="Renderer API와 UI adapter"
-    >
+    <DocPage boundary="renderer" eyebrow="API REFERENCE">
       <section id="renderer-props">
         <SectionHeading id="renderer-props">Alert와 Confirm Renderer 계약</SectionHeading>
         <DocTable

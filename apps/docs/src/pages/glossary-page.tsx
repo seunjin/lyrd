@@ -100,18 +100,14 @@ const glossaryRelatedDocs = [
   },
   {
     path: '/concepts/outcome-and-handle',
-    title: 'Outcome과 Handle',
+    title: 'Outcome & Handle',
     description: '결과 타입과 정확한 session을 닫는 방법을 예제로 봅니다.',
   },
 ] satisfies RelatedDoc[]
 
 export function GlossaryPage() {
   return (
-    <DocPage
-      description="Lyrd 문서와 타입에서 반복해서 사용하는 구조와 lifecycle 용어를 짧게 정의합니다."
-      eyebrow="CONCEPTS"
-      title="용어집"
-    >
+    <DocPage eyebrow="CONCEPTS">
       <section id="structure">
         <SectionHeading id="structure">구조와 소유권</SectionHeading>
         <DocTable caption="구조 용어" columns={['용어', '뜻']} rows={structureTerms} />
